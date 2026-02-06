@@ -1,11 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, auth, SubscriptionPlan, SubscriptionResponse } from "@/lib/api";
 
 export default function SubscriptionsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+      </div>
+    }>
+      <SubscriptionsContent />
+    </Suspense>
+  );
+}
+
+function SubscriptionsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<SubscriptionResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,8 +31,17 @@ export default function SubscriptionsPage() {
       router.push("/login");
       return;
     }
+
+    // Handle return from Dodo Payments checkout
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      setSuccess("Payment successful! Your subscription will be activated shortly.");
+    } else if (paymentStatus === "cancelled") {
+      setError("Payment was cancelled. You can try again anytime.");
+    }
+
     loadData();
-  }, [router]);
+  }, [router, searchParams]);
 
   const loadData = async () => {
     try {
@@ -45,14 +67,36 @@ export default function SubscriptionsPage() {
     setSuccess("");
 
     try {
-      const res = await api.upgradeSubscription(tier);
+      const returnUrl = `${window.location.origin}/subscriptions?payment=success`;
+      const res = await api.upgradeSubscription(tier, returnUrl);
+      if (res.success && res.data.checkoutUrl) {
+        // Redirect to Dodo Payments checkout
+        window.location.href = res.data.checkoutUrl;
+        return; // Don't clear upgrading state since we're redirecting
+      }
+    } catch (err) {
+      setError("Failed to create checkout session. Please try again.");
+      console.error(err);
+    } finally {
+      setUpgrading(null);
+    }
+  };
+
+  const handleDowngrade = async () => {
+    if (upgrading !== null) return;
+    setUpgrading(0); // 0 = Starter tier
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await api.downgradeSubscription();
       if (res.success) {
         setCurrentSubscription(res.data);
-        setSuccess("Subscription upgraded successfully!");
+        setSuccess("Downgraded to free plan successfully.");
         await loadData();
       }
     } catch (err) {
-      setError("Failed to upgrade subscription");
+      setError("Failed to downgrade subscription. Please try again.");
       console.error(err);
     } finally {
       setUpgrading(null);
@@ -222,7 +266,7 @@ export default function SubscriptionsPage() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleUpgrade(plan.tier)}
+                      onClick={() => handleDowngrade()}
                       disabled={upgrading !== null}
                       className="w-full py-3 rounded-xl text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                     >

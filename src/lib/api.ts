@@ -221,6 +221,10 @@ export interface SubscriptionResponse {
   billingCycleReset: string;
 }
 
+export interface CheckoutResponse {
+  checkoutUrl: string;
+}
+
 export interface UsageLogEntry {
   id: string;
   databaseConnectionName: string;
@@ -562,10 +566,16 @@ class ApiClient {
     return this.request<SubscriptionResponse>('/api/subscriptions/current');
   }
 
-  async upgradeSubscription(newTier: number): Promise<ApiResponse<SubscriptionResponse>> {
-    return this.request<SubscriptionResponse>('/api/subscriptions/upgrade', {
-      method: 'PUT',
-      body: JSON.stringify({ newTier }),
+  async upgradeSubscription(newTier: number, returnUrl: string): Promise<ApiResponse<CheckoutResponse>> {
+    return this.request<CheckoutResponse>('/api/subscriptions/upgrade', {
+      method: 'POST',
+      body: JSON.stringify({ newTier, returnUrl }),
+    });
+  }
+
+  async downgradeSubscription(): Promise<ApiResponse<SubscriptionResponse>> {
+    return this.request<SubscriptionResponse>('/api/subscriptions/downgrade', {
+      method: 'POST',
     });
   }
 
