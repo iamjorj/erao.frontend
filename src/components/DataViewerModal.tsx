@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   BarChart,
@@ -343,34 +343,15 @@ function LargeChart({
     };
   }, [data, columns, chartType]);
 
-  if (!chartConfig) return null;
-
-  const { chartData, dataColumns, pieData, hasNonZeroValues, isLargeDataset } = chartConfig;
+  const chartData = chartConfig?.chartData ?? [];
+  const dataColumns = chartConfig?.dataColumns ?? [];
+  const pieData = chartConfig?.pieData ?? [];
+  const hasNonZeroValues = chartConfig?.hasNonZeroValues ?? false;
+  const isLargeDataset = chartConfig?.isLargeDataset ?? false;
   const dataCount = chartData.length;
 
-  const getXAxisConfig = () => {
-    if (dataCount <= 15) {
-      return { interval: 0, angle: 0, textAnchor: "middle" as const, dy: 10 };
-    } else if (dataCount <= 30) {
-      return { interval: 0, angle: -45, textAnchor: "end" as const, dy: 5 };
-    } else {
-      const skipInterval = Math.ceil(dataCount / 20);
-      return { interval: skipInterval - 1, angle: -45, textAnchor: "end" as const, dy: 5 };
-    }
-  };
-
-  const xAxisConfig = getXAxisConfig();
-  const bottomMargin = dataCount > 15 ? 80 : 30;
-
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string }>;
-    label?: string;
-  }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderTooltip = useCallback(({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const found = chartData.find((d) => d.name === label);
       const fullName = found ? String(found.fullName) : label || "";
@@ -385,7 +366,7 @@ function LargeChart({
           <p className="text-sm font-medium mb-2 break-words" style={{ color: tooltipText }}>
             {fullName}
           </p>
-          {payload.map((entry, index) => (
+          {payload.map((entry: { name: string; value: number; color: string }, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {typeof entry.value === "number" ? entry.value.toLocaleString() : entry.value}
             </p>
@@ -394,7 +375,23 @@ function LargeChart({
       );
     }
     return null;
+  }, [chartData, tooltipBg, tooltipBorder, tooltipText]);
+
+  if (!chartConfig) return null;
+
+  const getXAxisConfig = () => {
+    if (dataCount <= 15) {
+      return { interval: 0, angle: 0, textAnchor: "middle" as const, dy: 10 };
+    } else if (dataCount <= 30) {
+      return { interval: 0, angle: -45, textAnchor: "end" as const, dy: 5 };
+    } else {
+      const skipInterval = Math.ceil(dataCount / 20);
+      return { interval: skipInterval - 1, angle: -45, textAnchor: "end" as const, dy: 5 };
+    }
   };
+
+  const xAxisConfig = getXAxisConfig();
+  const bottomMargin = dataCount > 15 ? 80 : 30;
 
   if (!hasNonZeroValues) {
     return (
@@ -437,7 +434,7 @@ function LargeChart({
                 height={bottomMargin + 20}
               />
               <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={renderTooltip} />
               <Legend
                 wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
                 formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
@@ -467,7 +464,7 @@ function LargeChart({
                 height={bottomMargin + 20}
               />
               <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={renderTooltip} />
               <Legend
                 wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
                 formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
@@ -504,7 +501,7 @@ function LargeChart({
                 height={bottomMargin + 20}
               />
               <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={renderTooltip} />
               <Legend
                 wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
                 formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}

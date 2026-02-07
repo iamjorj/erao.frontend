@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   auth,
   api,
@@ -2932,36 +2932,33 @@ function SchemaViewerModal({
 // ERD Diagram View Component
 function ERDiagramView({ tables }: { tables: TableSchema[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(0.8);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-
-  // Initialize table positions in a grid layout
-  useEffect(() => {
+  const initialPositions = useMemo(() => {
     const cols = Math.ceil(Math.sqrt(tables.length));
-    const initialPositions: Record<string, { x: number; y: number }> = {};
+    const pos: Record<string, { x: number; y: number }> = {};
     tables.forEach((table, index) => {
       const col = index % cols;
       const row = Math.floor(index / cols);
-      initialPositions[table.name] = {
+      pos[table.name] = {
         x: 80 + col * 300,
         y: 80 + row * 280,
       };
     });
-    setPositions(initialPositions);
-    // Auto-fit scale based on table count
-    if (tables.length > 10) {
-      setScale(0.6);
-    } else if (tables.length > 5) {
-      setScale(0.75);
-    } else {
-      setScale(0.9);
-    }
+    return pos;
   }, [tables]);
+
+  const initialScale = useMemo(() => {
+    if (tables.length > 10) return 0.6;
+    if (tables.length > 5) return 0.75;
+    return 0.9;
+  }, [tables]);
+
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>(initialPositions);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(initialScale);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   // Build FK relationships
   const relationships = tables.flatMap(table =>

@@ -22,7 +22,7 @@ export default function ContactPage() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Have questions about Erao? We're here to help. Click any card below to copy our email address.
+            Have questions about Erao? We&apos;re here to help. Click any card below to copy our email address.
           </p>
         </div>
 

@@ -29,10 +29,10 @@ export default function AboutPage() {
       <section className="w-full max-w-5xl mx-auto px-6 pt-16 pb-20">
         <div className="max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            We're making data accessible to everyone
+            We&apos;re making data accessible to everyone
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed">
-            Erao was born from a simple frustration: why do you need to know SQL to ask your own database a question? We're building a world where anyone—not just engineers—can get instant insights from their data.
+            Erao was born from a simple frustration: why do you need to know SQL to ask your own database a question? We&apos;re building a world where anyone—not just engineers—can get instant insights from their data.
           </p>
         </div>
       </section>
@@ -58,10 +58,10 @@ export default function AboutPage() {
               Every day, thousands of business decisions are delayed because someone needs to ask a developer to write a SQL query. Product managers wait for usage stats. Sales teams wait for pipeline reports. Support teams wait for customer history.
             </p>
             <p>
-              We started Erao to fix this. By combining modern AI with a deep understanding of databases, we've built a tool that lets anyone—regardless of technical background—have a conversation with their data.
+              We started Erao to fix this. By combining modern AI with a deep understanding of databases, we&apos;ve built a tool that lets anyone—regardless of technical background—have a conversation with their data.
             </p>
             <p>
-              Today, teams use Erao to get instant answers to questions that used to take hours or days. And we're just getting started.
+              Today, teams use Erao to get instant answers to questions that used to take hours or days. And we&apos;re just getting started.
             </p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function AboutPage() {
       <section className="w-full max-w-5xl mx-auto px-6 py-20 text-center">
         <h2 className="text-2xl font-bold mb-4">Get in Touch</h2>
         <p className="text-gray-600 mb-6">
-          Questions? Feedback? We'd love to hear from you.
+          Questions? Feedback? We&apos;d love to hear from you.
         </p>
         <div className="flex items-center justify-center gap-4">
           <EmailButton variant="outline">

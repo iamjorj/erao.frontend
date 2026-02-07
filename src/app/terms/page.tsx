@@ -49,7 +49,7 @@ export default function TermsPage() {
                   </p>
                   <div className="bg-white rounded-xl p-4 border border-gray-200">
                     <p className="text-sm text-gray-500">
-                      The Service is provided on an "as available" basis. We reserve the right to modify, suspend,
+                      The Service is provided on an &quot;as available&quot; basis. We reserve the right to modify, suspend,
                       or discontinue any aspect of the Service at any time.
                     </p>
                   </div>

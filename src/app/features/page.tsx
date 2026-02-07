@@ -162,9 +162,9 @@ export default function FeaturesPage() {
               <div className="space-y-2">
                 {useCase.examples.map((example) => (
                   <div key={example} className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="text-gray-400">"</span>
+                    <span className="text-gray-400">&quot;</span>
                     {example}
-                    <span className="text-gray-400">"</span>
+                    <span className="text-gray-400">&quot;</span>
                   </div>
                 ))}
               </div>

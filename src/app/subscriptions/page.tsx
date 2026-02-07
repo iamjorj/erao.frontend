@@ -321,7 +321,7 @@ function SubscriptionsContent() {
             <div className="p-4">
               <h3 className="font-medium text-gray-900 dark:text-white">Can I downgrade my plan?</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Yes, you can downgrade anytime. Note that you may need to remove database connections if you exceed the lower plan's limit.
+                Yes, you can downgrade anytime. Note that you may need to remove database connections if you exceed the lower plan&apos;s limit.
               </p>
             </div>
             <div className="p-4">
@@ -333,7 +333,7 @@ function SubscriptionsContent() {
             <div className="p-4">
               <h3 className="font-medium text-gray-900 dark:text-white">Do you offer refunds?</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Yes, within 7 days of purchase if you've used fewer than 5 queries.
+                Yes, within 7 days of purchase if you&apos;ve used fewer than 5 queries.
               </p>
             </div>
           </div>

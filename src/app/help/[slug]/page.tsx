@@ -273,7 +273,7 @@ export default function HelpArticlePage() {
       <PageLayout currentPage="help">
         <div className="w-full max-w-3xl mx-auto px-6 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
-          <p className="text-gray-600 mb-6">The article you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-6">The article you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/help" className="text-black underline">
             Back to Help Center
           </Link>

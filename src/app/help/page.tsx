@@ -180,7 +180,7 @@ export default function HelpPage() {
 
         {searchQuery && filteredCategories.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No articles found for "{searchQuery}"</p>
+            <p className="text-gray-500">No articles found for &quot;{searchQuery}&quot;</p>
             <button
               onClick={() => setSearchQuery("")}
               className="mt-4 text-sm text-black underline"

@@ -32,7 +32,7 @@ export default function LandingPage() {
           {/* Subheadline - explains how */}
           <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl mx-auto">
             Connect your database and get instant answers. No SQL required.
-            Just ask like you'd ask a colleague.
+            Just ask like you&apos;d ask a colleague.
           </p>
 
           {/* Single primary CTA */}
@@ -131,7 +131,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Natural Language</h3>
             <p className="text-gray-600 text-sm">
-              Ask questions like "What were sales last week?" and get instant answers. No SQL knowledge needed.
+              Ask questions like &quot;What were sales last week?&quot; and get instant answers. No SQL knowledge needed.
             </p>
           </div>
 

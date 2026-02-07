@@ -54,7 +54,7 @@ export default function SecurityPage() {
         </div>
         <h1 className="text-4xl font-bold mb-4">Security at Erao</h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Your data security is our top priority. We've built Erao from the ground up with security in mind.
+          Your data security is our top priority. We&apos;ve built Erao from the ground up with security in mind.
         </p>
       </section>
 
