@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api, auth, ApiError } from "@/lib/api";
+import { LogoIcon } from "@/components/shared";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -71,8 +72,9 @@ export default function LoginPage() {
 
       <div className="w-full max-w-[400px] flex flex-col items-center gap-8">
         {/* Logo */}
-        <Link href="/" className="font-bold text-2xl tracking-tight">
-          Erao.
+        <Link href="/" className="flex items-center gap-2">
+          <LogoIcon className="w-12 h-12" />
+          <span className="font-bold text-2xl tracking-tight">Erao</span>
         </Link>
 
         {/* Form Container */}

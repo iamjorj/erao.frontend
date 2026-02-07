@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Navbar, Footer, LogoIcon } from "@/components/shared";
+import { Navbar, Footer } from "@/components/shared";
 
 export default function LandingPage() {
 
@@ -79,10 +79,7 @@ export default function LandingPage() {
                   <div className="w-3 h-3 rounded-full bg-gray-300" />
                   <div className="w-3 h-3 rounded-full bg-gray-500" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <LogoIcon className="w-5 h-5" />
-                  <span className="text-sm text-gray-500">Connected to production_db</span>
-                </div>
+                <span className="text-sm text-gray-500">Connected to production_db</span>
               </div>
               <div className="p-6 space-y-4">
                 {/* User message */}

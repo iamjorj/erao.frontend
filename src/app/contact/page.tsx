@@ -33,7 +33,7 @@ export default function ContactPage() {
             className="group border border-gray-200 rounded-2xl p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
-              copied === "general" ? "bg-green-500 text-white" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
+              copied === "general" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
             }`}>
               {copied === "general" ? (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,9 +49,7 @@ export default function ContactPage() {
             <p className="text-sm text-gray-600 mb-4">
               Questions about Erao? Want to learn more about what we offer?
             </p>
-            <span className={`inline-flex items-center gap-2 text-sm font-medium ${
-              copied === "general" ? "text-green-600" : "text-black"
-            }`}>
+            <span className={`inline-flex items-center gap-2 text-sm font-medium text-black`}>
               {copied === "general" ? "Email Copied!" : "Click to Copy Email"}
             </span>
           </button>
@@ -62,7 +60,7 @@ export default function ContactPage() {
             className="group border border-gray-200 rounded-2xl p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
-              copied === "support" ? "bg-green-500 text-white" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
+              copied === "support" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
             }`}>
               {copied === "support" ? (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -78,9 +76,7 @@ export default function ContactPage() {
             <p className="text-sm text-gray-600 mb-4">
               Having issues? Need help setting up your database connections?
             </p>
-            <span className={`inline-flex items-center gap-2 text-sm font-medium ${
-              copied === "support" ? "text-green-600" : "text-black"
-            }`}>
+            <span className={`inline-flex items-center gap-2 text-sm font-medium text-black`}>
               {copied === "support" ? "Email Copied!" : "Click to Copy Email"}
             </span>
           </button>
@@ -91,7 +87,7 @@ export default function ContactPage() {
             className="group border border-gray-200 rounded-2xl p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
-              copied === "sales" ? "bg-green-500 text-white" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
+              copied === "sales" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
             }`}>
               {copied === "sales" ? (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -105,11 +101,9 @@ export default function ContactPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Sales</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Interested in Enterprise plans or custom solutions for your team?
+              Looking for custom solutions or team pricing?
             </p>
-            <span className={`inline-flex items-center gap-2 text-sm font-medium ${
-              copied === "sales" ? "text-green-600" : "text-black"
-            }`}>
+            <span className={`inline-flex items-center gap-2 text-sm font-medium text-black`}>
               {copied === "sales" ? "Email Copied!" : "Click to Copy Email"}
             </span>
           </button>
@@ -120,19 +114,23 @@ export default function ContactPage() {
           <div className="bg-gray-50 rounded-2xl p-8">
             <h2 className="text-xl font-semibold mb-3">Our Email Address</h2>
             <p className="text-gray-600 mb-4">
-              Reach us directly at:
+              Click to copy:
             </p>
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-lg font-medium text-black bg-white px-4 py-2 rounded-lg border border-gray-200">
-                {SUPPORT_EMAIL}
-              </span>
-              <button
-                onClick={() => handleCopy("direct")}
-                className="w-20 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-black text-white hover:bg-gray-800"
-              >
-                {copied === "direct" ? "Copied!" : "Copy"}
-              </button>
-            </div>
+            <button
+              onClick={() => handleCopy("direct")}
+              className="text-lg font-medium text-black bg-white px-4 py-2 rounded-lg border border-gray-200 hover:border-black hover:shadow-sm transition-all cursor-pointer"
+            >
+              {copied === "direct" ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copied!
+                </span>
+              ) : (
+                SUPPORT_EMAIL
+              )}
+            </button>
           </div>
         </div>
 

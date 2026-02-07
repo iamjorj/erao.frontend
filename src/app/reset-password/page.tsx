@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { LogoIcon } from "@/components/shared";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -59,7 +60,10 @@ function ResetPasswordContent() {
     <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
       <div className="w-full max-w-md px-6">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">Erao.</h1>
+          <Link href="/" className="inline-flex items-center gap-2 mb-4">
+            <LogoIcon className="w-12 h-12" />
+            <span className="font-bold text-2xl tracking-tight">Erao</span>
+          </Link>
           <h2 className="text-xl font-semibold">Reset your password</h2>
           <p className="text-gray-600 text-sm mt-2">
             Enter your new password below.
@@ -135,7 +139,10 @@ export default function ResetPasswordPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
         <div className="w-full max-w-md px-6 text-center">
-          <h1 className="text-2xl font-bold mb-2">Erao.</h1>
+          <div className="inline-flex items-center gap-2 mb-4">
+            <LogoIcon className="w-12 h-12" />
+            <span className="font-bold text-2xl tracking-tight">Erao</span>
+          </div>
           <div className="text-sm text-gray-500">Loading...</div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, auth, ApiError } from "@/lib/api";
+import { LogoIcon } from "@/components/shared";
 
 function OtpVerificationContent() {
   const router = useRouter();
@@ -141,8 +142,9 @@ function OtpVerificationContent() {
     <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
       <div className="w-full max-w-[400px] px-6 flex flex-col items-center gap-8">
         {/* Logo */}
-        <Link href="/" className="font-bold text-xl tracking-tight">
-          Erao.
+        <Link href="/" className="flex items-center gap-2">
+          <LogoIcon className="w-12 h-12" />
+          <span className="font-bold text-2xl tracking-tight">Erao</span>
         </Link>
 
         {/* Header */}
@@ -227,7 +229,10 @@ export default function OtpVerificationPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
         <div className="w-full max-w-[400px] px-6 flex flex-col items-center gap-8">
-          <span className="font-bold text-xl tracking-tight">Erao.</span>
+          <div className="flex items-center gap-2">
+            <LogoIcon className="w-12 h-12" />
+            <span className="font-bold text-2xl tracking-tight">Erao</span>
+          </div>
           <div className="text-sm text-gray-500">Loading...</div>
         </div>
       </div>

@@ -1,0 +1,13 @@
+# Erao Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://erao.digital/sitemap.xml
+
+# Disallow private routes
+Disallow: /ai
+Disallow: /profile
+Disallow: /usage
+Disallow: /subscriptions
+Disallow: /api/

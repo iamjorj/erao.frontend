@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useRef } from "react";
 
 // Support email
-export const SUPPORT_EMAIL = "javxohirdoniyorov@gmail.com";
+export const SUPPORT_EMAIL = "support@erao.digital";
 
 // Email button that redirects to contact page
 export const EmailButton = ({
@@ -33,16 +34,17 @@ export const EmailButton = ({
   );
 };
 
-// Logo icon component - square, circle, triangle in one horizontal line
-export const LogoIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 48 16" fill="currentColor">
-    {/* Square - left */}
-    <rect x="0" y="1" width="14" height="14" />
-    {/* Circle - center */}
-    <circle cx="24" cy="8" r="7" />
-    {/* Triangle - right */}
-    <polygon points="34,15 48,15 41,1" />
-  </svg>
+// Logo icon component
+export const LogoIcon = ({ className = "w-12 h-12", dark = true }: { className?: string; dark?: boolean }) => (
+  <Image
+    src="/logo.png"
+    alt="Erao Logo"
+    width={200}
+    height={200}
+    quality={100}
+    priority
+    className={`${className} ${dark ? "invert" : ""}`}
+  />
 );
 
 // Navigation dropdown data
@@ -141,7 +143,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
   return (
     <nav className="w-full max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
       <Link href="/" className="flex items-center gap-2.5">
-        <LogoIcon className="w-10 h-10" />
+        <LogoIcon className="w-12 h-12" />
         <span className="font-semibold text-xl">Erao</span>
       </Link>
 
@@ -202,7 +204,7 @@ export const Footer = () => (
         {/* Brand */}
         <div className="col-span-2 md:col-span-1">
           <Link href="/" className="flex items-center gap-2.5 mb-4">
-            <LogoIcon className="w-10 h-10" />
+            <LogoIcon className="w-12 h-12" />
             <span className="font-semibold text-xl">Erao</span>
           </Link>
           <p className="text-sm text-gray-500">
