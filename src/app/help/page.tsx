@@ -99,10 +99,10 @@ export default function HelpPage() {
   return (
     <PageLayout currentPage="help">
       {/* Hero with Search */}
-      <section className="w-full bg-gray-50 py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h1 className="text-4xl font-bold mb-4">How can we help?</h1>
-          <p className="text-gray-600 mb-8">Search our knowledge base or browse categories below</p>
+      <section className="w-full bg-gray-50 py-10 sm:py-16">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">How can we help?</h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">Search our knowledge base or browse categories below</p>
 
           {/* Search */}
           <div className="relative max-w-xl mx-auto">
@@ -127,9 +127,9 @@ export default function HelpPage() {
 
       {/* Popular Articles */}
       {!searchQuery && (
-        <section className="w-full max-w-5xl mx-auto px-6 py-12">
-          <h2 className="text-lg font-semibold mb-4">Popular Articles</h2>
-          <div className="grid md:grid-cols-2 gap-3">
+        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Popular Articles</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
             {popularArticles.map((article) => (
               <Link
                 key={article.slug}
@@ -150,11 +150,11 @@ export default function HelpPage() {
       )}
 
       {/* Categories */}
-      <section className="w-full max-w-5xl mx-auto px-6 pb-20">
-        <h2 className="text-lg font-semibold mb-6">{searchQuery ? "Search Results" : "Browse by Category"}</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
+        <h2 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">{searchQuery ? "Search Results" : "Browse by Category"}</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredCategories.map((category) => (
-            <div key={category.title} className="border border-gray-200 rounded-2xl p-6">
+            <div key={category.title} className="border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                   {category.icon}
@@ -192,9 +192,9 @@ export default function HelpPage() {
       </section>
 
       {/* Contact Support */}
-      <section className="w-full bg-gray-50 py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold mb-4">Still need help?</h2>
+      <section className="w-full bg-gray-50 py-12 sm:py-16">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Still need help?</h2>
           <p className="text-gray-600 mb-6">Our support team is ready to assist you.</p>
           <EmailButton variant="primary">
             Contact Support

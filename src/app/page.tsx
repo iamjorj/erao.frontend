@@ -46,66 +46,66 @@ export default function LandingPage() {
           </div>
 
           {/* Quick trust indicators */}
-          <div className="flex items-center justify-center gap-6 mt-8 text-sm text-gray-500">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8 text-xs sm:text-sm text-gray-500">
             <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              Free forever plan
+              Free forever
             </span>
             <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              Setup in 2 minutes
+              2 min setup
             </span>
             <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              Secure & encrypted
+              Encrypted
             </span>
           </div>
         </div>
 
         {/* Product preview */}
-        <div className="mt-16 relative">
-          <div className="bg-gradient-to-b from-gray-100 to-gray-50 rounded-2xl p-2 md:p-3 shadow-2xl shadow-gray-200/50">
-            <div className="bg-white rounded-xl overflow-hidden border border-gray-200">
+        <div className="mt-12 sm:mt-16 relative">
+          <div className="bg-gradient-to-b from-gray-100 to-gray-50 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 md:p-3 shadow-2xl shadow-gray-200/50">
+            <div className="bg-white rounded-lg sm:rounded-xl overflow-hidden border border-gray-200">
               {/* Mock chat interface */}
-              <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-gray-400" />
-                  <div className="w-3 h-3 rounded-full bg-gray-300" />
-                  <div className="w-3 h-3 rounded-full bg-gray-500" />
+              <div className="bg-gray-50 border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
+                <div className="flex gap-1 sm:gap-1.5">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-400" />
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-300" />
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-500" />
                 </div>
-                <span className="text-sm text-gray-500">Connected to production_db</span>
+                <span className="text-xs sm:text-sm text-gray-500 truncate">Connected to production_db</span>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
                 {/* User message */}
                 <div className="flex justify-end">
-                  <div className="bg-gray-900 text-white px-4 py-2.5 rounded-2xl rounded-br-md max-w-md">
-                    <p className="text-sm">Show me our top 5 customers by revenue this month</p>
+                  <div className="bg-gray-900 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl rounded-br-md max-w-[85%] sm:max-w-md">
+                    <p className="text-xs sm:text-sm">Show me our top 5 customers by revenue this month</p>
                   </div>
                 </div>
                 {/* AI response */}
                 <div className="flex justify-start">
-                  <div className="bg-gray-100 px-4 py-3 rounded-2xl rounded-bl-md max-w-lg">
-                    <p className="text-sm text-gray-700 mb-3">Here are your top 5 customers by revenue for January 2025:</p>
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                      <table className="w-full text-sm">
+                  <div className="bg-gray-100 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl rounded-bl-md max-w-[95%] sm:max-w-lg">
+                    <p className="text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3">Here are your top 5 customers by revenue for January 2025:</p>
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden overflow-x-auto">
+                      <table className="w-full text-xs sm:text-sm min-w-[200px]">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="text-left px-3 py-2 text-gray-600 font-medium">Customer</th>
-                            <th className="text-right px-3 py-2 text-gray-600 font-medium">Revenue</th>
+                            <th className="text-left px-2 sm:px-3 py-1.5 sm:py-2 text-gray-600 font-medium">Customer</th>
+                            <th className="text-right px-2 sm:px-3 py-1.5 sm:py-2 text-gray-600 font-medium">Revenue</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          <tr><td className="px-3 py-2">Acme Corp</td><td className="text-right px-3 py-2 font-medium">$42,500</td></tr>
-                          <tr><td className="px-3 py-2">TechStart Inc</td><td className="text-right px-3 py-2 font-medium">$38,200</td></tr>
-                          <tr><td className="px-3 py-2">DataFlow Labs</td><td className="text-right px-3 py-2 font-medium">$31,800</td></tr>
-                          <tr><td className="px-3 py-2">CloudNine Systems</td><td className="text-right px-3 py-2 font-medium">$28,400</td></tr>
-                          <tr><td className="px-3 py-2">Quantum Analytics</td><td className="text-right px-3 py-2 font-medium">$24,100</td></tr>
+                          <tr><td className="px-2 sm:px-3 py-1.5 sm:py-2">Acme Corp</td><td className="text-right px-2 sm:px-3 py-1.5 sm:py-2 font-medium">$42,500</td></tr>
+                          <tr><td className="px-2 sm:px-3 py-1.5 sm:py-2">TechStart Inc</td><td className="text-right px-2 sm:px-3 py-1.5 sm:py-2 font-medium">$38,200</td></tr>
+                          <tr><td className="px-2 sm:px-3 py-1.5 sm:py-2">DataFlow Labs</td><td className="text-right px-2 sm:px-3 py-1.5 sm:py-2 font-medium">$31,800</td></tr>
+                          <tr><td className="px-2 sm:px-3 py-1.5 sm:py-2">CloudNine</td><td className="text-right px-2 sm:px-3 py-1.5 sm:py-2 font-medium">$28,400</td></tr>
+                          <tr><td className="px-2 sm:px-3 py-1.5 sm:py-2">Quantum</td><td className="text-right px-2 sm:px-3 py-1.5 sm:py-2 font-medium">$24,100</td></tr>
                         </tbody>
                       </table>
                     </div>

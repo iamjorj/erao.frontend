@@ -82,11 +82,11 @@ export default function FeaturesPage() {
   return (
     <PageLayout currentPage="features">
       {/* Hero */}
-      <section className="w-full max-w-5xl mx-auto px-6 pt-16 pb-20 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-20 text-center">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">
           Everything you need to query your data
         </h1>
-        <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto">
           Erao turns your natural language questions into SQL queries, executes them, and presents the results beautifully.
         </p>
         <Link
@@ -98,10 +98,10 @@ export default function FeaturesPage() {
       </section>
 
       {/* Features Grid */}
-      <section className="w-full max-w-5xl mx-auto px-6 pb-20">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {features.map((feature) => (
-            <div key={feature.title} className="border border-gray-200 rounded-2xl p-6">
+            <div key={feature.title} className="border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
                 {feature.icon}
               </div>
@@ -113,10 +113,10 @@ export default function FeaturesPage() {
       </section>
 
       {/* How it works */}
-      <section className="w-full bg-gray-50 py-20">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">How it works</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+      <section className="w-full bg-gray-50 py-14 sm:py-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">How it works</h2>
+          <div className="grid sm:grid-cols-3 gap-6 sm:gap-8">
             <div className="text-center">
               <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
                 1
@@ -149,14 +149,14 @@ export default function FeaturesPage() {
       </section>
 
       {/* Use Cases */}
-      <section className="w-full max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-bold text-center mb-4">Built for every team</h2>
-        <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3 sm:mb-4">Built for every team</h2>
+        <p className="text-sm sm:text-base text-gray-600 text-center mb-8 sm:mb-12 max-w-2xl mx-auto">
           From product managers to sales reps, anyone can get insights from your data.
         </p>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {useCases.map((useCase) => (
-            <div key={useCase.title} className="border border-gray-200 rounded-2xl p-6">
+            <div key={useCase.title} className="border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-2">{useCase.title}</h3>
               <p className="text-sm text-gray-600 mb-4">{useCase.description}</p>
               <div className="space-y-2">
@@ -174,9 +174,9 @@ export default function FeaturesPage() {
       </section>
 
       {/* CTA */}
-      <section className="w-full bg-black text-white py-20">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+      <section className="w-full bg-black text-white py-14 sm:py-20">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
             Ready to talk to your data?
           </h2>
           <p className="text-gray-400 mb-8 text-lg">

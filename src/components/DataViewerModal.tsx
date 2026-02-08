@@ -66,6 +66,22 @@ function useDarkMode(): boolean {
   return isDark;
 }
 
+// Hook to detect mobile screen
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return isMobile;
+}
+
 // Truncate long labels
 function truncateLabel(label: string, maxLength: number = 15): string {
   if (label.length <= maxLength) return label;
@@ -185,7 +201,7 @@ function FullscreenVirtualTable({
           {/* Table Header - sticky top, scrolls horizontally with data */}
           <div className={`flex items-center gap-3 px-4 py-3 border-b sticky top-0 z-10 ${
             isDark
-              ? "bg-gray-800 border-gray-700"
+              ? "bg-[#1a1a1a] border-[#333333]"
               : "bg-gray-50 border-gray-200"
           }`}>
             <span className={`w-16 text-sm font-semibold flex-shrink-0 ${
@@ -218,8 +234,8 @@ function FullscreenVirtualTable({
                   key={virtualRow.index}
                   className={`flex items-center gap-3 px-4 py-3 absolute w-full ${
                     virtualRow.index % 2 === 0
-                      ? isDark ? "bg-gray-900" : "bg-white"
-                      : isDark ? "bg-gray-800/50" : "bg-gray-50/50"
+                      ? isDark ? "bg-[#0a0a0a]" : "bg-white"
+                      : isDark ? "bg-[#1a1a1a]" : "bg-gray-50/50"
                   }`}
                   style={{
                     height: `${virtualRow.size}px`,
@@ -264,12 +280,22 @@ function LargeChart({
   chartType: ChartType;
   isDark: boolean;
 }) {
-  // Theme colors
-  const gridColor = isDark ? "#374151" : "#e5e7eb";
+  const isMobile = useIsMobile();
+
+  // Theme colors - pure black theme for dark mode
+  const gridColor = isDark ? "#333333" : "#e5e7eb";
   const tickColor = isDark ? "#9ca3af" : "#6b7280";
-  const tooltipBg = isDark ? "#1f2937" : "white";
-  const tooltipBorder = isDark ? "#374151" : "#e5e7eb";
+  const tooltipBg = isDark ? "#1a1a1a" : "white";
+  const tooltipBorder = isDark ? "#333333" : "#e5e7eb";
   const tooltipText = isDark ? "#f9fafb" : "#111827";
+
+  // Responsive dimensions
+  const chartHeight = isMobile ? 280 : 500;
+  const pieOuterRadius = isMobile ? 80 : 180;
+  const fontSize = isMobile ? 9 : 12;
+  const margins = isMobile
+    ? { top: 10, right: 10, left: 10, bottom: 50 }
+    : { top: 20, right: 30, left: 40, bottom: 80 };
 
   // Memoize chart data processing
   const chartConfig = useMemo(() => {
@@ -391,27 +417,25 @@ function LargeChart({
   };
 
   const xAxisConfig = getXAxisConfig();
-  const bottomMargin = dataCount > 15 ? 80 : 30;
+  const bottomMargin = isMobile ? 40 : (dataCount > 15 ? 80 : 30);
 
   if (!hasNonZeroValues) {
     return (
-      <div className={`h-full flex items-center justify-center ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+      <div className={`h-full flex items-center justify-center ${isDark ? "text-gray-400" : "text-gray-500"} text-sm`}>
         No data to visualize (all values are 0)
       </div>
     );
   }
 
-  const chartHeight = 500;
-
   const renderInfo = () => {
     if (!isLargeDataset) return null;
     return (
-      <div className={`text-sm text-center mb-4 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+      <div className={`text-xs sm:text-sm text-center mb-2 sm:mb-4 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
         {chartType === "pie"
-          ? `Top 15 by value (from ${data.length} rows)`
+          ? `Top 15 (${data.length} rows)`
           : chartType === "line" || chartType === "area"
-          ? `Sampled ${chartData.length} points from ${data.length} rows`
-          : `Top 50 by value (from ${data.length} rows)`}
+          ? `${chartData.length} of ${data.length} rows`
+          : `Top 50 of ${data.length} rows`}
       </div>
     );
   };
@@ -422,23 +446,29 @@ function LargeChart({
         <div className="w-full">
           {renderInfo()}
           <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: bottomMargin }}>
+            <BarChart data={chartData} margin={margins}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 12, fill: tickColor }}
-                interval={xAxisConfig.interval}
+                tick={{ fontSize, fill: tickColor }}
+                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
                 dy={xAxisConfig.dy}
-                height={bottomMargin + 20}
+                height={bottomMargin + 15}
               />
-              <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
+              <YAxis
+                tick={{ fontSize, fill: tickColor }}
+                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                width={isMobile ? 35 : 60}
+              />
               <Tooltip content={renderTooltip} />
-              <Legend
-                wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-              />
+              {!isMobile && (
+                <Legend
+                  wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
+                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
+                />
+              )}
               {dataColumns.map((col, index) => (
                 <Bar key={col} dataKey={col} fill={COLORS[index % COLORS.length]} radius={[4, 4, 0, 0]} />
               ))}
@@ -452,31 +482,37 @@ function LargeChart({
         <div className="w-full">
           {renderInfo()}
           <ResponsiveContainer width="100%" height={chartHeight}>
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: bottomMargin }}>
+            <LineChart data={chartData} margin={margins}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 12, fill: tickColor }}
-                interval={xAxisConfig.interval}
+                tick={{ fontSize, fill: tickColor }}
+                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
                 dy={xAxisConfig.dy}
-                height={bottomMargin + 20}
+                height={bottomMargin + 15}
               />
-              <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
+              <YAxis
+                tick={{ fontSize, fill: tickColor }}
+                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                width={isMobile ? 35 : 60}
+              />
               <Tooltip content={renderTooltip} />
-              <Legend
-                wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-              />
+              {!isMobile && (
+                <Legend
+                  wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
+                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
+                />
+              )}
               {dataColumns.map((col, index) => (
                 <Line
                   key={col}
                   type="monotone"
                   dataKey={col}
                   stroke={COLORS[index % COLORS.length]}
-                  strokeWidth={2}
-                  dot={dataCount <= 50 ? { fill: COLORS[index % COLORS.length], strokeWidth: 2, r: 3 } : false}
+                  strokeWidth={isMobile ? 1.5 : 2}
+                  dot={!isMobile && dataCount <= 50 ? { fill: COLORS[index % COLORS.length], strokeWidth: 2, r: 3 } : false}
                 />
               ))}
             </LineChart>
@@ -489,23 +525,29 @@ function LargeChart({
         <div className="w-full">
           {renderInfo()}
           <ResponsiveContainer width="100%" height={chartHeight}>
-            <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: bottomMargin }}>
+            <AreaChart data={chartData} margin={margins}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 12, fill: tickColor }}
-                interval={xAxisConfig.interval}
+                tick={{ fontSize, fill: tickColor }}
+                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
                 dy={xAxisConfig.dy}
-                height={bottomMargin + 20}
+                height={bottomMargin + 15}
               />
-              <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
+              <YAxis
+                tick={{ fontSize, fill: tickColor }}
+                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                width={isMobile ? 35 : 60}
+              />
               <Tooltip content={renderTooltip} />
-              <Legend
-                wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-              />
+              {!isMobile && (
+                <Legend
+                  wrapperStyle={{ fontSize: "14px", paddingTop: "20px", color: tickColor }}
+                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
+                />
+              )}
               {dataColumns.map((col, index) => (
                 <Area
                   key={col}
@@ -524,7 +566,7 @@ function LargeChart({
     case "pie":
       if (pieData.length === 0) {
         return (
-          <div className={`h-full flex items-center justify-center ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+          <div className={`h-full flex items-center justify-center ${isDark ? "text-gray-400" : "text-gray-500"} text-sm`}>
             No data to visualize (all values are 0)
           </div>
         );
@@ -532,8 +574,9 @@ function LargeChart({
 
       const total = pieData.reduce((sum, item) => sum + item.value, 0);
 
-      // Only show labels for slices > 3% to avoid overlap
+      // Only show labels for slices > 3% to avoid overlap (hide on mobile)
       const renderLabel = ({ name, percent }: { name?: string; percent?: number }) => {
+        if (isMobile) return "";
         if (!percent || percent < 0.03) return "";
         return `${truncateLabel(name || "", 12)} (${(percent * 100).toFixed(0)}%)`;
       };
@@ -541,8 +584,8 @@ function LargeChart({
       return (
         <div className="w-full">
           {isLargeDataset && (
-            <div className={`text-sm text-center mb-4 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-              Top 15 by value (from {data.length} rows)
+            <div className={`text-xs sm:text-sm text-center mb-2 sm:mb-4 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+              Top 15 of {data.length} rows
             </div>
           )}
           <ResponsiveContainer width="100%" height={chartHeight}>
@@ -552,8 +595,8 @@ function LargeChart({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={pieData.length <= 10 ? renderLabel : false}
-                outerRadius={180}
+                label={!isMobile && pieData.length <= 10 ? renderLabel : false}
+                outerRadius={pieOuterRadius}
                 dataKey="value"
               >
                 {pieData.map((entry, index) => (
@@ -565,7 +608,7 @@ function LargeChart({
                   backgroundColor: tooltipBg,
                   border: `1px solid ${tooltipBorder}`,
                   borderRadius: "8px",
-                  fontSize: "14px",
+                  fontSize: isMobile ? "11px" : "14px",
                   color: tooltipText,
                 }}
                 itemStyle={{ color: tooltipText }}
@@ -576,8 +619,8 @@ function LargeChart({
                 }}
               />
               <Legend
-                wrapperStyle={{ fontSize: "14px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, 25)}</span>}
+                wrapperStyle={{ fontSize: isMobile ? "10px" : "14px", color: tickColor }}
+                formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, isMobile ? 15 : 25)}</span>}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -634,45 +677,45 @@ export function DataViewerModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className={`rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden shadow-2xl transition-colors ${
-        isDark ? "bg-gray-900" : "bg-white"
+    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-end sm:items-center justify-center z-50 sm:p-4">
+      <div className={`rounded-t-2xl sm:rounded-2xl w-full sm:max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col overflow-hidden shadow-2xl transition-colors ${
+        isDark ? "bg-[#0a0a0a]" : "bg-white"
       }`}>
         {/* Header */}
-        <div className={`flex items-center justify-between px-6 py-4 border-b ${
-          isDark ? "border-gray-700" : "border-gray-200"
+        <div className={`flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b ${
+          isDark ? "border-[#333333]" : "border-gray-200"
         }`}>
-          <div className="flex items-center gap-4">
-            <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
-              Data Viewer
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <h2 className={`text-sm sm:text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+              Data
             </h2>
-            <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              {rows.length.toLocaleString()} rows × {columns.length} columns
+            <span className={`text-xs sm:text-sm truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+              {rows.length.toLocaleString()} × {columns.length}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Export Button */}
             <button
               onClick={handleExportCSV}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors ${
                 isDark
-                  ? "text-gray-400 hover:text-white hover:bg-gray-800"
+                  ? "text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Export CSV
+              <span className="hidden sm:inline">Export CSV</span>
             </button>
             {/* Close Button */}
             <button
               onClick={onClose}
-              className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-                isDark ? "hover:bg-gray-800" : "hover:bg-gray-100"
+              className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-colors ${
+                isDark ? "hover:bg-[#1a1a1a]" : "hover:bg-gray-100"
               }`}
             >
-              <svg className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -680,84 +723,84 @@ export function DataViewerModal({
         </div>
 
         {/* View Toggle */}
-        <div className={`flex items-center gap-1 px-6 py-3 border-b ${
-          isDark ? "border-gray-800 bg-gray-800/50" : "border-gray-100 bg-gray-50/50"
+        <div className={`flex items-center gap-0.5 sm:gap-1 px-2 sm:px-6 py-2 sm:py-3 border-b overflow-x-auto ${
+          isDark ? "border-[#252525] bg-[#1a1a1a]" : "border-gray-100 bg-gray-50/50"
         }`}>
           <button
             onClick={() => setCurrentView("table")}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
               currentView === "table"
                 ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
-                : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+                : isDark ? "text-gray-400 hover:bg-[#252525]" : "text-gray-600 hover:bg-gray-100"
             }`}
           >
-            <span className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="flex items-center gap-1.5 sm:gap-2">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              Table
+              <span className="hidden sm:inline">Table</span>
             </span>
           </button>
           {hasNumericData && (
             <>
               <button
                 onClick={() => setCurrentView("bar")}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
                   currentView === "bar"
                     ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
-                    : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+                    : isDark ? "text-gray-400 hover:bg-[#252525]" : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
-                  Bar
+                  <span className="hidden sm:inline">Bar</span>
                 </span>
               </button>
               <button
                 onClick={() => setCurrentView("line")}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
                   currentView === "line"
                     ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
-                    : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+                    : isDark ? "text-gray-400 hover:bg-[#252525]" : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                   </svg>
-                  Line
+                  <span className="hidden sm:inline">Line</span>
                 </span>
               </button>
               <button
                 onClick={() => setCurrentView("pie")}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
                   currentView === "pie"
                     ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
-                    : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+                    : isDark ? "text-gray-400 hover:bg-[#252525]" : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8l5.66 5.66C14.38 19.19 13.23 20 12 20z" />
                   </svg>
-                  Pie
+                  <span className="hidden sm:inline">Pie</span>
                 </span>
               </button>
               <button
                 onClick={() => setCurrentView("area")}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
                   currentView === "area"
                     ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
-                    : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+                    : isDark ? "text-gray-400 hover:bg-[#252525]" : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M4 15l4-8 4 4 4-6 4 10" />
                   </svg>
-                  Area
+                  <span className="hidden sm:inline">Area</span>
                 </span>
               </button>
             </>
@@ -769,7 +812,7 @@ export function DataViewerModal({
           {currentView === "table" ? (
             <FullscreenVirtualTable columns={columns} rows={rows} isDark={isDark} />
           ) : (
-            <div className="h-full p-6 flex items-center justify-center overflow-auto">
+            <div className="h-full p-2 sm:p-6 flex items-center justify-center overflow-auto">
               <LargeChart data={rows} columns={columns} chartType={currentView} isDark={isDark} />
             </div>
           )}

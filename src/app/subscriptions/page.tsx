@@ -7,8 +7,8 @@ import { api, auth, SubscriptionPlan, SubscriptionResponse } from "@/lib/api";
 export default function SubscriptionsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
       </div>
     }>
       <SubscriptionsContent />
@@ -117,8 +117,8 @@ function SubscriptionsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
       </div>
     );
   }
@@ -128,184 +128,168 @@ function SubscriptionsContent() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-6 py-4 relative">
-          <div className="flex items-center">
-            <button
-              onClick={() => router.back()}
-              className="absolute flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mx-auto">Subscription</h1>
-          </div>
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-gray-100 dark:border-[#1a1a1a]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Page Title */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">Subscription</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your plan and billing</p>
+        </div>
+
         {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
+          <div className="mb-6 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-6 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-4 py-3 rounded-xl text-sm">
+          <div className="mb-6 px-4 py-3 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-sm rounded-lg">
             {success}
           </div>
         )}
 
         {/* Current Plan Overview */}
         {currentSubscription && (
-          <div className="mb-8">
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-              Current Plan
-            </h2>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {currentSubscription.tierName}
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">
-                      Billing resets on {formatDate(currentSubscription.billingCycleReset)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                      {currentSubscription.queriesUsed}
-                      <span className="text-lg font-normal text-gray-500 dark:text-gray-400">
-                        /{currentSubscription.queriesPerMonth}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">queries used</p>
-                  </div>
+          <section className="mb-8 sm:mb-10">
+            <div className="bg-gray-50 dark:bg-[#111111] rounded-xl p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {currentSubscription.tierName}
+                  </h2>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                    Resets {formatDate(currentSubscription.billingCycleReset)}
+                  </p>
                 </div>
+                <div className="text-right">
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {currentSubscription.queriesUsed}
+                    <span className="text-base font-normal text-gray-400 dark:text-gray-500">
+                      /{currentSubscription.queriesPerMonth}
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">queries used</p>
+                </div>
+              </div>
 
-                {/* Usage Bar */}
-                <div className="mt-6">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-gray-600 dark:text-gray-400">Usage this cycle</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{usagePercent}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        usagePercent >= 90
-                          ? "bg-red-500"
-                          : usagePercent >= 70
-                          ? "bg-yellow-500"
-                          : "bg-gray-900 dark:bg-white"
-                      }`}
-                      style={{ width: `${Math.min(usagePercent, 100)}%` }}
-                    />
-                  </div>
+              {/* Progress Bar */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="text-gray-500 dark:text-gray-400">Usage this cycle</span>
+                  <span className="text-gray-700 dark:text-gray-300">{usagePercent}%</span>
+                </div>
+                <div className="h-1.5 bg-gray-200 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      usagePercent >= 90
+                        ? "bg-red-500"
+                        : usagePercent >= 70
+                        ? "bg-amber-500"
+                        : "bg-gray-900 dark:bg-white"
+                    }`}
+                    style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                  />
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
+        {/* Divider */}
+        <div className="border-t border-gray-100 dark:border-[#1a1a1a] mb-8" />
+
         {/* Plans */}
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-            Available Plans
-          </h2>
-          <div className="grid md:grid-cols-3 gap-4">
+        <section className="mb-8 sm:mb-10">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-4 sm:mb-6">Available plans</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {plans.map((plan) => (
               <div
                 key={plan.tier}
-                className={`relative bg-white dark:bg-gray-800 rounded-2xl border-2 transition-all ${
-                  plan.isCurrent
-                    ? "border-gray-900 dark:border-white"
-                    : plan.isPopular
-                    ? "border-gray-300 dark:border-gray-600"
-                    : "border-gray-200 dark:border-gray-700"
+                className={`relative bg-gray-50 dark:bg-[#111111] rounded-xl p-5 transition-all ${
+                  plan.isCurrent ? "ring-2 ring-gray-900 dark:ring-white" : ""
                 }`}
               >
-                {plan.isPopular && !plan.isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 rounded-full text-xs font-medium">
-                    Most Popular
+                {/* Badge */}
+                {(plan.isCurrent || plan.isPopular) && (
+                  <div className="absolute -top-2.5 left-4">
+                    <span className="inline-block px-2 py-0.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium rounded">
+                      {plan.isCurrent ? "Current" : "Popular"}
+                    </span>
                   </div>
                 )}
-                {plan.isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 rounded-full text-xs font-medium">
-                    Current Plan
-                  </div>
-                )}
 
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{plan.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{plan.description}</p>
+                <div className="pt-2">
+                  <h3 className="text-base font-medium text-gray-900 dark:text-white">{plan.name}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{plan.description}</p>
 
-                  <div className="mt-4 mb-6">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">${plan.price}</span>
-                    <span className="text-gray-500 dark:text-gray-400">/month</span>
+                  <div className="mt-4 mb-5">
+                    <span className="text-3xl font-semibold text-gray-900 dark:text-white">${plan.price}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">/mo</span>
                   </div>
 
+                  {/* Action Button */}
                   {plan.isCurrent ? (
                     <button
                       disabled
-                      className="w-full py-3 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                      className="w-full h-9 rounded-lg text-xs font-medium bg-gray-200 dark:bg-[#1a1a1a] text-gray-400 dark:text-gray-500 cursor-not-allowed"
                     >
-                      Current Plan
+                      Current plan
                     </button>
                   ) : plan.tier > (currentSubscription?.currentTier ?? 0) ? (
                     <button
                       onClick={() => handleUpgrade(plan.tier)}
                       disabled={upgrading !== null}
-                      className={`w-full py-3 rounded-xl text-sm font-medium transition-colors ${
-                        plan.isPopular
-                          ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
-                          : "border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
-                      } disabled:opacity-50`}
+                      className="w-full h-9 rounded-lg text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors"
                     >
-                      {upgrading === plan.tier ? "Upgrading..." : "Upgrade"}
+                      {upgrading === plan.tier ? "Processing..." : "Upgrade"}
                     </button>
                   ) : (
                     <button
                       onClick={() => handleDowngrade()}
                       disabled={upgrading !== null}
-                      className="w-full py-3 rounded-xl text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                      className="w-full h-9 rounded-lg text-xs font-medium border border-gray-200 dark:border-[#262626] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] disabled:opacity-50 transition-colors"
                     >
-                      {upgrading === plan.tier ? "Downgrading..." : "Downgrade"}
+                      {upgrading === plan.tier ? "Processing..." : "Downgrade"}
                     </button>
                   )}
 
-                  <ul className="mt-6 space-y-3">
+                  {/* Features */}
+                  <ul className="mt-5 space-y-2">
                     {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-3 text-sm">
-                        <svg
-                          className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0 mt-0.5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
+                      <li key={idx} className="flex items-start gap-2 text-xs">
+                        <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{feature}</span>
                       </li>
                     ))}
                   </ul>
 
-                  {/* Plan Details */}
-                  <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500 dark:text-gray-400">Queries/month</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{plan.queriesPerMonth}</span>
+                  {/* Plan Stats */}
+                  <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#1a1a1a] space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 dark:text-gray-400">Queries/mo</span>
+                      <span className="text-gray-700 dark:text-gray-300">{plan.queriesPerMonth}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs">
                       <span className="text-gray-500 dark:text-gray-400">Databases</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span className="text-gray-700 dark:text-gray-300">
                         {plan.databaseConnections === -1 ? "Unlimited" : plan.databaseConnections}
                       </span>
                     </div>
@@ -314,35 +298,37 @@ function SubscriptionsContent() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100 dark:border-[#1a1a1a] mb-8" />
 
         {/* FAQ Section */}
-        <div className="mt-12">
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-            Common Questions
-          </h2>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-            <div className="p-4">
-              <h3 className="font-medium text-gray-900 dark:text-white">Can I downgrade my plan?</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Yes, you can downgrade anytime. Note that you may need to remove database connections if you exceed the lower plan&apos;s limit.
+        <section>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Common questions</h2>
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white">Can I downgrade my plan?</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Yes, you can downgrade anytime. You may need to remove database connections if you exceed the lower plan&apos;s limit.
               </p>
             </div>
-            <div className="p-4">
-              <h3 className="font-medium text-gray-900 dark:text-white">When does my billing cycle reset?</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white">When does my billing cycle reset?</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Your query count resets monthly on the date you signed up.
               </p>
             </div>
-            <div className="p-4">
-              <h3 className="font-medium text-gray-900 dark:text-white">Do you offer refunds?</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white">Do you offer refunds?</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Yes, within 7 days of purchase if you&apos;ve used fewer than 5 queries.
               </p>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

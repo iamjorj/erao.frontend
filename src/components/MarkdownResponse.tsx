@@ -41,7 +41,7 @@ export function MarkdownResponse({ content }: MarkdownResponseProps) {
         if (segment.startsWith("`") && segment.endsWith("`")) {
           // Inline code
           processedParts.push(
-            <code key={`code-${segIdx}`} className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded text-xs font-mono">
+            <code key={`code-${segIdx}`} className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 rounded text-xs font-mono">
               {segment.slice(1, -1)}
             </code>
           );
@@ -139,7 +139,7 @@ export function MarkdownResponse({ content }: MarkdownResponseProps) {
       // Horizontal rule
       if (trimmedLine === "---" || trimmedLine === "***") {
         elements.push(
-          <div key={idx} className="h-px bg-gray-200 dark:bg-gray-700 my-4"></div>
+          <div key={idx} className="h-px bg-gray-200 dark:bg-[#262626] my-4"></div>
         );
         return;
       }

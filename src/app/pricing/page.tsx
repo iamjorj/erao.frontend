@@ -86,18 +86,18 @@ export default function PricingPage() {
   return (
     <PageLayout currentPage="pricing">
       {/* Hero */}
-      <section className="w-full max-w-5xl mx-auto px-6 pt-16 pb-12 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
-        <p className="text-lg text-gray-600">Start free. Upgrade when you need more.</p>
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-8 sm:pb-12 text-center">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Simple, transparent pricing</h1>
+        <p className="text-base sm:text-lg text-gray-600">Start free. Upgrade when you need more.</p>
       </section>
 
       {/* Pricing Cards */}
-      <section className="w-full max-w-5xl mx-auto px-6 pb-20">
-        <div className="grid md:grid-cols-3 gap-6">
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-14 sm:pb-20">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-2xl p-6 ${
+              className={`rounded-xl sm:rounded-2xl p-4 sm:p-6 ${
                 plan.popular
                   ? "border-2 border-black relative"
                   : "border border-gray-200"
@@ -150,43 +150,45 @@ export default function PricingPage() {
       </section>
 
       {/* Feature Comparison Table */}
-      <section className="w-full max-w-5xl mx-auto px-6 pb-20">
-        <h2 className="text-2xl font-bold text-center mb-8">Compare all features</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-4 pr-4 font-medium">Feature</th>
-                <th className="text-center py-4 px-4 font-medium">Free</th>
-                <th className="text-center py-4 px-4 font-medium">Pro</th>
-                <th className="text-center py-4 px-4 font-medium">Enterprise</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { feature: "Database connections", free: "1", pro: "5", enterprise: "Unlimited" },
-                { feature: "Queries per month", free: "3", pro: "50", enterprise: "100" },
-                { feature: "Conversation history", free: "7 days", pro: "Unlimited", enterprise: "Unlimited" },
-                { feature: "Export formats", free: "—", pro: "CSV, Excel, PDF", enterprise: "CSV, Excel, PDF" },
-              ].map((row) => (
-                <tr key={row.feature} className="border-b border-gray-100">
-                  <td className="py-4 pr-4 text-sm text-gray-700">{row.feature}</td>
-                  <td className="text-center py-4 px-4 text-sm text-gray-600">{row.free}</td>
-                  <td className="text-center py-4 px-4 text-sm text-gray-600">{row.pro}</td>
-                  <td className="text-center py-4 px-4 text-sm text-gray-600">{row.enterprise}</td>
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-14 sm:pb-20">
+        <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">Compare all features</h2>
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="min-w-[480px] px-4 sm:px-0">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 sm:py-4 pr-2 sm:pr-4 text-sm sm:text-base font-medium">Feature</th>
+                  <th className="text-center py-3 sm:py-4 px-2 sm:px-4 text-sm sm:text-base font-medium">Free</th>
+                  <th className="text-center py-3 sm:py-4 px-2 sm:px-4 text-sm sm:text-base font-medium">Pro</th>
+                  <th className="text-center py-3 sm:py-4 px-2 sm:px-4 text-sm sm:text-base font-medium">Enterprise</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[
+                  { feature: "Database connections", free: "1", pro: "5", enterprise: "Unlimited" },
+                  { feature: "Queries per month", free: "3", pro: "50", enterprise: "100" },
+                  { feature: "Conversation history", free: "7 days", pro: "Unlimited", enterprise: "Unlimited" },
+                  { feature: "Export formats", free: "—", pro: "CSV, Excel, PDF", enterprise: "CSV, Excel, PDF" },
+                ].map((row) => (
+                  <tr key={row.feature} className="border-b border-gray-100">
+                    <td className="py-3 sm:py-4 pr-2 sm:pr-4 text-xs sm:text-sm text-gray-700">{row.feature}</td>
+                    <td className="text-center py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-600">{row.free}</td>
+                    <td className="text-center py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-600">{row.pro}</td>
+                    <td className="text-center py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-600">{row.enterprise}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="w-full max-w-3xl mx-auto px-6 pb-20">
-        <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions</h2>
-        <div className="space-y-3">
+      <section className="w-full max-w-3xl mx-auto px-4 sm:px-6 pb-14 sm:pb-20">
+        <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">Frequently asked questions</h2>
+        <div className="space-y-2 sm:space-y-3">
           {faqs.map((faq, index) => (
-            <div key={index} className="border border-gray-200 rounded-xl">
+            <div key={index} className="border border-gray-200 rounded-lg sm:rounded-xl">
               <button
                 onClick={() => setOpenFaq(openFaq === index ? null : index)}
                 className="w-full flex items-center justify-between p-4 text-left"
@@ -212,11 +214,11 @@ export default function PricingPage() {
       </section>
 
       {/* CTA */}
-      <section className="w-full bg-gray-50 py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
-          <p className="text-gray-600 mb-6">Our team is here to help you find the right plan.</p>
-          <div className="flex items-center justify-center gap-4">
+      <section className="w-full bg-gray-50 py-12 sm:py-16">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Still have questions?</h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-5 sm:mb-6">Our team is here to help you find the right plan.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link href="/contact" className="border border-gray-300 hover:bg-gray-50 px-6 py-3 rounded-xl text-sm font-medium transition-colors">
               Contact Us
             </Link>

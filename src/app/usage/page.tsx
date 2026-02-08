@@ -78,8 +78,8 @@ export default function UsagePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center transition-colors">
+        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
       </div>
     );
   }
@@ -110,162 +110,156 @@ export default function UsagePage() {
     (a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
   );
 
+  const queriesRemaining = (usage?.queryLimitPerMonth || 0) - (usage?.queriesUsedThisMonth || 0);
+  const databasesConnected = aggregatedList.filter(item => item.name !== "Chat Query").length;
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-6 py-4 relative">
-          <div className="flex items-center">
-            <button
-              onClick={() => router.back()}
-              className="absolute flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mx-auto">Usage</h1>
-          </div>
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-gray-100 dark:border-[#1a1a1a]">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
         </div>
-      </div>
+      </header>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Page Title */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">Usage</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Track your query usage this billing cycle</p>
+        </div>
+
         {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
+          <div className="mb-6 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg">
             {error}
           </div>
         )}
 
-        {/* Current Usage Overview */}
-        <div className="mb-8">
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-            Current Billing Cycle
-          </h2>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {user?.subscriptionTier || "Starter"} Plan
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 mt-1">
-                    Resets on {usage ? formatResetDate(usage.billingCycleEnd) : "-"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {usage?.queriesUsedThisMonth || 0}
-                    <span className="text-lg font-normal text-gray-500 dark:text-gray-400">
-                      /{usage?.queryLimitPerMonth || 0}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">queries used</p>
-                </div>
+        {/* Current Plan Card */}
+        <section className="mb-6 sm:mb-8">
+          <div className="bg-gray-50 dark:bg-[#111111] rounded-xl p-4 sm:p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {user?.subscriptionTier || "Starter"} Plan
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                  Resets {usage ? formatResetDate(usage.billingCycleEnd) : "-"}
+                </p>
               </div>
-
-              {/* Usage Bar */}
-              <div className="mt-6">
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-gray-600 dark:text-gray-400">Usage this cycle</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{percentUsed}%</span>
-                </div>
-                <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      percentUsed >= 90
-                        ? "bg-red-500"
-                        : percentUsed >= 70
-                        ? "bg-yellow-500"
-                        : "bg-gray-900 dark:bg-white"
-                    }`}
-                    style={{ width: `${Math.min(percentUsed, 100)}%` }}
-                  />
-                </div>
-                {percentUsed >= 80 && (
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
-                    Running low on queries. <Link href="/subscriptions" className="underline">Upgrade your plan</Link>
-                  </p>
-                )}
+              <div className="text-right">
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {usage?.queriesUsedThisMonth || 0}
+                  <span className="text-base font-normal text-gray-400 dark:text-gray-500">
+                    /{usage?.queryLimitPerMonth || 0}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">queries used</p>
               </div>
             </div>
+
+            {/* Progress Bar */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-gray-500 dark:text-gray-400">Usage this cycle</span>
+                <span className="text-gray-700 dark:text-gray-300">{percentUsed}%</span>
+              </div>
+              <div className="h-1.5 bg-gray-200 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    percentUsed >= 90
+                      ? "bg-red-500"
+                      : percentUsed >= 70
+                      ? "bg-amber-500"
+                      : "bg-gray-900 dark:bg-white"
+                  }`}
+                  style={{ width: `${Math.min(percentUsed, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {percentUsed >= 80 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
+                Running low on queries.{" "}
+                <Link href="/subscriptions" className="underline hover:no-underline">
+                  Upgrade your plan
+                </Link>
+              </p>
+            )}
           </div>
-        </div>
+        </section>
 
         {/* Stats Grid */}
-        <div className="mb-8">
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-            Statistics
-          </h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Queries Remaining</p>
-              <p className="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
-                {(usage?.queryLimitPerMonth || 0) - (usage?.queriesUsedThisMonth || 0)}
-              </p>
+        <section className="mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-gray-50 dark:bg-[#111111] rounded-xl p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Remaining</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{queriesRemaining}</p>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Days Until Reset</p>
-              <p className="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
-                {usage?.daysUntilReset || 0}
-              </p>
+            <div className="bg-gray-50 dark:bg-[#111111] rounded-xl p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Days left</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{usage?.daysUntilReset || 0}</p>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Databases Connected</p>
-              <p className="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
-                {aggregatedList.filter(item => item.name !== "Chat Query").length}
-              </p>
+            <div className="bg-gray-50 dark:bg-[#111111] rounded-xl p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Databases</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{databasesConnected}</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Usage by Database */}
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-            Activity This Month
-          </h2>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6">
-              {aggregatedList.length === 0 ? (
-                <div className="text-center py-8">
-                  <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <p className="text-gray-500 dark:text-gray-400">No activity yet this month</p>
-                  <Link href="/ai" className="text-sm text-gray-900 dark:text-white font-medium mt-2 inline-block hover:underline">
-                    Start querying &rarr;
-                  </Link>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {aggregatedList.map((item) => (
-                    <div
-                      key={item.name}
-                      className="flex justify-between items-center py-4 first:pt-0 last:pb-0"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{item.name}</p>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">
-                          Last used: {formatDate(item.lastActivity)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900 dark:text-white">
-                          {item.count}
-                        </p>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">
-                          {item.count === 1 ? "query" : "queries"}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* Divider */}
+        <div className="border-t border-gray-100 dark:border-[#1a1a1a] mb-8" />
+
+        {/* Activity Section */}
+        <section>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Activity this month</h2>
+
+          {aggregatedList.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-[#141414] flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No activity yet this month</p>
+              <Link href="/ai" className="text-sm text-gray-900 dark:text-white font-medium mt-2 inline-block hover:underline">
+                Start querying →
+              </Link>
             </div>
-          </div>
-        </div>
-      </div>
+          ) : (
+            <div className="space-y-1">
+              {aggregatedList.map((item) => (
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between py-3 px-1"
+                >
+                  <div>
+                    <p className="text-sm text-gray-900 dark:text-white">{item.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Last used: {formatDate(item.lastActivity)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.count}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {item.count === 1 ? "query" : "queries"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

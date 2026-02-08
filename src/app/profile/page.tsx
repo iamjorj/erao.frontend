@@ -79,8 +79,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center transition-colors">
+        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
       </div>
     );
   }
@@ -90,173 +90,159 @@ export default function ProfilePage() {
     : "";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-6 py-4 relative">
-          <div className="flex items-center">
-            <button
-              onClick={() => router.back()}
-              className="absolute flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mx-auto">Profile</h1>
-          </div>
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-gray-100 dark:border-[#1a1a1a]">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
         </div>
-      </div>
+      </header>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Page Title */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">Profile</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your account settings</p>
+        </div>
+
         {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
+          <div className="mb-6 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-6 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-4 py-3 rounded-xl text-sm">
+          <div className="mb-6 px-4 py-3 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-sm rounded-lg">
             {success}
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Profile Card */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Profile Info */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-6">
-                <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                  Account Information
-                </h2>
-
-                {/* Avatar and Info */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center">
-                    <span className="text-white dark:text-gray-900 text-lg font-semibold">{initials}</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-lg text-gray-900 dark:text-white">
-                      {user?.firstName} {user?.lastName}
-                    </p>
-                    <p className="text-gray-500 dark:text-gray-400">{user?.email}</p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleSave} className="space-y-4">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent text-gray-900 dark:text-white transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent text-gray-900 dark:text-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">Email</label>
-                    <input
-                      type="email"
-                      value={user?.email || ""}
-                      disabled
-                      className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed</p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {saving ? "Saving..." : "Save Changes"}
-                  </button>
-                </form>
-              </div>
+        {/* Profile Section */}
+        <section className="mb-8 sm:mb-10">
+          <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="w-16 h-16 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center">
+              <span className="text-white dark:text-gray-900 text-lg font-medium">{initials}</span>
+            </div>
+            <div>
+              <p className="text-lg font-medium text-gray-900 dark:text-white">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">{user?.email}</p>
             </div>
           </div>
 
-          {/* Right Column - Preferences */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-6">
-                <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                  Preferences
-                </h2>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      Switch theme
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className={`w-12 h-7 rounded-full p-0.5 transition-colors ${
-                      darkMode ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-gray-600"
-                    }`}
-                  >
-                    <div
-                      className={`w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow-sm transition-transform ${
-                        darkMode ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
+          <form onSubmit={handleSave} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  First name
+                </label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full h-11 px-4 bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#262626] rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-gray-400 dark:focus:border-[#404040] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Last name
+                </label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full h-11 px-4 bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#262626] rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-gray-400 dark:focus:border-[#404040] transition-colors"
+                />
               </div>
             </div>
 
-            {/* Quick Links */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-6">
-                <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                  Quick Links
-                </h2>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => router.push("/usage")}
-                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between group"
-                  >
-                    <span className="text-gray-900 dark:text-white text-sm">View Usage</span>
-                    <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => router.push("/subscriptions")}
-                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between group"
-                  >
-                    <span className="text-gray-900 dark:text-white text-sm">Manage Subscription</span>
-                    <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">Email</label>
+              <input
+                type="email"
+                value={user?.email || ""}
+                disabled
+                className="w-full h-11 px-4 bg-gray-100 dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#1a1a1a] rounded-lg text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Email cannot be changed</p>
             </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="h-10 px-5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+          </form>
+        </section>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100 dark:border-[#1a1a1a] mb-8 sm:mb-10" />
+
+        {/* Preferences Section */}
+        <section className="mb-8 sm:mb-10">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-6">Preferences</h2>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-gray-900 dark:text-white text-sm">Dark mode</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Switch between light and dark theme</p>
+            </div>
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                darkMode ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-[#262626]"
+              }`}
+            >
+              <div
+                className={`absolute top-1 w-4 h-4 bg-white dark:bg-[#0a0a0a] rounded-full shadow-sm transition-transform ${
+                  darkMode ? "left-6" : "left-1"
+                }`}
+              />
+            </button>
           </div>
-        </div>
-      </div>
+        </section>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100 dark:border-[#1a1a1a] mb-8 sm:mb-10" />
+
+        {/* Quick Links Section */}
+        <section>
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-4">Quick links</h2>
+
+          <div className="space-y-1">
+            <button
+              onClick={() => router.push("/usage")}
+              className="w-full flex items-center justify-between py-3 px-1 text-left group"
+            >
+              <span className="text-gray-600 dark:text-gray-300 text-sm group-hover:text-gray-900 dark:group-hover:text-white transition-colors">View usage</span>
+              <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => router.push("/subscriptions")}
+              className="w-full flex items-center justify-between py-3 px-1 text-left group"
+            >
+              <span className="text-gray-600 dark:text-gray-300 text-sm group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Manage subscription</span>
+              <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

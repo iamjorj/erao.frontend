@@ -46,23 +46,23 @@ export default function SecurityPage() {
   return (
     <PageLayout currentPage="security">
       {/* Hero */}
-      <section className="w-full max-w-5xl mx-auto px-6 pt-16 pb-12 text-center">
-        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-10 sm:pb-12 text-center">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+          <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        <h1 className="text-4xl font-bold mb-4">Security at Erao</h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">Security at Erao</h1>
+        <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
           Your data security is our top priority. We&apos;ve built Erao from the ground up with security in mind.
         </p>
       </section>
 
       {/* Security Features */}
-      <section className="w-full max-w-5xl mx-auto px-6 pb-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-12 sm:pb-16">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {securityFeatures.map((feature) => (
-            <div key={feature.title} className="border border-gray-200 rounded-2xl p-6">
+            <div key={feature.title} className="border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
                 {feature.icon}
               </div>
@@ -74,9 +74,9 @@ export default function SecurityPage() {
       </section>
 
       {/* How Data Flows */}
-      <section className="w-full bg-gray-50 py-16">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-center mb-12">How Your Data Flows</h2>
+      <section className="w-full bg-gray-50 py-12 sm:py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-center mb-8 sm:mb-12">How Your Data Flows</h2>
           <div className="max-w-3xl mx-auto space-y-6">
             {[
               { step: 1, title: "You ask a question", desc: "Your natural language question is sent to our servers over an encrypted connection." },
@@ -100,9 +100,9 @@ export default function SecurityPage() {
 
 
       {/* Contact */}
-      <section className="w-full bg-black text-white py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold mb-4">Security Questions?</h2>
+      <section className="w-full bg-black text-white py-12 sm:py-16">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Security Questions?</h2>
           <p className="text-gray-400 mb-6">
             If you have security concerns or want to report a vulnerability, please contact our team.
           </p>

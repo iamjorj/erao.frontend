@@ -5,11 +5,11 @@ import { PageLayout, EmailButton } from "@/components/shared";
 export default function PrivacyPage() {
   return (
     <PageLayout currentPage="privacy">
-      <article className="w-full max-w-4xl mx-auto px-6 py-16">
+      <article className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
-        <div className="border-b border-gray-200 pb-8 mb-10">
-          <h1 className="text-4xl font-bold mb-3">Privacy Policy</h1>
-          <p className="text-gray-500">Last updated: January 28, 2025</p>
+        <div className="border-b border-gray-200 pb-6 sm:pb-8 mb-8 sm:mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-3">Privacy Policy</h1>
+          <p className="text-sm sm:text-base text-gray-500">Last updated: January 28, 2025</p>
         </div>
 
         {/* Introduction */}
@@ -23,9 +23,9 @@ export default function PrivacyPage() {
           {/* Content */}
           <div className="space-y-12">
             {/* Section 1 */}
-            <section className="bg-gray-50 rounded-2xl p-8">
-              <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-bold">1</span>
+            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">1</span>
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Information We Collect</h2>
                   <p className="text-gray-600 leading-relaxed mb-4">
@@ -55,9 +55,9 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 2 */}
-            <section className="bg-gray-50 rounded-2xl p-8">
-              <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-bold">2</span>
+            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">2</span>
                 <div>
                   <h2 className="text-xl font-semibold mb-3">How We Use Your Information</h2>
                   <p className="text-gray-600 leading-relaxed mb-4">We use the information we collect to:</p>
@@ -83,9 +83,9 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 3 */}
-            <section className="bg-gray-50 rounded-2xl p-8">
-              <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-bold">3</span>
+            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">3</span>
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Data Security</h2>
                   <p className="text-gray-600 leading-relaxed mb-4">
@@ -108,9 +108,9 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 4 */}
-            <section className="bg-gray-50 rounded-2xl p-8">
-              <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-bold">4</span>
+            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">4</span>
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Data Sharing</h2>
                   <p className="text-gray-600 leading-relaxed mb-4">
@@ -133,9 +133,9 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 5 */}
-            <section className="bg-gray-50 rounded-2xl p-8">
-              <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-bold">5</span>
+            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">5</span>
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Your Rights</h2>
                   <p className="text-gray-600 leading-relaxed mb-4">You have the right to:</p>
@@ -160,9 +160,9 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 6 */}
-            <section className="bg-gray-50 rounded-2xl p-8">
-              <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-bold">6</span>
+            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">6</span>
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Data Retention</h2>
                   <p className="text-gray-600 leading-relaxed">
@@ -175,9 +175,9 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 7 */}
-            <section className="bg-gray-50 rounded-2xl p-8">
-              <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-bold">7</span>
+            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">7</span>
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Changes to This Policy</h2>
                   <p className="text-gray-600 leading-relaxed">
@@ -191,7 +191,7 @@ export default function PrivacyPage() {
           </div>
 
           {/* Contact Section */}
-          <div className="mt-16 bg-black text-white rounded-2xl p-8 text-center">
+          <div className="mt-12 sm:mt-16 bg-black text-white rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center">
             <h2 className="text-xl font-semibold mb-3">Questions about Privacy?</h2>
             <p className="text-gray-400 mb-6">
               If you have any questions about this Privacy Policy, please contact us.

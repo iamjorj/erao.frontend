@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // Support email
 export const SUPPORT_EMAIL = "support@erao.digital";
@@ -79,7 +79,7 @@ const navDropdowns = {
   },
 };
 
-// Dropdown component
+// Dropdown component for desktop
 const NavDropdown = ({
   label,
   items,
@@ -121,10 +121,82 @@ const NavDropdown = ({
   </div>
 );
 
-// Consistent navigation bar with dropdowns
+// Mobile menu accordion item
+const MobileAccordion = ({
+  label,
+  items,
+  isOpen,
+  onToggle,
+  onLinkClick
+}: {
+  label: string;
+  items: { href: string; label: string; desc: string }[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onLinkClick: () => void;
+}) => (
+  <div className="border-b border-gray-100">
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center justify-between py-3 text-left"
+    >
+      <span className="font-medium text-gray-900">{label}</span>
+      <svg
+        className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    {isOpen && (
+      <div className="pb-3 pl-4 space-y-2">
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onLinkClick}
+            className="block py-2 text-sm text-gray-600 hover:text-black transition-colors"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+// Consistent navigation bar with dropdowns and mobile menu
 export const Navbar = ({ currentPage }: { currentPage?: string }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileAccordion, setMobileAccordion] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close mobile menu on resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileMenuOpen(false);
+        setMobileAccordion(null);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const handleMouseEnter = (dropdown: string) => {
     if (timeoutRef.current) {
@@ -140,72 +212,162 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
     }, 150);
   };
 
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setMobileAccordion(null);
+  };
+
   return (
-    <nav className="w-full max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-      <Link href="/" className="flex items-center gap-2.5">
-        <LogoIcon className="w-12 h-12" />
-        <span className="font-semibold text-xl">Erao</span>
-      </Link>
-
-      <div className="hidden md:flex items-center gap-6">
-        <NavDropdown
-          label={navDropdowns.product.label}
-          items={navDropdowns.product.items}
-          isOpen={openDropdown === 'product'}
-          onMouseEnter={() => handleMouseEnter('product')}
-          onMouseLeave={handleMouseLeave}
-        />
-        <NavDropdown
-          label={navDropdowns.resources.label}
-          items={navDropdowns.resources.items}
-          isOpen={openDropdown === 'resources'}
-          onMouseEnter={() => handleMouseEnter('resources')}
-          onMouseLeave={handleMouseLeave}
-        />
-        <NavDropdown
-          label={navDropdowns.company.label}
-          items={navDropdowns.company.items}
-          isOpen={openDropdown === 'company'}
-          onMouseEnter={() => handleMouseEnter('company')}
-          onMouseLeave={handleMouseLeave}
-        />
-        <NavDropdown
-          label={navDropdowns.legal.label}
-          items={navDropdowns.legal.items}
-          isOpen={openDropdown === 'legal'}
-          onMouseEnter={() => handleMouseEnter('legal')}
-          onMouseLeave={handleMouseLeave}
-        />
-      </div>
-
-      <div className="flex items-center gap-3">
-        <Link
-          href="/login"
-          className="text-sm text-gray-600 hover:text-black transition-colors px-3 py-2"
-        >
-          Log in
+    <>
+      <nav className="w-full max-w-5xl mx-auto px-6 h-16 flex items-center justify-between relative z-50">
+        <Link href="/" className="flex items-center gap-2.5">
+          <LogoIcon className="w-10 h-10 sm:w-12 sm:h-12" />
+          <span className="font-semibold text-lg sm:text-xl">Erao</span>
         </Link>
-        <Link
-          href="/register"
-          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-6">
+          <NavDropdown
+            label={navDropdowns.product.label}
+            items={navDropdowns.product.items}
+            isOpen={openDropdown === 'product'}
+            onMouseEnter={() => handleMouseEnter('product')}
+            onMouseLeave={handleMouseLeave}
+          />
+          <NavDropdown
+            label={navDropdowns.resources.label}
+            items={navDropdowns.resources.items}
+            isOpen={openDropdown === 'resources'}
+            onMouseEnter={() => handleMouseEnter('resources')}
+            onMouseLeave={handleMouseLeave}
+          />
+          <NavDropdown
+            label={navDropdowns.company.label}
+            items={navDropdowns.company.items}
+            isOpen={openDropdown === 'company'}
+            onMouseEnter={() => handleMouseEnter('company')}
+            onMouseLeave={handleMouseLeave}
+          />
+          <NavDropdown
+            label={navDropdowns.legal.label}
+            items={navDropdowns.legal.items}
+            isOpen={openDropdown === 'legal'}
+            onMouseEnter={() => handleMouseEnter('legal')}
+            onMouseLeave={handleMouseLeave}
+          />
+        </div>
+
+        {/* Desktop Auth Buttons */}
+        <div className="hidden md:flex items-center gap-3">
+          <Link
+            href="/login"
+            className="text-sm text-gray-600 hover:text-black transition-colors px-3 py-2"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/register"
+            className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+          >
+            Start Free
+          </Link>
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 -mr-2 text-gray-600 hover:text-black transition-colors"
+          aria-label="Toggle menu"
         >
-          Start Free
-        </Link>
-      </div>
-    </nav>
+          {mobileMenuOpen ? (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            onClick={closeMobileMenu}
+          />
+
+          {/* Menu Panel */}
+          <div className="absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="px-6 py-4">
+              {/* Navigation Accordions */}
+              <MobileAccordion
+                label={navDropdowns.product.label}
+                items={navDropdowns.product.items}
+                isOpen={mobileAccordion === 'product'}
+                onToggle={() => setMobileAccordion(mobileAccordion === 'product' ? null : 'product')}
+                onLinkClick={closeMobileMenu}
+              />
+              <MobileAccordion
+                label={navDropdowns.resources.label}
+                items={navDropdowns.resources.items}
+                isOpen={mobileAccordion === 'resources'}
+                onToggle={() => setMobileAccordion(mobileAccordion === 'resources' ? null : 'resources')}
+                onLinkClick={closeMobileMenu}
+              />
+              <MobileAccordion
+                label={navDropdowns.company.label}
+                items={navDropdowns.company.items}
+                isOpen={mobileAccordion === 'company'}
+                onToggle={() => setMobileAccordion(mobileAccordion === 'company' ? null : 'company')}
+                onLinkClick={closeMobileMenu}
+              />
+              <MobileAccordion
+                label={navDropdowns.legal.label}
+                items={navDropdowns.legal.items}
+                isOpen={mobileAccordion === 'legal'}
+                onToggle={() => setMobileAccordion(mobileAccordion === 'legal' ? null : 'legal')}
+                onLinkClick={closeMobileMenu}
+              />
+
+              {/* Auth Buttons */}
+              <div className="pt-4 mt-2 border-t border-gray-100 space-y-3">
+                <Link
+                  href="/login"
+                  onClick={closeMobileMenu}
+                  className="block w-full text-center py-3 text-gray-600 hover:text-black transition-colors font-medium"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={closeMobileMenu}
+                  className="block w-full text-center bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Start Free
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
-// Comprehensive footer with all links (removed changelog and status)
+// Comprehensive footer with all links
 export const Footer = () => (
   <footer className="w-full border-t border-gray-200 bg-white">
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+    <div className="max-w-5xl mx-auto px-6 py-10 sm:py-12">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 mb-10 sm:mb-12">
         {/* Brand */}
-        <div className="col-span-2 md:col-span-1">
+        <div className="col-span-2 sm:col-span-3 md:col-span-1">
           <Link href="/" className="flex items-center gap-2.5 mb-4">
-            <LogoIcon className="w-12 h-12" />
-            <span className="font-semibold text-xl">Erao</span>
+            <LogoIcon className="w-10 h-10 sm:w-12 sm:h-12" />
+            <span className="font-semibold text-lg sm:text-xl">Erao</span>
           </Link>
           <p className="text-sm text-gray-500">
             AI-powered database intelligence.
@@ -214,8 +376,8 @@ export const Footer = () => (
 
         {/* Product */}
         <div>
-          <h4 className="font-semibold text-sm mb-4">Product</h4>
-          <ul className="space-y-3 text-sm text-gray-500">
+          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Product</h4>
+          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
             <li><Link href="/features" className="hover:text-black transition-colors">Features</Link></li>
             <li><Link href="/pricing" className="hover:text-black transition-colors">Pricing</Link></li>
           </ul>
@@ -223,8 +385,8 @@ export const Footer = () => (
 
         {/* Resources */}
         <div>
-          <h4 className="font-semibold text-sm mb-4">Resources</h4>
-          <ul className="space-y-3 text-sm text-gray-500">
+          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Resources</h4>
+          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
             <li><Link href="/help" className="hover:text-black transition-colors">Help Center</Link></li>
             <li><Link href="/security" className="hover:text-black transition-colors">Security</Link></li>
           </ul>
@@ -232,8 +394,8 @@ export const Footer = () => (
 
         {/* Company */}
         <div>
-          <h4 className="font-semibold text-sm mb-4">Company</h4>
-          <ul className="space-y-3 text-sm text-gray-500">
+          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Company</h4>
+          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
             <li><Link href="/about" className="hover:text-black transition-colors">About</Link></li>
             <li><Link href="/contact" className="hover:text-black transition-colors">Contact</Link></li>
           </ul>
@@ -241,8 +403,8 @@ export const Footer = () => (
 
         {/* Legal */}
         <div>
-          <h4 className="font-semibold text-sm mb-4">Legal</h4>
-          <ul className="space-y-3 text-sm text-gray-500">
+          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Legal</h4>
+          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
             <li><Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link></li>
             <li><Link href="/terms" className="hover:text-black transition-colors">Terms</Link></li>
           </ul>
@@ -250,8 +412,8 @@ export const Footer = () => (
       </div>
 
       {/* Bottom */}
-      <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className="text-sm text-gray-400">© 2025 Erao. All rights reserved.</p>
+      <div className="pt-6 sm:pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p className="text-sm text-gray-400 text-center sm:text-left">© 2025 Erao. All rights reserved.</p>
         <div className="flex items-center gap-6 text-sm text-gray-500">
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>

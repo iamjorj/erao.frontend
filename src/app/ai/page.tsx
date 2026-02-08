@@ -178,7 +178,7 @@ function VirtualTable({
         <div style={{ minWidth: `${minTableWidth}px` }}>
           {/* Table Header - sticky top, scrolls horizontally with data */}
           <div
-            className="flex items-center gap-2.5 px-3 py-2.5 bg-[#fafafc] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10"
+            className="flex items-center gap-2.5 px-3 py-2.5 bg-[#fafafc] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#262626] sticky top-0 z-10"
           >
             <span className="w-12 text-xs font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">#</span>
             {columns.map((col) => (
@@ -205,7 +205,7 @@ function VirtualTable({
                 <div
                   key={virtualRow.index}
                   className={`flex items-center gap-2.5 px-3 py-2.5 absolute w-full ${
-                    virtualRow.index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/50 dark:bg-gray-800/50"
+                    virtualRow.index % 2 === 0 ? "bg-white dark:bg-[#111111]" : "bg-gray-50/50 dark:bg-[#1a1a1a]"
                   }`}
                   style={{
                     height: `${virtualRow.size}px`,
@@ -232,7 +232,7 @@ function VirtualTable({
       </div>
 
       {/* Row count indicator */}
-      <div className="text-xs text-gray-400 text-center py-2 border-t border-gray-100 dark:border-gray-700">
+      <div className="text-xs text-gray-400 text-center py-2 border-t border-gray-100 dark:border-[#262626]">
         {rows.length} rows total
       </div>
     </div>
@@ -329,6 +329,12 @@ export default function AIPage() {
 
   // Dark mode state
   const [darkMode, setDarkMode] = useState(false);
+
+  // Sidebar collapsed state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Mobile sidebar open state (for overlay on mobile)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Chart view state - tracks view mode per message
   const [chartViews, setChartViews] = useState<Record<string, ChartType>>({});
@@ -930,7 +936,7 @@ export default function AIPage() {
   // Show loading only for auth check
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400 text-sm">Loading...</div>
       </div>
     );
@@ -939,116 +945,166 @@ export default function AIPage() {
   const userInitial = user?.firstName?.[0]?.toUpperCase() || "U";
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-200">
+    <div className="h-screen bg-gray-50 dark:bg-[#0a0a0a] flex transition-colors duration-200">
+      {/* Mobile sidebar overlay */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-[260px] bg-white dark:bg-gray-800 flex flex-col justify-between border-r border-gray-100/80 dark:border-gray-700/80 transition-colors duration-200">
+      <aside className={`
+        ${sidebarCollapsed ? 'md:w-[60px]' : 'md:w-[260px]'}
+        w-[280px]
+        bg-[#fafafa] dark:bg-[#0a0a0a] flex flex-col justify-between border-r border-gray-200/60 dark:border-[#1a1a1a] transition-all duration-200
+        fixed md:relative inset-y-0 left-0 z-50
+        ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+      `}>
         {/* Top Section */}
         <div className="flex flex-col">
-          {/* Header */}
-          <div className="px-4 pt-5 pb-3">
-            <span className="font-semibold text-base text-gray-900 dark:text-white">Chats</span>
+          {/* Header with Logo and Toggle */}
+          <div className={`pt-3 pb-2 flex items-center px-3 justify-between ${sidebarCollapsed ? 'md:px-2.5 md:justify-center' : ''}`}>
+            {/* Logo - always show on mobile, hide on desktop when collapsed */}
+            <div className={`flex items-center gap-2 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+              <img src="/logo-dark.png" alt="Erao" className="w-9 h-9 dark:hidden" />
+              <img src="/logo.png" alt="Erao" className="w-9 h-9 hidden dark:block" />
+            </div>
+            <div className="flex items-center gap-1">
+              {/* Close button for mobile */}
+              <button
+                onClick={() => setMobileSidebarOpen(false)}
+                className="md:hidden w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              {/* Desktop sidebar toggle */}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden md:flex w-9 h-9 items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors"
+                title={sidebarCollapsed ? "Open sidebar" : "Close sidebar"}
+              >
+                {/* Sidebar toggle icon */}
+                <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8.857 3h6.286c1.084 0 1.958 0 2.666.058.729.06 1.369.185 1.961.487a5 5 0 0 1 2.185 2.185c.302.592.428 1.233.487 1.961.058.708.058 1.582.058 2.666v3.286c0 1.084 0 1.958-.058 2.666-.06.729-.185 1.369-.487 1.961a5 5 0 0 1-2.185 2.185c-.592.302-1.232.428-1.961.487C17.101 21 16.227 21 15.143 21H8.857c-1.084 0-1.958 0-2.666-.058-.728-.06-1.369-.185-1.961-.487a5 5 0 0 1-2.185-2.185c-.302-.592-.428-1.232-.487-1.961C1.5 15.601 1.5 14.727 1.5 13.643v-3.286c0-1.084 0-1.958.058-2.666.06-.728.185-1.369.487-1.961A5 5 0 0 1 4.23 3.545c.592-.302 1.233-.428 1.961-.487C6.9 3 7.773 3 8.857 3M6.354 5.051c-.605.05-.953.142-1.216.276a3 3 0 0 0-1.311 1.311c-.134.263-.226.611-.276 1.216-.05.617-.051 1.41-.051 2.546v3.2c0 1.137 0 1.929.051 2.546.05.605.142.953.276 1.216a3 3 0 0 0 1.311 1.311c.263.134.611.226 1.216.276.617.05 1.41.051 2.546.051h.6V5h-.6c-1.137 0-1.929 0-2.546.051M11.5 5v14h3.6c1.137 0 1.929 0 2.546-.051.605-.05.953-.142 1.216-.276a3 3 0 0 0 1.311-1.311c.134-.263.226-.611.276-1.216.05-.617.051-1.41.051-2.546v-3.2c0-1.137 0-1.929-.051-2.546-.05-.605-.142-.953-.276-1.216a3 3 0 0 0-1.311-1.311c-.263-.134-.611-.226-1.216-.276C17.029 5.001 16.236 5 15.1 5z" />
+                </svg>
+              </button>
+            </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col gap-1.5 px-3 pb-3">
+          {/* Top Actions */}
+          <div className={`pt-1 pb-1 flex flex-col gap-0.5 px-2 ${sidebarCollapsed ? 'md:px-2.5 md:items-center' : ''}`}>
             <button
-              onClick={createNewConversation}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all duration-200 active:scale-[0.98]"
+              onClick={() => { createNewConversation(); setMobileSidebarOpen(false); }}
+              className={`flex items-center text-[13px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors w-full gap-2.5 px-2.5 py-2 ${
+                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0 md:gap-0' : ''
+              }`}
+              title="New chat"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <svg className={`text-gray-500 dark:text-gray-400 flex-shrink-0 w-[18px] h-[18px] ${sidebarCollapsed ? 'md:w-5 md:h-5' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              New chat
+              <span className={sidebarCollapsed ? 'md:hidden' : ''}>New chat</span>
             </button>
             <button
               onClick={() => setShowSearchModal(true)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all duration-200 active:scale-[0.98]"
+              className={`flex items-center text-[13px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors w-full gap-2.5 px-2.5 py-2 ${
+                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0 md:gap-0' : ''
+              }`}
+              title="Search chats"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg className={`text-gray-500 dark:text-gray-400 flex-shrink-0 w-[18px] h-[18px] ${sidebarCollapsed ? 'md:w-5 md:h-5' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              Search chats
+              <span className={sidebarCollapsed ? 'md:hidden' : ''}>Search chats</span>
             </button>
           </div>
 
+          {/* Section Header */}
+          <div className={`px-4 pt-4 pb-1 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">Your chats</span>
+          </div>
+
           {/* Chat List */}
-          <div ref={chatListRef} className="flex flex-col gap-1 px-3 pb-3 overflow-y-auto max-h-[calc(100vh-280px)] custom-scrollbar">
+          <div ref={chatListRef} className={`flex flex-col gap-0.5 pb-2 overflow-y-auto custom-scrollbar px-2 max-h-[calc(100vh-280px)] ${sidebarCollapsed ? 'md:px-2.5 md:pt-3 md:max-h-[calc(100vh-200px)] md:items-center' : ''}`}>
             {loadingConversations ? (
-              <div className="text-center py-4 text-sm text-gray-400 dark:text-gray-500">
+              <div className={`text-center py-4 text-xs text-gray-400 dark:text-gray-500 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
                 Loading...
               </div>
             ) : conversations.length === 0 ? (
-              <div className="text-center py-4 text-sm text-gray-400 dark:text-gray-500">
+              <div className={`text-center py-4 text-xs text-gray-400 dark:text-gray-500 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
                 No conversations yet
               </div>
             ) : (
               conversations.map((chat) => (
-                    <div
-                      key={chat.id}
-                      className={`group relative w-full text-left rounded-xl px-3.5 py-3 flex flex-col gap-1 cursor-pointer transition-all duration-200 ${
-                        chatMenuOpen === chat.id ? "z-50" : ""
-                      } ${
-                        chat.id === selectedConversationId
-                          ? "bg-gray-100/80 dark:bg-gray-700/80 shadow-sm"
-                          : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm"
-                      }`}
-                      onClick={() => {
-                        if (editingConversationId !== chat.id) {
-                          setChatMenuOpen(null);
-                          selectConversation(chat.id);
-                        }
-                      }}
-                    >
-                      {editingConversationId === chat.id ? (
-                        <input
-                          type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onBlur={() => handleRenameConversation(chat.id, editingTitle)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleRenameConversation(chat.id, editingTitle);
-                            if (e.key === "Escape") setEditingConversationId(null);
-                          }}
-                          className="text-sm font-medium bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full pr-8 dark:text-white"
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2 pr-8">
-                          <span className="text-sm font-medium truncate text-gray-900 dark:text-white">
-                            {chat.title || "New Chat"}
+                  /* Expanded view - full chat item */
+                  <div
+                    key={chat.id}
+                    className={`group relative w-full text-left rounded-lg px-3 py-2 flex flex-col gap-0.5 cursor-pointer transition-colors ${sidebarCollapsed ? 'md:hidden' : ''} ${
+                      chatMenuOpen === chat.id ? "z-50" : ""
+                    } ${
+                      chat.id === selectedConversationId
+                        ? "bg-gray-200/70 dark:bg-white/10"
+                        : "hover:bg-gray-100/70 dark:hover:bg-[#141414]"
+                    }`}
+                    onClick={() => {
+                      if (editingConversationId !== chat.id) {
+                        setChatMenuOpen(null);
+                        selectConversation(chat.id);
+                        setMobileSidebarOpen(false);
+                      }
+                    }}
+                  >
+                    {editingConversationId === chat.id ? (
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onBlur={() => handleRenameConversation(chat.id, editingTitle)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameConversation(chat.id, editingTitle);
+                          if (e.key === "Escape") setEditingConversationId(null);
+                        }}
+                        className="text-sm bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#262626] rounded px-2 py-0.5 w-full pr-6 dark:text-white"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <div className="flex items-center gap-1.5 pr-6">
+                        <span className="text-[13px] truncate text-gray-800 dark:text-gray-200">
+                          {chat.title || "New Chat"}
+                        </span>
+                        {pendingConversations.has(chat.id) && (
+                          <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gray-500"></span>
                           </span>
-                          {pendingConversations.has(chat.id) && (
-                            <div className="flex-shrink-0 flex items-center gap-1">
-                              <span className="relative flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 dark:bg-gray-500 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gray-500 dark:bg-gray-400"></span>
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 pr-8">
-                        {(chat.databaseConnectionName || chat.fileDocumentName) && (
-                          <>
-                            <span className="truncate max-w-[80px]">
-                              {chat.databaseConnectionName || chat.fileDocumentName}
-                            </span>
-                            <span>·</span>
-                          </>
                         )}
-                        <span className="whitespace-nowrap">{formatRelativeTime(chat.updatedAt)}</span>
                       </div>
+                    )}
+                    <div className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500 pr-6">
+                      {(chat.databaseConnectionName || chat.fileDocumentName) && (
+                        <>
+                          <span className="truncate max-w-[70px]">
+                            {chat.databaseConnectionName || chat.fileDocumentName}
+                          </span>
+                          <span className="text-gray-300 dark:text-gray-600">·</span>
+                        </>
+                      )}
+                      <span className="whitespace-nowrap">{formatRelativeTime(chat.updatedAt)}</span>
+                    </div>
                       {/* More options button */}
                       {editingConversationId !== chat.id && (
-                        <div className={`absolute right-2 top-1/2 -translate-y-1/2 ${chatMenuOpen === chat.id ? "z-[100]" : ""}`}>
+                        <div className={`absolute right-1.5 top-1/2 -translate-y-1/2 ${chatMenuOpen === chat.id ? "z-[100]" : ""}`}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               if (chatMenuOpen === chat.id) {
                                 setChatMenuOpen(null);
                               } else {
-                                // Check if button is in bottom half of chat list
                                 const button = e.currentTarget;
                                 const container = chatListRef.current;
                                 if (container) {
@@ -1056,28 +1112,27 @@ export default function AIPage() {
                                   const buttonRect = button.getBoundingClientRect();
                                   const buttonBottom = buttonRect.bottom - containerRect.top;
                                   const containerHeight = containerRect.height;
-                                  // If button is in bottom 100px of visible area, open menu upward
                                   setChatMenuOpenUp(buttonBottom > containerHeight - 100);
                                 }
                                 setChatMenuOpen(chat.id);
                               }
                             }}
-                            className={`p-1.5 rounded-md transition-colors ${
+                            className={`p-1 rounded transition-colors ${
                               chatMenuOpen === chat.id
-                                ? "bg-gray-200 dark:bg-gray-600"
-                                : "opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                ? "bg-gray-200 dark:bg-[#262626]"
+                                : "opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-[#1a1a1a]"
                             }`}
                           >
-                            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                              <circle cx="12" cy="6" r="1.5" />
-                              <circle cx="12" cy="12" r="1.5" />
-                              <circle cx="12" cy="18" r="1.5" />
+                            <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                              <circle cx="12" cy="6" r="2" />
+                              <circle cx="12" cy="12" r="2" />
+                              <circle cx="12" cy="18" r="2" />
                             </svg>
                           </button>
                           {/* Dropdown menu */}
                           {chatMenuOpen === chat.id && (
                             <div
-                              className={`absolute right-0 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 ${
+                              className={`absolute right-0 w-32 bg-white dark:bg-[#111111] rounded-lg border border-gray-200 dark:border-[#262626] shadow-sm overflow-hidden ${
                                 chatMenuOpenUp ? "bottom-full mb-1" : "top-full mt-1"
                               }`}
                             >
@@ -1088,9 +1143,9 @@ export default function AIPage() {
                                   setEditingConversationId(chat.id);
                                   setEditingTitle(chat.title || "New Chat");
                                 }}
-                                className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                                className="w-full text-left px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] flex items-center gap-2"
                               >
-                                <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                 </svg>
                                 Rename
@@ -1105,9 +1160,9 @@ export default function AIPage() {
                                     name: chat.title || 'New Chat'
                                   });
                                 }}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center gap-2"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                                 Delete
@@ -1116,33 +1171,37 @@ export default function AIPage() {
                           )}
                         </div>
                       )}
-                    </div>
-                ))
+                  </div>
+              ))
             )}
           </div>
         </div>
 
         {/* User Profile */}
-        <div className="p-3 relative border-t border-gray-100/80 dark:border-gray-700/80">
+        <div className={`relative border-t border-gray-200/60 dark:border-[#1a1a1a] p-2 ${sidebarCollapsed ? 'md:p-2.5 md:flex md:justify-center' : ''}`}>
           <button
             onClick={() => setShowAccountMenu(!showAccountMenu)}
-            className="w-full bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 active:scale-[0.99]"
+            className={`rounded-lg flex items-center hover:bg-gray-100/70 dark:hover:bg-[#141414] transition-colors w-full px-2.5 py-2 gap-2.5 ${
+              sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0 md:gap-0' : ''
+            }`}
+            title={sidebarCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
           >
-            <div className="w-9 h-9 bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-600 dark:to-gray-700 rounded-xl flex items-center justify-center shadow-sm">
-              <span className="text-white text-xs font-semibold">
+            <div className={`bg-gray-800 dark:bg-[#262626] rounded-lg flex items-center justify-center flex-shrink-0 w-8 h-8 ${sidebarCollapsed ? 'md:w-9 md:h-9' : ''}`}>
+              <span className="text-white text-xs font-medium">
                 {userInitial}
               </span>
             </div>
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+            {/* User info - hidden on desktop when sidebar collapsed */}
+            <div className={`flex-1 min-w-0 text-left ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+              <p className="text-[13px] text-gray-800 dark:text-gray-200 truncate">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                {user?.subscriptionTier || "Starter"} Plan
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                {user?.subscriptionTier || "Starter"}
               </p>
             </div>
             <svg
-              className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${showAccountMenu ? "rotate-180" : ""}`}
+              className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showAccountMenu ? "rotate-180" : ""} ${sidebarCollapsed ? 'md:hidden' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1153,15 +1212,17 @@ export default function AIPage() {
 
           {/* Account Menu Dropdown */}
           {showAccountMenu && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg shadow-gray-200/50 dark:shadow-gray-900/50 border border-gray-100/80 dark:border-gray-700 py-1.5 z-50">
+            <div className={`absolute bottom-full mb-1.5 bg-white dark:bg-[#111111] rounded-lg border border-gray-200 dark:border-[#262626] shadow-lg z-50 overflow-hidden left-2 right-2 ${
+              sidebarCollapsed ? 'md:left-0 md:right-auto md:w-40' : ''
+            }`}>
               <button
                 onClick={() => {
                   setShowAccountMenu(false);
                   router.push("/profile");
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white cursor-pointer transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer transition-colors flex items-center gap-2.5"
               >
-                <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 Profile
@@ -1171,9 +1232,9 @@ export default function AIPage() {
                   setShowAccountMenu(false);
                   router.push("/usage");
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white cursor-pointer transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer transition-colors flex items-center gap-2.5"
               >
-                <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 Usage
@@ -1183,37 +1244,37 @@ export default function AIPage() {
                   setShowAccountMenu(false);
                   router.push("/subscriptions");
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white cursor-pointer transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer transition-colors flex items-center gap-2.5"
               >
-                <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
                 Subscriptions
               </button>
               <button
                 onClick={() => setDarkMode(!darkMode)}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white cursor-pointer transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer transition-colors flex items-center gap-2.5"
               >
                 {darkMode ? (
-                  <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 ) : (
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 )}
                 {darkMode ? "Light mode" : "Dark mode"}
               </button>
-              <hr className="my-1.5 border-gray-100 dark:border-gray-700" />
+              <div className="border-t border-gray-100 dark:border-[#262626]" />
               <button
                 onClick={() => {
                   setShowAccountMenu(false);
                   handleLogout();
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 cursor-pointer transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2 text-xs text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors flex items-center gap-2.5"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 Sign out
@@ -1224,93 +1285,74 @@ export default function AIPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 flex flex-col bg-gray-50/50 dark:bg-gray-900 overflow-hidden transition-colors duration-200">
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden transition-colors duration-200 relative">
         {/* Header */}
-        <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-6 py-4 flex items-center justify-between border-b border-gray-100/80 dark:border-gray-700/80 sticky top-0 z-10 transition-colors duration-200">
-          <div className="flex flex-col gap-1">
-            <h1 className="font-semibold text-base text-gray-900 dark:text-white">
+        <header className="px-3 sm:px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a] sticky top-0 z-10 bg-white dark:bg-[#0a0a0a] transition-colors duration-200">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Hamburger menu for mobile */}
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <h1 className="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[120px] sm:max-w-none">
               {selectedConversation?.title || "New Chat"}
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowDatabaseModal(true)}
-                className={`text-xs hover:text-gray-700 dark:hover:text-gray-300 text-left transition-all duration-200 hover:underline underline-offset-2 ${
-                  selectedDatabase ? "text-gray-600 dark:text-gray-400" : "text-gray-400 dark:text-gray-500"
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs transition-colors ${
+                  selectedDatabase
+                    ? "bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
+                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-[#141414]"
                 }`}
               >
-                {selectedDatabase
-                  ? `DB: ${selectedDatabase.name}`
-                  : "Select database"}
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+                <span className="hidden sm:inline">{selectedDatabase ? selectedDatabase.name : "Database"}</span>
+                <span className="sm:hidden">{selectedDatabase ? "DB" : "DB"}</span>
               </button>
-              <span className="text-gray-200 dark:text-gray-600">|</span>
               <button
                 onClick={() => setShowFilesModal(true)}
-                className={`text-xs hover:text-gray-700 dark:hover:text-gray-300 text-left transition-all duration-200 hover:underline underline-offset-2 ${
-                  selectedFile ? "text-gray-600 dark:text-gray-400" : "text-gray-400 dark:text-gray-500"
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs transition-colors ${
+                  selectedFile
+                    ? "bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
+                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-[#141414]"
                 }`}
               >
-                {selectedFile
-                  ? `File: ${selectedFile.originalFileName}`
-                  : "Select file"}
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="hidden sm:inline truncate max-w-[100px]">{selectedFile ? selectedFile.originalFileName : "File"}</span>
+                <span className="sm:hidden">File</span>
               </button>
             </div>
           </div>
           {/* Upload indicator */}
           {isUploadingFile && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <div className="w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin" />
+            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+              <div className="w-3 h-3 border-2 border-gray-300 dark:border-[#262626] border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin" />
               Uploading...
             </div>
           )}
         </header>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-8 py-6 flex flex-col gap-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-5 pt-4 sm:pt-5 pb-24 sm:pb-20 flex flex-col gap-4 sm:gap-5 custom-scrollbar">
           {loadingMessages ? (
             <div className="flex items-center justify-center h-full">
-              <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-white rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-gray-200 dark:border-[#262626] border-t-gray-600 dark:border-t-gray-400 rounded-full animate-spin" />
             </div>
-          ) : messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-md">
-                <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
-                  {selectedFile
-                    ? `Analyzing ${selectedFile.originalFileName}`
-                    : selectedDatabase
-                    ? `Connected to ${selectedDatabase.name}`
-                    : "Welcome to Erao"}
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedFile
-                    ? `${getFileTypeName(selectedFile.fileType)} file with ${selectedFile.rowCount?.toLocaleString() || 0} rows ready. Ask anything about your data.`
-                    : selectedDatabase
-                    ? "Ask anything about your data. I can help you analyze, query, and understand your database."
-                    : "Connect a database or upload a file to start querying your data with natural language."}
-                </p>
-                {!selectedDatabase && !selectedFile && (
-                  <div className="flex gap-3 justify-center mt-4">
-                    <button
-                      onClick={() => setShowDatabaseModal(true)}
-                      className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                    >
-                      Connect Database
-                    </button>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      Upload File
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
+          ) : messages.length === 0 ? null : (
             messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message) => (
               <div key={message.id}>
                 {isAssistantMessage(message.role) ? (
-                  <div className="w-[70%] max-w-[70%] bg-white dark:bg-gray-800 rounded-2xl p-5 flex flex-col gap-3.5 shadow-sm border border-gray-100/80 dark:border-gray-700/80 overflow-hidden">
-                    <span className="font-semibold text-base text-gray-900 dark:text-white">Erao</span>
+                  <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 overflow-hidden">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
                     <MarkdownResponse content={stripCodeBlocks(message.content)} />
                     {(() => {
                       const parsedResults = parseQueryResult(message.queryResult);
@@ -1343,20 +1385,20 @@ export default function AIPage() {
                               );
 
                               return (
-                                <div key={idx} className="bg-[#fafafc] dark:bg-gray-800 rounded-xl overflow-hidden">
+                                <div key={idx} className="bg-[#fafafc] dark:bg-[#1a1a1a] rounded-xl overflow-hidden">
                                   {/* Title */}
                                   <div className="px-3 pt-2 pb-1">
                                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{capitalizedTitle}</span>
                                   </div>
                                   {/* View Toggle Buttons */}
-                                  <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+                                  <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-[#262626]">
                                     <div className="flex items-center gap-1">
                                       <button
                                         onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "table" }))}
                                         className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                           currentView === "table"
                                             ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                            : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                            : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                         }`}
                                       >
                                         Table
@@ -1368,7 +1410,7 @@ export default function AIPage() {
                                             className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                               currentView === "bar"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                             }`}
                                           >
                                             Bar
@@ -1378,7 +1420,7 @@ export default function AIPage() {
                                             className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                               currentView === "line"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                             }`}
                                           >
                                             Line
@@ -1388,7 +1430,7 @@ export default function AIPage() {
                                             className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                               currentView === "pie"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                             }`}
                                           >
                                             Pie
@@ -1398,7 +1440,7 @@ export default function AIPage() {
                                             className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                               currentView === "area"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                             }`}
                                           >
                                             Area
@@ -1416,7 +1458,7 @@ export default function AIPage() {
                                         });
                                         setDataViewerOpen(message.id);
                                       }}
-                                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded-md transition-colors"
                                       title="Open in fullscreen"
                                     >
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1454,7 +1496,7 @@ export default function AIPage() {
                       if (!parsedResult.rows || parsedResult.rows.length === 0) {
                         // Show empty state instead of hiding completely
                         return (
-                          <div className="bg-[#fafafc] dark:bg-gray-800 rounded-xl p-4 mt-2 text-center">
+                          <div className="bg-[#fafafc] dark:bg-[#1a1a1a] rounded-xl p-4 mt-2 text-center">
                             <p className="text-sm text-gray-500 dark:text-gray-400">No data returned</p>
                           </div>
                         );
@@ -1501,7 +1543,7 @@ export default function AIPage() {
                                 {otherValues.map((item, idx) => (
                                   <div
                                     key={idx}
-                                    className="rounded-xl bg-gray-100 dark:bg-gray-800 px-4 py-3 hover:bg-gray-150 dark:hover:bg-gray-750 transition-colors"
+                                    className="rounded-xl bg-gray-100 dark:bg-[#1a1a1a] px-4 py-3 hover:bg-gray-150 dark:hover:bg-[#1a1a1a] transition-colors"
                                   >
                                     <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium block">{item.label}</span>
                                     <div className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
@@ -1534,16 +1576,16 @@ export default function AIPage() {
                       );
 
                       return (
-                        <div className="bg-[#fafafc] dark:bg-gray-800 rounded-xl overflow-hidden mt-2">
+                        <div className="bg-[#fafafc] dark:bg-[#1a1a1a] rounded-xl overflow-hidden mt-2">
                           {/* View Toggle Buttons - always show for tables */}
-                          <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-[#262626]">
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "table" }))}
                                 className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                   currentView === "table"
                                     ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                    : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                    : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                 }`}
                               >
                                 Table
@@ -1555,7 +1597,7 @@ export default function AIPage() {
                                     className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                       currentView === "bar"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                     }`}
                                   >
                                     Bar
@@ -1565,7 +1607,7 @@ export default function AIPage() {
                                     className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                       currentView === "line"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                     }`}
                                   >
                                     Line
@@ -1575,7 +1617,7 @@ export default function AIPage() {
                                     className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                       currentView === "pie"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                     }`}
                                   >
                                     Pie
@@ -1585,7 +1627,7 @@ export default function AIPage() {
                                     className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                                       currentView === "area"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
                                     }`}
                                   >
                                     Area
@@ -1603,7 +1645,7 @@ export default function AIPage() {
                                   });
                                   setDataViewerOpen(message.id);
                                 }}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded-md transition-colors"
                                 title="Open in fullscreen"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1635,8 +1677,8 @@ export default function AIPage() {
                   </div>
                 ) : (
                   <div className="flex justify-end">
-                    <div className="max-w-[70%] bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl px-[18px] py-3.5 shadow-sm">
-                      <p className="text-sm text-white leading-relaxed">
+                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] bg-gray-900 dark:bg-[#1a1a1a] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
+                      <p className="text-[13px] text-white leading-relaxed">
                         {message.content}
                       </p>
                     </div>
@@ -1657,18 +1699,18 @@ export default function AIPage() {
                 {/* Show user's pending message when returning to conversation */}
                 {pendingMessage && (
                   <div className="flex justify-end mb-4">
-                    <div className="max-w-[70%] bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl px-[18px] py-3.5 shadow-sm">
-                      <p className="text-sm text-white leading-relaxed">
+                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] bg-gray-900 dark:bg-[#1a1a1a] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
+                      <p className="text-[13px] text-white leading-relaxed">
                         {pendingMessage}
                       </p>
                     </div>
                   </div>
                 )}
-                <div className="w-[70%] max-w-[70%] bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100/80 dark:border-gray-700/80">
-                  <p className="font-semibold text-base text-gray-900 dark:text-white mb-4">Erao</p>
-                  <div className="flex items-center gap-5">
+                <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-3 sm:p-4">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Erao</p>
+                  <div className="flex items-center gap-3 sm:gap-5">
                     {/* Robot Animation Container */}
-                <div className="relative w-20 h-20 flex-shrink-0">
+                    <div className="relative w-14 h-14 sm:w-20 sm:h-20 flex-shrink-0">
                   <svg viewBox="0 0 300 300" className="w-full h-full overflow-visible">
                     {/* Thought rings orbiting around */}
                     <ellipse
@@ -1840,57 +1882,75 @@ export default function AIPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="px-8 pb-2">
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm px-4 py-2 rounded-lg">
+          <div className="px-3 sm:px-8 pb-2">
+            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg">
               {error}
             </div>
           </div>
         )}
 
         {/* Input Area */}
-        <div className="bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent px-8 pt-4 pb-6 flex justify-center">
-          <form
-            onSubmit={handleSendMessage}
-            className="w-full max-w-[700px] h-[52px] bg-white dark:bg-gray-800 rounded-2xl px-3 pr-2 flex items-center gap-2 shadow-md shadow-gray-200/50 dark:shadow-gray-900/50 border border-gray-100 dark:border-gray-700 focus-within:border-gray-200 dark:focus-within:border-gray-600 focus-within:shadow-lg focus-within:shadow-gray-200/50 dark:focus-within:shadow-gray-900/50 transition-all duration-200"
-          >
-            {/* File Upload Button */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".xlsx,.xls,.docx,.doc,.csv,.xml,.json,.txt"
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingFile}
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-200 disabled:opacity-50"
-              title="Upload file (Excel, Word, CSV)"
+        <div className={`${messages.length === 0 ? 'absolute inset-0 flex items-center justify-center px-3 sm:px-5' : 'absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 flex justify-center backdrop-blur-xl bg-white/5 dark:bg-[#0a0a0a]/60'}`}>
+          <div className={`w-full max-w-[680px] ${messages.length === 0 ? 'flex flex-col items-center gap-4 sm:gap-6' : ''}`}>
+            {messages.length === 0 && (
+              <div className="text-center px-2">
+                <h2 className="text-xl sm:text-2xl font-medium text-gray-900 dark:text-white mb-2">
+                  {selectedDatabase
+                    ? `Query ${selectedDatabase.name}`
+                    : selectedFile
+                    ? `Analyze ${selectedFile.originalFileName}`
+                    : "What can I help with?"}
+                </h2>
+                {(selectedDatabase || selectedFile) && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {selectedDatabase ? "Connected to database" : "File ready for analysis"}
+                  </p>
+                )}
+              </div>
+            )}
+            <form
+              onSubmit={handleSendMessage}
+              className="w-full h-11 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl px-2 flex items-center gap-1.5 border border-gray-200 dark:border-[#262626] focus-within:border-gray-300 dark:focus-within:border-[#404040] focus-within:bg-white dark:focus-within:bg-[#1a1a1a] transition-all"
             >
-              <svg className="w-5 h-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-            </button>
+              {/* File Upload Button */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".xlsx,.xls,.docx,.doc,.csv,.xml,.json,.txt"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingFile}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-gray-200/70 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+                title="Upload file (Excel, Word, CSV)"
+              >
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
 
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask anything about your data..."}
-              disabled={isSending}
-              className="flex-1 text-sm outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
-            />
-            <button
-              type="submit"
-              disabled={isSending || !inputValue.trim()}
-              className="w-9 h-9 bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-200 dark:to-gray-300 rounded-full flex items-center justify-center flex-shrink-0 hover:from-gray-700 hover:to-gray-800 dark:hover:from-gray-100 dark:hover:to-gray-200 hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            >
-              <svg className="w-4 h-4 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-              </svg>
-            </button>
-          </form>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask anything about your data..."}
+                disabled={isSending}
+                className="flex-1 text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
+              />
+              <button
+                type="submit"
+                disabled={isSending || !inputValue.trim()}
+                className="w-8 h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg className="w-4 h-4 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </button>
+            </form>
+          </div>
         </div>
       </main>
 
@@ -1998,8 +2058,8 @@ export default function AIPage() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60]">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-end sm:items-center justify-center z-[60]">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-sm sm:mx-4 shadow-xl border border-transparent dark:border-[#1a1a1a]">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
                 <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2017,7 +2077,7 @@ export default function AIPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 h-10 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="flex-1 h-10 bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-[#1a1a1a] transition-colors"
               >
                 Cancel
               </button>
@@ -2041,18 +2101,18 @@ export default function AIPage() {
       {/* Search Modal */}
       {showSearchModal && (
         <div
-          className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-start justify-center pt-[15vh] z-[70]"
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-end sm:items-start justify-center sm:pt-[15vh] z-[70]"
           onClick={() => {
             setShowSearchModal(false);
             setSearchQuery("");
           }}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg mx-4 shadow-2xl overflow-hidden"
+            className="bg-white dark:bg-[#1a1a1a] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg sm:mx-4 shadow-2xl overflow-hidden border border-transparent dark:border-[#1a1a1a] max-h-[80vh] sm:max-h-none"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Search Input */}
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="p-4 border-b border-gray-100 dark:border-[#1a1a1a]">
               <div className="relative">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -2062,13 +2122,13 @@ export default function AIPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search conversations..."
-                  className="w-full h-11 bg-gray-50 dark:bg-gray-700 rounded-xl pl-10 pr-4 text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-gray-100 dark:focus:bg-gray-600 transition-colors text-gray-900 dark:text-white"
+                  className="w-full h-11 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl pl-10 pr-4 text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-gray-100 dark:focus:bg-[#252525] transition-colors text-gray-900 dark:text-white"
                   autoFocus
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 dark:hover:bg-[#333] rounded-full"
                   >
                     <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2109,8 +2169,8 @@ export default function AIPage() {
                         setShowSearchModal(false);
                         setSearchQuery("");
                       }}
-                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${
-                        chat.id === selectedConversationId ? "bg-gray-50 dark:bg-gray-700" : ""
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors border-b border-gray-50 dark:border-[#1a1a1a] last:border-b-0 ${
+                        chat.id === selectedConversationId ? "bg-gray-50 dark:bg-[#1a1a1a]" : ""
                       }`}
                     >
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -2134,9 +2194,9 @@ export default function AIPage() {
             </div>
 
             {/* Footer hint */}
-            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700">
+            <div className="px-4 py-3 bg-gray-50 dark:bg-[#111111] border-t border-gray-100 dark:border-[#1a1a1a]">
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                Press <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-500 text-gray-500 dark:text-gray-300">Esc</kbd> to close
+                Press <kbd className="px-1.5 py-0.5 bg-white dark:bg-[#333] rounded border border-gray-200 dark:border-[#262626] text-gray-500 dark:text-gray-300">Esc</kbd> to close
               </p>
             </div>
           </div>
@@ -2165,102 +2225,107 @@ function DatabaseModal({
   onDelete: (id: string, name: string) => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Select Database</h2>
-        <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-[#161616] rounded-t-2xl sm:rounded-xl w-full sm:max-w-sm shadow-2xl overflow-hidden max-h-[85vh] sm:max-h-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-[#262626]">
+          <h2 className="text-sm font-medium text-gray-900 dark:text-white">Select Database</h2>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#262626] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* List */}
+        <div className="max-h-[280px] overflow-y-auto">
           {databases.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-              No databases connected yet
-            </p>
+            <div className="px-4 py-8 text-center">
+              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#262626] flex items-center justify-center mx-auto mb-3">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No databases yet</p>
+            </div>
           ) : (
             databases.map((db) => (
               <div
                 key={db.id}
-                className={`p-3 rounded-xl transition-colors ${
+                className={`group flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
                   db.id === selectedDatabaseId
-                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
-                    : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    ? "bg-gray-50 dark:bg-[#1e1e1e]"
+                    : "hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
                 }`}
+                onClick={() => onSelect(db.id)}
               >
-                <button
-                  onClick={() => onSelect(db.id)}
-                  className="w-full text-left flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-medium text-sm">{db.name}</p>
-                    <p
-                      className={`text-xs ${
-                        db.id === selectedDatabaseId
-                          ? "text-gray-300 dark:text-gray-600"
-                          : "text-gray-500 dark:text-gray-400"
-                      }`}
-                    >
-                      {getDatabaseTypeName(db.databaseType)}
-                    </p>
-                  </div>
-                  {db.lastTestedAt && (
-                    <span
-                      className={`text-xs ${
-                        db.id === selectedDatabaseId
-                          ? db.isActive ? "text-green-300 dark:text-green-600" : "text-red-300 dark:text-red-600"
-                          : db.isActive ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
-                      }`}
-                    >
-                      {db.isActive ? "Active" : "Inactive"}
-                    </span>
+                {/* Selection indicator */}
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                  db.id === selectedDatabaseId
+                    ? "border-gray-900 dark:border-white bg-gray-900 dark:bg-white"
+                    : "border-gray-300 dark:border-[#262626]"
+                }`}>
+                  {db.id === selectedDatabaseId && (
+                    <svg className="w-2.5 h-2.5 text-white dark:text-[#161616]" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
                   )}
-                </button>
-                <div className="flex gap-2 mt-2">
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-900 dark:text-white truncate">{db.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">{getDatabaseTypeName(db.databaseType)}</p>
+                </div>
+
+                {/* Actions - show on hover */}
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onViewSchema(db.id);
                     }}
-                    className={`flex-1 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors ${
-                      db.id === selectedDatabaseId
-                        ? "bg-white/20 dark:bg-gray-200 hover:bg-white/30 dark:hover:bg-gray-300 text-white dark:text-gray-700"
-                        : "bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-200"
-                    }`}
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#262626] transition-colors"
+                    title="View Schema"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                     </svg>
-                    Schema
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(db.id, db.name);
                     }}
-                    className={`text-xs py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors ${
-                      db.id === selectedDatabaseId
-                        ? "bg-red-500/30 dark:bg-red-100 hover:bg-red-500/50 dark:hover:bg-red-200 text-white dark:text-red-600"
-                        : "bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400"
-                    }`}
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                    title="Delete"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    Delete
                   </button>
                 </div>
               </div>
             ))
           )}
         </div>
-        <div className="flex gap-3 mt-4">
+
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-gray-100 dark:border-[#262626]">
           <button
             onClick={onAddNew}
-            className="flex-1 h-10 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="w-full h-9 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#262626] rounded-lg transition-colors"
           >
-            Add New
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 h-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-          >
-            Done
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Connection
           </button>
         </div>
       </div>
@@ -2276,40 +2341,12 @@ function AddDatabaseModal({
   onClose: () => void;
   onSuccess: (db: DatabaseConnection) => void;
 }) {
-  // Database type mapping with icons
+  // Database type configuration
   const databaseTypes = [
-    {
-      value: 0,
-      label: "PostgreSQL",
-      port: 5432,
-      placeholder: "db.example.com",
-      color: "#336791",
-      description: "Advanced open-source relational database"
-    },
-    {
-      value: 1,
-      label: "MySQL",
-      port: 3306,
-      placeholder: "mysql.example.com",
-      color: "#00758F",
-      description: "Popular open-source database"
-    },
-    {
-      value: 2,
-      label: "SQL Server",
-      port: 1433,
-      placeholder: "sqlserver.example.com",
-      color: "#CC2927",
-      description: "Microsoft enterprise database"
-    },
-    {
-      value: 3,
-      label: "MongoDB",
-      port: 27017,
-      placeholder: "mongo.example.com",
-      color: "#47A248",
-      description: "NoSQL document database"
-    },
+    { value: 0, label: "PostgreSQL", port: 5432 },
+    { value: 1, label: "MySQL", port: 3306 },
+    { value: 2, label: "SQL Server", port: 1433 },
+    { value: 3, label: "MongoDB", port: 27017 },
   ];
 
   // Database logo paths
@@ -2319,7 +2356,6 @@ function AddDatabaseModal({
     2: "/db-logos/sql-server.png",
     3: "/db-logos/mongodb.png",
   };
-
 
   const [formData, setFormData] = useState<CreateDatabaseConnectionPayload>({
     name: "",
@@ -2382,7 +2418,7 @@ function AddDatabaseModal({
         } else {
           await api.deleteDatabase(createResponse.data.id);
           setTestResult("error");
-          setError("Could not connect. Please verify your credentials and try again.");
+          setError("Could not connect. Please verify your credentials.");
         }
       }
     } catch (err) {
@@ -2421,165 +2457,130 @@ function AddDatabaseModal({
     }
   };
 
+  const isFormValid = formData.host && formData.databaseName && formData.username && formData.name;
+
   return (
-    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
+      <div className="bg-white dark:bg-[#111111] rounded-t-2xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Connect Database</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Add a new database connection to start querying</p>
-          </div>
+        <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a]">
+          <h2 className="text-base font-medium text-gray-900 dark:text-white">New Connection</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="px-6 py-5">
+        <div className="px-5 py-4 overflow-y-auto max-h-[calc(90vh-130px)] custom-scrollbar">
           {/* Database Type Selection */}
-          <div className="mb-6">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">Select Database Type</label>
-            <div className="grid grid-cols-4 gap-3">
+          <div className="mb-5">
+            <div className="flex gap-2">
               {databaseTypes.map((type) => (
                 <button
                   key={type.value}
                   type="button"
                   onClick={() => handleDatabaseTypeSelect(type.value)}
-                  className={`relative flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-lg border transition-all ${
                     formData.databaseType === type.value
-                      ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-700 shadow-sm"
-                      : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-[#1a1a1a]"
+                      : "border-gray-200 dark:border-[#262626] hover:border-gray-300 dark:hover:border-[#404040]"
                   }`}
                 >
-                  {formData.databaseType === type.value && (
-                    <div className="absolute top-2 right-2 w-4 h-4 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center">
-                      <svg className="w-2.5 h-2.5 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                  <div className="mb-2">
-                    <img src={databaseLogos[type.value]} alt={type.label} className="w-9 h-9 object-contain" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{type.label}</span>
+                  <img src={databaseLogos[type.value]} alt={type.label} className="w-6 h-6 object-contain" />
+                  <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">{type.label}</span>
                 </button>
               ))}
             </div>
-            {currentDbType && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">{currentDbType.description}</p>
-            )}
           </div>
 
-          {/* Connection Details */}
-          <div className="space-y-4">
-            {/* Connection Name */}
+          {/* Form Fields */}
+          <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Connection Name</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleFieldChange("name", e.target.value)}
-                placeholder="My Production Database"
-                className="w-full h-11 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 text-sm outline-none transition-all focus:border-gray-400 dark:focus:border-gray-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                placeholder="Connection name"
+                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
 
-            {/* Host & Port */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Host</label>
-                <input
-                  type="text"
-                  value={formData.host}
-                  onChange={(e) => handleFieldChange("host", e.target.value)}
-                  placeholder={currentDbType?.placeholder || "db.example.com"}
-                  className="w-full h-11 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 text-sm outline-none transition-all focus:border-gray-400 dark:focus:border-gray-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Port</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={portInput}
-                  onChange={(e) => handlePortChange(e.target.value)}
-                  className="w-full h-11 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 text-sm outline-none transition-all focus:border-gray-400 dark:focus:border-gray-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white"
-                />
-              </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.host}
+                onChange={(e) => handleFieldChange("host", e.target.value)}
+                placeholder="Host"
+                className="flex-1 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={portInput}
+                onChange={(e) => handlePortChange(e.target.value)}
+                placeholder="Port"
+                className="w-20 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-center"
+              />
             </div>
 
-            {/* Database Name */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Database Name</label>
               <input
                 type="text"
                 value={formData.databaseName}
                 onChange={(e) => handleFieldChange("databaseName", e.target.value)}
-                placeholder="production_db"
-                className="w-full h-11 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 text-sm outline-none transition-all focus:border-gray-400 dark:focus:border-gray-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                placeholder="Database name"
+                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
 
-            {/* Credentials */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Username</label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => handleFieldChange("username", e.target.value)}
-                  placeholder="admin"
-                  className="w-full h-11 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 text-sm outline-none transition-all focus:border-gray-400 dark:focus:border-gray-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Password</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => handleFieldChange("password", e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full h-11 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 text-sm outline-none transition-all focus:border-gray-400 dark:focus:border-gray-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                />
-              </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => handleFieldChange("username", e.target.value)}
+                placeholder="Username"
+                autoComplete="off"
+                data-lpignore="true"
+                data-form-type="other"
+                className="flex-1 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => handleFieldChange("password", e.target.value)}
+                placeholder="Password"
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-form-type="other"
+                className="flex-1 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
             </div>
           </div>
 
-          {/* Feedback */}
-          {(testResult || error) && (
-            <div className={`mt-5 p-4 rounded-xl flex items-center gap-3 ${
+          {/* Status Message */}
+          {testResult && (
+            <div className={`mt-4 px-3 py-2.5 rounded-lg text-xs flex items-center gap-2 ${
               testResult === "success"
-                ? "bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800"
-                : "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800"
+                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                : "bg-red-500/10 text-red-600 dark:text-red-400"
             }`}>
               {testResult === "success" ? (
                 <>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-green-800 dark:text-green-300">Connection successful!</p>
-                    <p className="text-xs text-green-600 dark:text-green-400">Ready to connect to your {currentDbType?.label} database</p>
-                  </div>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Connected to {currentDbType?.label}
                 </>
               ) : (
                 <>
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-red-800 dark:text-red-300">Connection failed</p>
-                    <p className="text-xs text-red-600 dark:text-red-400">{error || "Please check your credentials"}</p>
-                  </div>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {error || "Connection failed"}
                 </>
               )}
             </div>
@@ -2587,49 +2588,47 @@ function AddDatabaseModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 rounded-b-2xl flex gap-3">
+        <div className="px-5 py-3 border-t border-gray-100 dark:border-[#1a1a1a] flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 h-11 text-gray-600 dark:text-gray-400 text-sm font-medium hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="px-3 h-9 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
           >
             Cancel
           </button>
-          <div className="flex-1" />
-          <button
-            type="button"
-            onClick={handleTest}
-            disabled={isTesting || !formData.host || !formData.databaseName || !formData.username || !formData.name}
-            className="px-6 h-11 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isTesting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-gray-300 dark:border-gray-500 border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin" />
-                Testing...
-              </>
-            ) : (
-              "Test Connection"
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!testPassed || isLoading}
-            className={`px-6 h-11 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              testPassed
-                ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
-                : "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-            }`}
-          >
-            {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-gray-400 border-t-white rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Connection"
-            )}
-          </button>
+          {!testPassed ? (
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={isTesting || !isFormValid}
+              className="px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isTesting ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
+                  Testing
+                </>
+              ) : (
+                "Test Connection"
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isLoading}
+              className="px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 flex items-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
+                  Saving
+                </>
+              ) : (
+                "Save"
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -2657,117 +2656,114 @@ function FilesModal({
   getFileIcon: (fileType: string | number) => React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Your Files</h2>
+    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-[#161616] rounded-t-2xl sm:rounded-xl w-full sm:max-w-sm shadow-2xl overflow-hidden max-h-[85vh] sm:max-h-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-[#262626]">
+          <h2 className="text-sm font-medium text-gray-900 dark:text-white">Files</h2>
           <button
-            onClick={onUpload}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            onClick={onClose}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#262626] transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
-            Upload
           </button>
         </div>
 
-        <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+        {/* List */}
+        <div className="max-h-[320px] overflow-y-auto">
           {files.length === 0 ? (
-            <div className="text-center py-8">
-              <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">No files uploaded yet</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                Upload Excel, Word, CSV, or other files to analyze
-              </p>
+            <div className="px-4 py-10 text-center">
+              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#262626] flex items-center justify-center mx-auto mb-3">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">No files yet</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Upload files to analyze</p>
             </div>
           ) : (
             files.map((file) => (
               <div
                 key={file.id}
-                className={`p-3 rounded-xl flex items-center gap-3 transition-colors cursor-pointer ${
+                className={`group flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
                   file.id === selectedFileId
-                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
-                    : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    ? "bg-gray-50 dark:bg-[#1e1e1e]"
+                    : "hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
                 }`}
                 onClick={() => onSelect(file.id)}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  file.id === selectedFileId ? "bg-white/20 dark:bg-gray-900/20" : "bg-white dark:bg-gray-600"
+                {/* Selection indicator */}
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                  file.id === selectedFileId
+                    ? "border-gray-900 dark:border-white bg-gray-900 dark:bg-white"
+                    : "border-gray-300 dark:border-[#262626]"
                 }`}>
-                  {getFileIcon(file.fileType)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {file.originalFileName}
-                  </p>
-                  <div className={`flex items-center gap-2 text-xs ${
-                    file.id === selectedFileId ? "text-gray-300 dark:text-gray-600" : "text-gray-500 dark:text-gray-400"
-                  }`}>
-                    <span>{getFileTypeName(file.fileType)}</span>
-                    <span>•</span>
-                    <span>{formatFileSize(file.fileSizeBytes)}</span>
-                    {file.rowCount && (
-                      <>
-                        <span>•</span>
-                        <span>{file.rowCount.toLocaleString()} rows</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isCompleted(file.status) ? (
-                    <span className={`text-xs ${
-                      file.id === selectedFileId ? "text-green-300 dark:text-green-600" : "text-green-600 dark:text-green-400"
-                    }`}>
-                      Ready
-                    </span>
-                  ) : isProcessing(file.status) ? (
-                    <span className={`text-xs ${
-                      file.id === selectedFileId ? "text-yellow-300 dark:text-yellow-600" : "text-yellow-600 dark:text-yellow-400"
-                    }`}>
-                      Processing...
-                    </span>
-                  ) : isFailed(file.status) ? (
-                    <span className={`text-xs ${
-                      file.id === selectedFileId ? "text-red-300 dark:text-red-600" : "text-red-600 dark:text-red-400"
-                    }`}>
-                      Failed
-                    </span>
-                  ) : null}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(file.id);
-                    }}
-                    className={`p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-                      file.id === selectedFileId ? "text-white/70 dark:text-gray-600 hover:text-white dark:hover:text-gray-900" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  {file.id === selectedFileId && (
+                    <svg className="w-2.5 h-2.5 text-white dark:text-[#161616]" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                  </button>
+                  )}
                 </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-900 dark:text-white truncate">{file.originalFileName}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    {formatFileSize(file.fileSizeBytes)}
+                    {file.rowCount ? ` • ${file.rowCount.toLocaleString()} rows` : ""}
+                  </p>
+                </div>
+
+                {/* Status */}
+                {isCompleted(file.status) ? (
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" title="Ready" />
+                ) : isProcessing(file.status) ? (
+                  <div className="w-3 h-3 border border-yellow-500 border-t-transparent rounded-full animate-spin flex-shrink-0" title="Processing" />
+                ) : isFailed(file.status) ? (
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" title="Failed" />
+                ) : null}
+
+                {/* Delete - show on hover */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(file.id);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                  title="Delete"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             ))
           )}
         </div>
 
-        <div className="flex gap-3 mt-4">
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-gray-100 dark:border-[#262626] flex gap-2">
+          {selectedFileId && (
+            <button
+              onClick={() => onSelect("")}
+              className="flex-1 h-9 flex items-center justify-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#262626] rounded-lg transition-colors"
+            >
+              Clear
+            </button>
+          )}
           <button
-            onClick={() => onSelect("")}
-            className="flex-1 h-10 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            onClick={onUpload}
+            className={`${selectedFileId ? 'flex-1' : 'w-full'} h-9 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#262626] rounded-lg transition-colors`}
           >
-            Clear Selection
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 h-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-          >
-            Done
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Upload File
           </button>
         </div>
       </div>
@@ -2832,14 +2828,14 @@ function SchemaViewerModal({
   );
 
   return (
-    <div className={`fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 ${isFullscreen ? 'p-0' : 'p-4'}`}>
-      <div className={`bg-white dark:bg-gray-800 flex flex-col transition-all duration-300 ${
+    <div className={`fixed inset-0 bg-black/50 dark:bg-black/70 flex items-end sm:items-center justify-center z-50 ${isFullscreen ? 'p-0' : 'sm:p-4'}`}>
+      <div className={`bg-white dark:bg-[#1a1a1a] flex flex-col transition-all duration-300 border border-transparent dark:border-[#1a1a1a] ${
         isFullscreen
           ? 'w-full h-full rounded-none'
-          : 'rounded-2xl w-full max-w-6xl max-h-[90vh]'
+          : 'rounded-t-2xl sm:rounded-2xl w-full sm:max-w-6xl max-h-[90vh] sm:max-h-[90vh]'
       }`}>
         {/* Header */}
-        <div className={`border-b border-gray-100 dark:border-gray-700 ${isFullscreen ? 'p-4' : 'p-6'}`}>
+        <div className={`border-b border-gray-100 dark:border-[#1a1a1a] ${isFullscreen ? 'p-4' : 'p-6'}`}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{databaseName}</h2>
@@ -2851,11 +2847,11 @@ function SchemaViewerModal({
             </div>
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
-              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <div className="flex bg-gray-100 dark:bg-[#1a1a1a] rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("diagram")}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    viewMode === "diagram" ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    viewMode === "diagram" ? "bg-white dark:bg-[#333] text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
                   Diagram
@@ -2863,7 +2859,7 @@ function SchemaViewerModal({
                 <button
                   onClick={() => setViewMode("list")}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    viewMode === "list" ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    viewMode === "list" ? "bg-white dark:bg-[#333] text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
                   List
@@ -2872,7 +2868,7 @@ function SchemaViewerModal({
               {/* Fullscreen Toggle */}
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
                 title={isFullscreen ? "Exit fullscreen" : "Open sandbox mode"}
               >
                 {isFullscreen ? (
@@ -2887,7 +2883,7 @@ function SchemaViewerModal({
               </button>
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
               >
                 <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2902,7 +2898,7 @@ function SchemaViewerModal({
                 placeholder="Search tables and columns..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl pl-10 pr-4 text-sm outline-none focus:border-gray-400 dark:focus:border-gray-500 focus:bg-white dark:focus:bg-gray-600 transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full h-10 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#262626] rounded-xl pl-10 pr-4 text-sm outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-[#252525] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
               <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -2915,7 +2911,7 @@ function SchemaViewerModal({
         <div className={`flex-1 ${viewMode === "diagram" ? "overflow-hidden" : "overflow-y-auto custom-scrollbar"}`}>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-600 border-t-gray-800 dark:border-t-white rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-gray-200 dark:border-[#262626] border-t-gray-800 dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : error ? (
             <div className="text-center py-12">
@@ -3149,10 +3145,10 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
       />
 
       {/* Zoom Controls */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-2 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm rounded-xl p-2 shadow-lg border border-gray-200 dark:border-[#262626]">
         <button
           onClick={zoomIn}
-          className="w-8 h-8 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-gray-700 dark:text-gray-200"
+          className="w-8 h-8 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors text-gray-700 dark:text-gray-200"
           title="Zoom in"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3161,21 +3157,21 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
         </button>
         <button
           onClick={zoomOut}
-          className="w-8 h-8 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-gray-700 dark:text-gray-200"
+          className="w-8 h-8 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors text-gray-700 dark:text-gray-200"
           title="Zoom out"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
           </svg>
         </button>
-        <div className="w-px bg-gray-200 dark:bg-gray-600" />
+        <div className="w-px bg-gray-200 dark:bg-[#262626]" />
         <span className="flex items-center px-2 text-xs text-gray-500 dark:text-gray-400 font-medium min-w-[50px] justify-center">
           {Math.round(scale * 100)}%
         </span>
-        <div className="w-px bg-gray-200 dark:bg-gray-600" />
+        <div className="w-px bg-gray-200 dark:bg-[#262626]" />
         <button
           onClick={() => { setScale(0.8); setPan({ x: 0, y: 0 }); }}
-          className="px-3 h-8 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-600 text-xs font-medium transition-colors text-gray-700 dark:text-gray-200"
+          className="px-3 h-8 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#1a1a1a] text-xs font-medium transition-colors text-gray-700 dark:text-gray-200"
           title="Reset view"
         >
           Fit
@@ -3183,7 +3179,7 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
       </div>
 
       {/* Instructions hint */}
-      <div className="absolute top-4 left-4 z-10 text-xs text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="absolute top-4 left-4 z-10 text-xs text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-gray-200 dark:border-[#262626]">
         <span className="font-medium">Tip:</span> Drag tables to arrange • Scroll to pan • Pinch to zoom
       </div>
 
@@ -3286,7 +3282,7 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
           return (
             <div
               key={table.name}
-              className="erd-table absolute bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden select-none"
+              className="erd-table absolute bg-white dark:bg-[#111111] rounded-xl shadow-lg border border-gray-200 dark:border-[#262626] overflow-hidden select-none"
               style={{
                 left: pos.x,
                 top: pos.y,
@@ -3296,7 +3292,7 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
               onMouseDown={(e) => handleMouseDown(table.name, e)}
             >
               {/* Table Header */}
-              <div className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-2 flex items-center gap-2">
+              <div className="bg-gray-900 dark:bg-[#1a1a1a] text-white px-3 py-2 flex items-center gap-2">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
@@ -3307,13 +3303,13 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
               </div>
               {/* Columns */}
               <div
-                className="divide-y divide-gray-100 dark:divide-gray-700 max-h-48 overflow-y-auto erd-scrollbar bg-white dark:bg-gray-800"
+                className="divide-y divide-gray-100 dark:divide-gray-700 max-h-48 overflow-y-auto erd-scrollbar bg-white dark:bg-[#111111]"
                 onWheel={(e) => e.stopPropagation()}
               >
                 {table.columns.map(column => (
                   <div
                     key={column.name}
-                    className="px-3 py-1.5 flex items-center gap-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700"
+                    className="px-3 py-1.5 flex items-center gap-2 text-xs hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
                   >
                     <div className="w-4 flex justify-center">
                       {pkColumns.has(column.name) ? (
@@ -3325,7 +3321,7 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                       ) : (
-                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-[#333333]" />
                       )}
                     </div>
                     <span className="font-medium text-gray-700 dark:text-gray-200 truncate flex-1">{column.name}</span>
@@ -3339,7 +3335,7 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
       </div>
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 px-3 py-2">
+      <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] px-3 py-2">
         <div className="flex gap-4 text-xs">
           <div className="flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
@@ -3388,11 +3384,11 @@ function TableCard({
   };
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800">
+    <div className="border border-gray-200 dark:border-[#262626] rounded-xl overflow-hidden bg-white dark:bg-[#111111]">
       {/* Table Header */}
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#111111] flex items-center justify-between hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
       >
         <div className="flex items-center gap-3">
           <svg
@@ -3435,13 +3431,13 @@ function TableCard({
 
       {/* Table Content */}
       {isExpanded && (
-        <div className="border-t border-gray-200 dark:border-gray-700">
+        <div className="border-t border-gray-200 dark:border-[#262626]">
           {/* Columns */}
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {table.columns.map((column) => (
               <div
                 key={column.name}
-                className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-5 flex justify-center">
@@ -3454,13 +3450,13 @@ function TableCard({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                     ) : (
-                      <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-500" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-[#333333]" />
                     )}
                   </div>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">{highlightMatch(column.name)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-[#1a1a1a] px-2 py-0.5 rounded">
                     {column.dataType}
                     {column.maxLength && `(${column.maxLength})`}
                   </span>
@@ -3477,18 +3473,18 @@ function TableCard({
 
           {/* Foreign Keys Section */}
           {table.foreignKeys.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-900/20 px-4 py-3">
+            <div className="border-t border-gray-200 dark:border-[#262626] bg-blue-50/50 dark:bg-blue-900/20 px-4 py-3">
               <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Foreign Keys</p>
               <div className="space-y-1.5">
                 {table.foreignKeys.map((fk, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                    <span className="font-mono bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-700">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-700">
                       {fk.column}
                     </span>
                     <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
-                    <span className="font-mono bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-700">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-700">
                       {fk.referencedTable}.{fk.referencedColumn}
                     </span>
                     {(fk.onDelete || fk.onUpdate) && (
@@ -3506,14 +3502,14 @@ function TableCard({
 
           {/* Indexes Section */}
           {table.indexes.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 bg-purple-50/50 dark:bg-purple-900/20 px-4 py-3">
+            <div className="border-t border-gray-200 dark:border-[#262626] bg-purple-50/50 dark:bg-purple-900/20 px-4 py-3">
               <p className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-2">Indexes</p>
               <div className="space-y-1.5">
                 {table.indexes.map((index, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                     <span className="font-medium">{index.name}</span>
                     <span className="text-gray-400">on</span>
-                    <span className="font-mono bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-700">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-700">
                       {index.columns.join(', ')}
                     </span>
                     {index.isUnique && (

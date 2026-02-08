@@ -18,19 +18,19 @@ export default function ContactPage() {
 
   return (
     <PageLayout currentPage="contact">
-      <div className="w-full max-w-5xl mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">Get in Touch</h1>
+          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
             Have questions about Erao? We&apos;re here to help. Click any card below to copy our email address.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
           {/* General */}
           <button
             onClick={() => handleCopy("general")}
-            className="group border border-gray-200 rounded-2xl p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
+            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
               copied === "general" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
@@ -57,7 +57,7 @@ export default function ContactPage() {
           {/* Support */}
           <button
             onClick={() => handleCopy("support")}
-            className="group border border-gray-200 rounded-2xl p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
+            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
               copied === "support" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
@@ -84,7 +84,7 @@ export default function ContactPage() {
           {/* Sales */}
           <button
             onClick={() => handleCopy("sales")}
-            className="group border border-gray-200 rounded-2xl p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
+            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center text-left sm:col-span-2 md:col-span-1"
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
               copied === "sales" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
@@ -110,9 +110,9 @@ export default function ContactPage() {
         </div>
 
         {/* Direct Email Display */}
-        <div className="mt-16 max-w-2xl mx-auto text-center">
-          <div className="bg-gray-50 rounded-2xl p-8">
-            <h2 className="text-xl font-semibold mb-3">Our Email Address</h2>
+        <div className="mt-10 sm:mt-16 max-w-2xl mx-auto text-center">
+          <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-5 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">Our Email Address</h2>
             <p className="text-gray-600 mb-4">
               Click to copy:
             </p>

@@ -27,6 +27,22 @@ interface DataChartProps {
   chartType: ChartType;
 }
 
+// Hook to detect mobile screen
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return isMobile;
+}
+
 // Color palette for charts (works well on both light and dark)
 const COLORS = [
   "#3b82f6", // blue
@@ -156,6 +172,16 @@ function sampleData(
 
 export function DataChart({ data, columns, chartType }: DataChartProps) {
   const isDark = useDarkMode();
+  const isMobile = useIsMobile();
+
+  // Responsive chart dimensions
+  const chartHeight = isMobile ? 220 : 300;
+  const pieOuterRadius = isMobile ? 60 : 90;
+  const fontSize = isMobile ? 8 : 10;
+  const legendFontSize = isMobile ? "10px" : "12px";
+  const margins = isMobile
+    ? { top: 10, right: 10, left: 0, bottom: 40 }
+    : { top: 20, right: 30, left: 20, bottom: 60 };
 
   // Memoize all chart data processing
   const chartConfig = useMemo(() => {
@@ -255,11 +281,11 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
   const { chartData, dataColumns, pieData, hasNonZeroValues, isLargeDataset } = chartConfig;
   const dataCount = chartData.length;
 
-  // Theme colors
-  const gridColor = isDark ? "#374151" : "#e5e7eb";
+  // Theme colors - pure black theme for dark mode
+  const gridColor = isDark ? "#333333" : "#e5e7eb";
   const tickColor = isDark ? "#9ca3af" : "#6b7280";
-  const tooltipBg = isDark ? "#1f2937" : "white";
-  const tooltipBorder = isDark ? "#374151" : "#e5e7eb";
+  const tooltipBg = isDark ? "#1a1a1a" : "white";
+  const tooltipBorder = isDark ? "#333333" : "#e5e7eb";
   const tooltipText = isDark ? "#f9fafb" : "#111827";
 
   // X-axis config
@@ -306,8 +332,8 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
 
   if (!hasNonZeroValues) {
     return (
-      <div className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 transition-colors">
-        <div className="h-[200px] flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
+      <div className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-2 sm:p-4 transition-colors">
+        <div className="h-[150px] sm:h-[200px] flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
           No data to visualize (all values are 0)
         </div>
       </div>
@@ -315,33 +341,41 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
   }
 
   const renderChart = () => {
+    const responsiveBottomMargin = isMobile ? Math.min(bottomMargin, 40) : bottomMargin;
+
     switch (chartType) {
       case "bar":
         return (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: bottomMargin }}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <BarChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 10, fill: tickColor }}
-                interval={xAxisConfig.interval}
+                tick={{ fontSize, fill: tickColor }}
+                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
                 dy={xAxisConfig.dy}
-                height={bottomMargin + 20}
+                height={responsiveBottomMargin + 15}
               />
-              <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
+              <YAxis
+                tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
+                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                width={isMobile ? 35 : 60}
+              />
               <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: "12px", paddingTop: "10px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-              />
+              {!isMobile && (
+                <Legend
+                  wrapperStyle={{ fontSize: legendFontSize, paddingTop: "10px", color: tickColor }}
+                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
+                />
+              )}
               {dataColumns.map((col, index) => (
                 <Bar
                   key={col}
                   dataKey={col}
                   fill={COLORS[index % COLORS.length]}
-                  radius={[4, 4, 0, 0]}
+                  radius={[2, 2, 0, 0]}
                 />
               ))}
             </BarChart>
@@ -350,32 +384,38 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
 
       case "line":
         return (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: bottomMargin }}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <LineChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 10, fill: tickColor }}
-                interval={xAxisConfig.interval}
+                tick={{ fontSize, fill: tickColor }}
+                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
                 dy={xAxisConfig.dy}
-                height={bottomMargin + 20}
+                height={responsiveBottomMargin + 15}
               />
-              <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
+              <YAxis
+                tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
+                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                width={isMobile ? 35 : 60}
+              />
               <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: "12px", paddingTop: "10px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-              />
+              {!isMobile && (
+                <Legend
+                  wrapperStyle={{ fontSize: legendFontSize, paddingTop: "10px", color: tickColor }}
+                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
+                />
+              )}
               {dataColumns.map((col, index) => (
                 <Line
                   key={col}
                   type="monotone"
                   dataKey={col}
                   stroke={COLORS[index % COLORS.length]}
-                  strokeWidth={2}
-                  dot={dataCount <= 30 ? { fill: COLORS[index % COLORS.length], strokeWidth: 2, r: 2 } : false}
+                  strokeWidth={isMobile ? 1.5 : 2}
+                  dot={!isMobile && dataCount <= 30 ? { fill: COLORS[index % COLORS.length], strokeWidth: 2, r: 2 } : false}
                 />
               ))}
             </LineChart>
@@ -384,24 +424,30 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
 
       case "area":
         return (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: bottomMargin }}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <AreaChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 10, fill: tickColor }}
-                interval={xAxisConfig.interval}
+                tick={{ fontSize, fill: tickColor }}
+                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
                 dy={xAxisConfig.dy}
-                height={bottomMargin + 20}
+                height={responsiveBottomMargin + 15}
               />
-              <YAxis tick={{ fontSize: 12, fill: tickColor }} tickFormatter={(v) => v.toLocaleString()} />
+              <YAxis
+                tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
+                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                width={isMobile ? 35 : 60}
+              />
               <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: "12px", paddingTop: "10px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-              />
+              {!isMobile && (
+                <Legend
+                  wrapperStyle={{ fontSize: legendFontSize, paddingTop: "10px", color: tickColor }}
+                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
+                />
+              )}
               {dataColumns.map((col, index) => (
                 <Area
                   key={col}
@@ -419,7 +465,7 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
       case "pie":
         if (pieData.length === 0) {
           return (
-            <div className="h-[300px] flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
+            <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm`} style={{ height: chartHeight }}>
               No data to visualize (all values are 0)
             </div>
           );
@@ -428,22 +474,23 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
         // Calculate total for percentages
         const total = pieData.reduce((sum, item) => sum + item.value, 0);
 
-        // Only show labels for slices > 5% to avoid overlap
+        // Only show labels for slices > 5% to avoid overlap (hide on mobile)
         const renderLabel = ({ name, percent }: { name?: string; percent?: number }) => {
-          if (!percent || percent < 0.05) return ""; // Hide labels for slices < 5%
+          if (isMobile) return "";
+          if (!percent || percent < 0.05) return "";
           return `${truncateLabel(name || "", 10)} (${(percent * 100).toFixed(0)}%)`;
         };
 
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <PieChart>
               <Pie
                 data={pieData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={pieData.length <= 8 ? renderLabel : false}
-                outerRadius={90}
+                label={!isMobile && pieData.length <= 8 ? renderLabel : false}
+                outerRadius={pieOuterRadius}
                 dataKey="value"
               >
                 {pieData.map((entry, index) => (
@@ -455,7 +502,7 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
                   backgroundColor: tooltipBg,
                   border: `1px solid ${tooltipBorder}`,
                   borderRadius: "8px",
-                  fontSize: "12px",
+                  fontSize: isMobile ? "10px" : "12px",
                   color: tooltipText,
                 }}
                 itemStyle={{ color: tooltipText }}
@@ -466,8 +513,8 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
                 }}
               />
               <Legend
-                wrapperStyle={{ fontSize: "11px", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, 20)}</span>}
+                wrapperStyle={{ fontSize: isMobile ? "9px" : "11px", color: tickColor }}
+                formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, isMobile ? 12 : 20)}</span>}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -479,10 +526,10 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
   };
 
   return (
-    <div className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 transition-colors">
+    <div className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-2 sm:p-4 transition-colors">
       {isLargeDataset && chartType !== "table" && (
-        <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 text-center">
-          {chartType === "pie" ? "Top 10 by value" : chartType === "line" || chartType === "area" ? `Sampled from ${data.length} rows` : `Top 30 by value (from ${data.length} rows)`}
+        <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mb-1 sm:mb-2 text-center">
+          {chartType === "pie" ? "Top 10" : chartType === "line" || chartType === "area" ? `${data.length} rows` : `Top 30 of ${data.length}`}
         </div>
       )}
       {renderChart()}

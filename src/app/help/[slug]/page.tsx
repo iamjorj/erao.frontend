@@ -271,9 +271,9 @@ export default function HelpArticlePage() {
   if (!article) {
     return (
       <PageLayout currentPage="help">
-        <div className="w-full max-w-3xl mx-auto px-6 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
-          <p className="text-gray-600 mb-6">The article you&apos;re looking for doesn&apos;t exist.</p>
+        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16 text-center">
+          <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Article Not Found</h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-5 sm:mb-6">The article you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/help" className="text-black underline">
             Back to Help Center
           </Link>
@@ -284,16 +284,16 @@ export default function HelpArticlePage() {
 
   return (
     <PageLayout currentPage="help">
-      <article className="w-full max-w-3xl mx-auto px-6 py-16">
-        <div className="mb-8">
-          <Link href="/help" className="text-sm text-gray-500 hover:text-black transition-colors">
+      <article className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        <div className="mb-6 sm:mb-8">
+          <Link href="/help" className="text-xs sm:text-sm text-gray-500 hover:text-black transition-colors">
             Help Center
           </Link>
-          <span className="text-gray-400 mx-2">/</span>
-          <span className="text-sm text-gray-500">{article.category}</span>
+          <span className="text-gray-400 mx-1.5 sm:mx-2">/</span>
+          <span className="text-xs sm:text-sm text-gray-500">{article.category}</span>
         </div>
 
-        <h1 className="text-3xl font-bold mb-6">{article.title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-5 sm:mb-6">{article.title}</h1>
 
         <div className="space-y-4">
           {article.content.map((paragraph, index) => (
@@ -303,20 +303,20 @@ export default function HelpArticlePage() {
           ))}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <p className="text-sm text-gray-500 mb-4">Was this article helpful?</p>
-          <div className="flex items-center gap-3">
-            <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+        <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-200">
+          <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Was this article helpful?</p>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm hover:bg-gray-50 transition-colors">
               Yes
             </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+            <button className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm hover:bg-gray-50 transition-colors">
               No
             </button>
           </div>
         </div>
 
-        <div className="mt-8">
-          <Link href="/help" className="text-sm text-black font-medium hover:underline">
+        <div className="mt-6 sm:mt-8">
+          <Link href="/help" className="text-xs sm:text-sm text-black font-medium hover:underline">
             Back to Help Center
           </Link>
         </div>
