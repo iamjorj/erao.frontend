@@ -429,6 +429,20 @@ export default function AIPage() {
     loadFiles();
   }, [router]);
 
+  // Refresh conversations list only - no auto-selection logic
+  // Use this after sending messages or other updates
+  const refreshConversations = async () => {
+    try {
+      const response = await api.getConversations();
+      if (response.success) {
+        setConversations(response.data);
+      }
+    } catch (err) {
+      console.error("Failed to refresh conversations:", err);
+    }
+  };
+
+  // Full load with auto-selection - only for initial load
   const loadConversations = async () => {
     try {
       // Set loading state for chat area immediately if we have a saved conversation
@@ -792,7 +806,7 @@ export default function AIPage() {
       }
 
       // Always refresh conversations to get updated title (even if switched away)
-      loadConversations();
+      refreshConversations();
 
       // Only update loading state if still on same conversation
       if (currentlyViewingConversation) {
