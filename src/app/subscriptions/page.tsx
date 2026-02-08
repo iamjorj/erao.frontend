@@ -73,9 +73,13 @@ function SubscriptionsContent() {
         // Redirect to Dodo Payments checkout
         window.location.href = res.data.checkoutUrl;
         return; // Don't clear upgrading state since we're redirecting
+      } else {
+        // Show error message from API
+        setError(res.message || "Failed to create checkout session. Please try again.");
       }
-    } catch (err) {
-      setError("Failed to create checkout session. Please try again.");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to create checkout session. Please try again.";
+      setError(errorMessage);
       console.error(err);
     } finally {
       setUpgrading(null);
