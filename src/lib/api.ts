@@ -159,14 +159,27 @@ export interface UpdateConversationPayload {
 }
 
 // Message types
+// Role can be string ("User", "Assistant", "System") or number (0, 1, 2)
+export type MessageRole = 'User' | 'Assistant' | 'System' | 0 | 1 | 2;
+
 export interface Message {
   id: string;
-  role: 'User' | 'Assistant' | 'System';
+  role: MessageRole;
   content: string;
   sqlQuery: string | null;
   queryResult: QueryResult | string | null; // Can be JSON string or parsed object
   tokensUsed: number;
   createdAt: string;
+}
+
+// Helper to check if message is from assistant (handles both string and number)
+export function isAssistantMessage(role: MessageRole): boolean {
+  return role === 'Assistant' || role === 1;
+}
+
+// Helper to check if message is from user (handles both string and number)
+export function isUserMessage(role: MessageRole): boolean {
+  return role === 'User' || role === 0;
 }
 
 export interface QueryResult {

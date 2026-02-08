@@ -15,6 +15,7 @@ import {
   FileDocument,
   SchemaResponse,
   TableSchema,
+  isAssistantMessage,
 } from "@/lib/api";
 import { DataChart, ChartType, detectChartType } from "@/components/DataChart";
 import { DataViewerModal } from "@/components/DataViewerModal";
@@ -1281,9 +1282,9 @@ export default function AIPage() {
               </div>
             </div>
           ) : (
-            messages.filter((m) => m && m.role).map((message) => (
+            messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message) => (
               <div key={message.id}>
-                {message.role === "Assistant" ? (
+                {isAssistantMessage(message.role) ? (
                   <div className="w-[70%] max-w-[70%] bg-white dark:bg-gray-800 rounded-2xl p-5 flex flex-col gap-3.5 shadow-sm border border-gray-100/80 dark:border-gray-700/80 overflow-hidden">
                     <span className="font-semibold text-base text-gray-900 dark:text-white">Erao</span>
                     <MarkdownResponse content={stripCodeBlocks(message.content)} />
