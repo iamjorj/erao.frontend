@@ -16,6 +16,11 @@ import {
   SchemaResponse,
   TableSchema,
   isAssistantMessage,
+  getFileTypeName,
+  getDatabaseTypeName,
+  isCompleted,
+  isFailed,
+  isProcessing,
 } from "@/lib/api";
 import { DataChart, ChartType, detectChartType } from "@/components/DataChart";
 import { DataViewerModal } from "@/components/DataViewerModal";
@@ -563,8 +568,9 @@ export default function AIPage() {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  const getFileIcon = (fileType: string) => {
-    switch (fileType) {
+  const getFileIcon = (fileType: string | number) => {
+    const typeName = typeof fileType === 'number' ? getFileTypeName(fileType as any) : fileType;
+    switch (typeName) {
       case "Excel":
         return (
           <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
@@ -1258,7 +1264,7 @@ export default function AIPage() {
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {selectedFile
-                    ? `${selectedFile.fileType} file with ${selectedFile.rowCount?.toLocaleString() || 0} rows ready. Ask anything about your data.`
+                    ? `${getFileTypeName(selectedFile.fileType)} file with ${selectedFile.rowCount?.toLocaleString() || 0} rows ready. Ask anything about your data.`
                     : selectedDatabase
                     ? "Ask anything about your data. I can help you analyze, query, and understand your database."
                     : "Connect a database or upload a file to start querying your data with natural language."}
@@ -2172,7 +2178,7 @@ function DatabaseModal({
                           : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
-                      {db.databaseType}
+                      {getDatabaseTypeName(db.databaseType)}
                     </p>
                   </div>
                   {db.lastTestedAt && (
@@ -2630,7 +2636,7 @@ function FilesModal({
   onUpload: () => void;
   onDelete: (id: string) => void;
   formatFileSize: (bytes: number) => string;
-  getFileIcon: (fileType: string) => React.ReactNode;
+  getFileIcon: (fileType: string | number) => React.ReactNode;
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
@@ -2682,7 +2688,7 @@ function FilesModal({
                   <div className={`flex items-center gap-2 text-xs ${
                     file.id === selectedFileId ? "text-gray-300 dark:text-gray-600" : "text-gray-500 dark:text-gray-400"
                   }`}>
-                    <span>{file.fileType}</span>
+                    <span>{getFileTypeName(file.fileType)}</span>
                     <span>•</span>
                     <span>{formatFileSize(file.fileSizeBytes)}</span>
                     {file.rowCount && (
@@ -2694,19 +2700,19 @@ function FilesModal({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {file.status === "Completed" ? (
+                  {isCompleted(file.status) ? (
                     <span className={`text-xs ${
                       file.id === selectedFileId ? "text-green-300 dark:text-green-600" : "text-green-600 dark:text-green-400"
                     }`}>
                       Ready
                     </span>
-                  ) : file.status === "Processing" ? (
+                  ) : isProcessing(file.status) ? (
                     <span className={`text-xs ${
                       file.id === selectedFileId ? "text-yellow-300 dark:text-yellow-600" : "text-yellow-600 dark:text-yellow-400"
                     }`}>
                       Processing...
                     </span>
-                  ) : file.status === "Failed" ? (
+                  ) : isFailed(file.status) ? (
                     <span className={`text-xs ${
                       file.id === selectedFileId ? "text-red-300 dark:text-red-600" : "text-red-600 dark:text-red-400"
                     }`}>
@@ -2821,7 +2827,7 @@ function SchemaViewerModal({
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{databaseName}</h2>
               {schema && (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {schema.databaseType} • {(schema.tables || []).length} tables
+                  {getDatabaseTypeName(schema.databaseType as any)} • {(schema.tables || []).length} tables
                 </p>
               )}
             </div>

@@ -51,10 +51,23 @@ interface LoginPayload {
 }
 
 // Database connection types
+export type DatabaseType = 'PostgreSQL' | 'MySQL' | 'SQLServer' | 'MongoDB' | 0 | 1 | 2 | 3;
+
+// DatabaseType helpers
+const DB_TYPE_MAP: Record<number, string> = { 0: 'PostgreSQL', 1: 'MySQL', 2: 'SQLServer', 3: 'MongoDB' };
+export function getDatabaseTypeName(type: DatabaseType): string {
+  if (typeof type === 'number') return DB_TYPE_MAP[type] || 'Unknown';
+  return type;
+}
+export function isPostgreSQL(type: DatabaseType): boolean { return type === 'PostgreSQL' || type === 0; }
+export function isMySQL(type: DatabaseType): boolean { return type === 'MySQL' || type === 1; }
+export function isSQLServer(type: DatabaseType): boolean { return type === 'SQLServer' || type === 2; }
+export function isMongoDB(type: DatabaseType): boolean { return type === 'MongoDB' || type === 3; }
+
 export interface DatabaseConnection {
   id: string;
   name: string;
-  databaseType: 'PostgreSQL' | 'MySQL' | 'SQLServer' | 'MongoDB';
+  databaseType: DatabaseType;
   isActive: boolean;
   lastTestedAt: string | null;
   createdAt: string;
@@ -246,9 +259,30 @@ export interface UsageLogEntry {
   createdAt: string;
 }
 
-// File types
-export type FileType = 'Excel' | 'Word' | 'Csv' | 'Xml' | 'Json' | 'Text';
-export type FileProcessingStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
+// File types - can be string or number from API
+export type FileType = 'Excel' | 'Word' | 'Csv' | 'Xml' | 'Json' | 'Text' | 0 | 1 | 2 | 3 | 4 | 5;
+export type FileProcessingStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed' | 0 | 1 | 2 | 3;
+
+// FileType helpers
+const FILE_TYPE_MAP: Record<number, string> = { 0: 'Excel', 1: 'Word', 2: 'Csv', 3: 'Xml', 4: 'Json', 5: 'Text' };
+export function getFileTypeName(type: FileType): string {
+  if (typeof type === 'number') return FILE_TYPE_MAP[type] || 'Unknown';
+  return type;
+}
+export function isExcelFile(type: FileType): boolean { return type === 'Excel' || type === 0; }
+export function isWordFile(type: FileType): boolean { return type === 'Word' || type === 1; }
+export function isCsvFile(type: FileType): boolean { return type === 'Csv' || type === 2; }
+
+// FileProcessingStatus helpers
+const STATUS_MAP: Record<number, string> = { 0: 'Pending', 1: 'Processing', 2: 'Completed', 3: 'Failed' };
+export function getStatusName(status: FileProcessingStatus): string {
+  if (typeof status === 'number') return STATUS_MAP[status] || 'Unknown';
+  return status;
+}
+export function isCompleted(status: FileProcessingStatus): boolean { return status === 'Completed' || status === 2; }
+export function isFailed(status: FileProcessingStatus): boolean { return status === 'Failed' || status === 3; }
+export function isPending(status: FileProcessingStatus): boolean { return status === 'Pending' || status === 0; }
+export function isProcessing(status: FileProcessingStatus): boolean { return status === 'Processing' || status === 1; }
 
 export interface FileDocument {
   id: string;
