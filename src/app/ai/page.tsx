@@ -685,17 +685,29 @@ export default function AIPage() {
     setIsSending(true);
     setError(null);
 
+    // Need either a database or file selected
+    if (!selectedDatabaseId && !selectedFileId) {
+      setShowDatabaseModal(true);
+      setIsSending(false);
+      setInputValue(messageContent);
+      return;
+    }
+
+    // Add user message optimistically IMMEDIATELY (before any API calls)
+    const tempUserMessage: Message = {
+      id: `temp-${Date.now()}`,
+      role: "User",
+      content: messageContent,
+      sqlQuery: null,
+      queryResult: null,
+      tokensUsed: 0,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempUserMessage]);
+
     // If no conversation selected, create one first
     let conversationId = selectedConversationId;
     if (!conversationId) {
-      // Need either a database or file selected
-      if (!selectedDatabaseId && !selectedFileId) {
-        setShowDatabaseModal(true);
-        setIsSending(false);
-        setInputValue(messageContent);
-        return;
-      }
-
       try {
         const convResponse = await api.createConversation({
           databaseConnectionId: selectedDatabaseId || undefined,
@@ -710,23 +722,13 @@ export default function AIPage() {
         if (err instanceof ApiError) {
           setError(err.message);
         }
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((m) => m.id !== tempUserMessage.id));
         setIsSending(false);
         setInputValue(messageContent);
         return;
       }
     }
-
-    // Add user message optimistically
-    const tempUserMessage: Message = {
-      id: `temp-${Date.now()}`,
-      role: "User",
-      content: messageContent,
-      sqlQuery: null,
-      queryResult: null,
-      tokensUsed: 0,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, tempUserMessage]);
 
     // Track which conversation this request is for
     const requestConversationId = conversationId!;
