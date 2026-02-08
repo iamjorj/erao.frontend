@@ -15,6 +15,8 @@ import {
   FileDocument,
   SchemaResponse,
   TableSchema,
+  FileType,
+  DatabaseType,
   isAssistantMessage,
   getFileTypeName,
   getDatabaseTypeName,
@@ -583,7 +585,7 @@ export default function AIPage() {
   };
 
   const getFileIcon = (fileType: string | number) => {
-    const typeName = typeof fileType === 'number' ? getFileTypeName(fileType as any) : fileType;
+    const typeName = typeof fileType === 'number' ? getFileTypeName(fileType as FileType) : fileType;
     switch (typeName) {
       case "Excel":
         return (
@@ -2841,7 +2843,7 @@ function SchemaViewerModal({
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{databaseName}</h2>
               {schema && (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {getDatabaseTypeName(schema.databaseType as any)} • {(schema.tables || []).length} tables
+                  {getDatabaseTypeName(schema.databaseType as DatabaseType)} • {(schema.tables || []).length} tables
                 </p>
               )}
             </div>
