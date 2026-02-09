@@ -19,10 +19,26 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  subscriptionTier: string;
+  subscriptionTier: number | string;
   queryLimitPerMonth: number;
   queriesUsedThisMonth: number;
   createdAt: string;
+}
+
+const TIER_NAMES: Record<number | string, string> = {
+  0: "Free",
+  1: "Pro",
+  2: "Enterprise",
+  "Starter": "Free",
+  "Professional": "Pro",
+  "Enterprise": "Enterprise",
+  "Free": "Free",
+  "Pro": "Pro",
+};
+
+export function getTierName(tier: number | string | undefined): string {
+  if (tier === undefined || tier === null) return "Free";
+  return TIER_NAMES[tier] ?? "Free";
 }
 
 interface AuthResponse {

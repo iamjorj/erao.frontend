@@ -23,6 +23,7 @@ import {
   isCompleted,
   isFailed,
   isProcessing,
+  getTierName,
 } from "@/lib/api";
 import { DataChart, ChartType, detectChartType } from "@/components/DataChart";
 import { DataViewerModal } from "@/components/DataViewerModal";
@@ -1207,7 +1208,7 @@ export default function AIPage() {
                 {user?.firstName} {user?.lastName}
               </p>
               <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                {user?.subscriptionTier || "Starter"}
+                {getTierName(user?.subscriptionTier)}
               </p>
             </div>
             <svg

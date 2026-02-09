@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, UsageStats, UsageLogEntry, auth } from "@/lib/api";
+import { api, UsageStats, UsageLogEntry, auth, getTierName } from "@/lib/api";
 
 export default function UsagePage() {
   const router = useRouter();
@@ -150,7 +150,7 @@ export default function UsagePage() {
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {user?.subscriptionTier || "Starter"} Plan
+                  {getTierName(user?.subscriptionTier)} Plan
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                   Resets {usage ? formatResetDate(usage.billingCycleEnd) : "-"}
