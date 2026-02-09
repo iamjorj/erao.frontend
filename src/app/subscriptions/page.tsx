@@ -4,6 +4,22 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, auth, SubscriptionPlan, SubscriptionResponse } from "@/lib/api";
 
+function ContactSalesBtn() {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText("sales@erao.digital");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+      className="w-full h-9 rounded-lg text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+    >
+      {copied ? "Email copied!" : "Contact Sales"}
+    </button>
+  );
+}
+
 export default function SubscriptionsPage() {
   return (
     <Suspense fallback={
@@ -251,22 +267,8 @@ function SubscriptionsContent() {
                     >
                       Current plan
                     </button>
-                  ) : plan.tier > (currentSubscription?.currentTier ?? 0) ? (
-                    <button
-                      onClick={() => handleUpgrade(plan.tier)}
-                      disabled={upgrading !== null}
-                      className="w-full h-9 rounded-lg text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors"
-                    >
-                      {upgrading === plan.tier ? "Processing..." : "Upgrade"}
-                    </button>
                   ) : (
-                    <button
-                      onClick={() => handleDowngrade()}
-                      disabled={upgrading !== null}
-                      className="w-full h-9 rounded-lg text-xs font-medium border border-gray-200 dark:border-[#262626] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] disabled:opacity-50 transition-colors"
-                    >
-                      {upgrading === plan.tier ? "Processing..." : "Downgrade"}
-                    </button>
+                    <ContactSalesBtn />
                   )}
 
                   {/* Features */}

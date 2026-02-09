@@ -634,6 +634,7 @@ export default function AIPage() {
 
   const selectConversation = useCallback(async (conversationId: string) => {
     setSelectedConversationId(conversationId);
+    setMessages([]); // Clear old messages immediately so spinner doesn't overlap
     setLoadingMessages(true);
     setError(null);
     // Reset sending state when switching conversations
@@ -954,7 +955,7 @@ export default function AIPage() {
   const userInitial = user?.firstName?.[0]?.toUpperCase() || "U";
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-[#0a0a0a] flex transition-colors duration-200">
+    <div className="h-dvh bg-gray-50 dark:bg-[#0a0a0a] flex transition-colors duration-200 overflow-hidden">
       {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
         <div
@@ -1296,7 +1297,7 @@ export default function AIPage() {
       {/* Main Content */}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden transition-colors duration-200 relative">
         {/* Header */}
-        <header className="px-3 sm:px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a] sticky top-0 z-10 bg-white dark:bg-[#0a0a0a] transition-colors duration-200">
+        <header className="px-3 sm:px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a] z-10 bg-white dark:bg-[#0a0a0a] transition-colors duration-200 flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Hamburger menu for mobile */}
             <button
@@ -1350,13 +1351,16 @@ export default function AIPage() {
           )}
         </header>
 
+        {/* Loading overlay - covers entire chat area with solid background */}
+        {loadingMessages && (
+          <div className="absolute inset-0 top-[49px] z-20 bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-gray-200 dark:border-[#262626] border-t-gray-600 dark:border-t-gray-400 rounded-full animate-spin" />
+          </div>
+        )}
+
         {/* Chat Area */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-5 pt-4 sm:pt-5 pb-24 sm:pb-20 flex flex-col gap-4 sm:gap-5 custom-scrollbar">
-          {loadingMessages ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="w-6 h-6 border-2 border-gray-200 dark:border-[#262626] border-t-gray-600 dark:border-t-gray-400 rounded-full animate-spin" />
-            </div>
-          ) : messages.length === 0 ? null : (
+          {messages.length === 0 ? null : (
             messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message) => (
               <div key={message.id}>
                 {isAssistantMessage(message.role) ? (

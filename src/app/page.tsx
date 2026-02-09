@@ -1,7 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Navbar, Footer } from "@/components/shared";
+
+function ContactSalesButton({ variant = "outline" }: { variant?: "outline" | "filled" }) {
+  const [copied, setCopied] = useState(false);
+  const handleClick = () => {
+    navigator.clipboard.writeText("sales@erao.digital");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className={`block w-full py-3 text-center rounded-xl text-sm font-medium transition-colors ${
+        variant === "filled"
+          ? "bg-black text-white hover:bg-gray-800"
+          : "border border-gray-300 hover:bg-gray-50"
+      }`}
+    >
+      {copied ? "Email copied!" : "Contact Sales"}
+    </button>
+  );
+}
 
 export default function LandingPage() {
 
@@ -230,12 +252,7 @@ export default function LandingPage() {
                 Table & chart views
               </li>
             </ul>
-            <Link
-              href="/register"
-              className="block w-full py-3 text-center border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              Get Started Free
-            </Link>
+            <ContactSalesButton />
           </div>
 
           {/* Pro - Recommended */}
@@ -269,12 +286,7 @@ export default function LandingPage() {
                 Export to CSV/Excel/PDF
               </li>
             </ul>
-            <Link
-              href="/register"
-              className="block w-full py-3 text-center bg-black text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
-            >
-              Get Started
-            </Link>
+            <ContactSalesButton variant="filled" />
           </div>
 
           {/* Enterprise */}
@@ -305,12 +317,7 @@ export default function LandingPage() {
                 Export to CSV/Excel/PDF
               </li>
             </ul>
-            <Link
-              href="/register"
-              className="block w-full py-3 text-center border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              Get Started
-            </Link>
+            <ContactSalesButton />
           </div>
         </div>
       </section>

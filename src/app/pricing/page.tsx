@@ -1,8 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { PageLayout } from "@/components/shared";
+
+function ContactSalesButton({ label, popular }: { label: string; popular: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const handleClick = () => {
+    navigator.clipboard.writeText("sales@erao.digital");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className={`block w-full py-3 text-center rounded-xl text-sm font-medium transition-colors mb-6 ${
+        popular
+          ? "bg-black text-white hover:bg-gray-800"
+          : "border border-gray-300 hover:bg-gray-50"
+      }`}
+    >
+      {copied ? "Email copied!" : label}
+    </button>
+  );
+}
 
 const plans = [
   {
@@ -16,7 +36,7 @@ const plans = [
       { name: "7-day conversation history", included: true },
       { name: "Export to CSV/Excel", included: false },
     ],
-    cta: "Get Started Free",
+    cta: "Contact Sales",
     popular: false,
   },
   {
@@ -30,7 +50,7 @@ const plans = [
       { name: "Unlimited conversation history", included: true },
       { name: "Export to CSV/Excel/PDF", included: true },
     ],
-    cta: "Get Started",
+    cta: "Contact Sales",
     popular: true,
   },
   {
@@ -44,7 +64,7 @@ const plans = [
       { name: "Unlimited conversation history", included: true },
       { name: "Export to CSV/Excel/PDF", included: true },
     ],
-    cta: "Get Started",
+    cta: "Contact Sales",
     popular: false,
   },
 ];
@@ -115,16 +135,7 @@ export default function PricingPage() {
                 <span className="text-gray-500">/month</span>
               </div>
 
-              <Link
-                href="/register"
-                className={`block w-full py-3 text-center rounded-xl text-sm font-medium transition-colors mb-6 ${
-                  plan.popular
-                    ? "bg-black text-white hover:bg-gray-800"
-                    : "border border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {plan.cta}
-              </Link>
+              <ContactSalesButton label={plan.cta} popular={plan.popular} />
 
               <ul className="space-y-3">
                 {plan.features.map((feature) => (
@@ -218,14 +229,7 @@ export default function PricingPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Still have questions?</h2>
           <p className="text-sm sm:text-base text-gray-600 mb-5 sm:mb-6">Our team is here to help you find the right plan.</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <Link href="/contact" className="border border-gray-300 hover:bg-gray-50 px-6 py-3 rounded-xl text-sm font-medium transition-colors">
-              Contact Us
-            </Link>
-            <Link href="/register" className="bg-black text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
-              Start Free Trial
-            </Link>
-          </div>
+          <ContactSalesButton label="Contact Sales" popular={true} />
         </div>
       </section>
     </PageLayout>
