@@ -164,8 +164,15 @@ function VirtualTable({
     overscan: 10,
   });
 
-  // Calculate minimum width based on columns
-  const minTableWidth = Math.max(columns.length * 140 + 60, 400);
+  // Calculate minimum width based on actual content: row# + columns + gaps + padding
+  const colWidth = 120;
+  const rowNumWidth = 48; // w-12
+  const gap = 10; // gap-2.5
+  const padding = 24; // px-3 both sides
+  const minTableWidth = Math.max(
+    rowNumWidth + columns.length * colWidth + columns.length * gap + padding,
+    400
+  );
 
   return (
     <div className="p-1 overflow-hidden">
@@ -184,7 +191,8 @@ function VirtualTable({
             {columns.map((col) => (
               <span
                 key={col}
-                className="min-w-[120px] w-[120px] text-xs font-semibold text-gray-700 dark:text-gray-300 truncate"
+                className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate flex-shrink-0"
+                style={{ width: colWidth }}
                 title={col}
               >
                 {col}
@@ -218,7 +226,8 @@ function VirtualTable({
                   {columns.map((col) => (
                     <span
                       key={col}
-                      className="min-w-[120px] w-[120px] text-sm text-gray-700 dark:text-gray-300 truncate"
+                      className="text-sm text-gray-700 dark:text-gray-300 truncate flex-shrink-0"
+                      style={{ width: colWidth }}
                       title={String(row[col] ?? "")}
                     >
                       {String(row[col] ?? "")}
@@ -1391,11 +1400,11 @@ export default function AIPage() {
                                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{capitalizedTitle}</span>
                                   </div>
                                   {/* View Toggle Buttons */}
-                                  <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-[#262626]">
-                                    <div className="flex items-center gap-1">
+                                  <div className="flex items-center justify-between p-1.5 sm:p-2 border-b border-gray-200 dark:border-[#262626] gap-1 overflow-x-auto">
+                                    <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                                       <button
                                         onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "table" }))}
-                                        className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                        className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                           currentView === "table"
                                             ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                             : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1407,7 +1416,7 @@ export default function AIPage() {
                                         <>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "bar" }))}
-                                            className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                               currentView === "bar"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1417,7 +1426,7 @@ export default function AIPage() {
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "line" }))}
-                                            className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                               currentView === "line"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1427,7 +1436,7 @@ export default function AIPage() {
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "pie" }))}
-                                            className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                               currentView === "pie"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1437,7 +1446,7 @@ export default function AIPage() {
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "area" }))}
-                                            className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                               currentView === "area"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1458,13 +1467,13 @@ export default function AIPage() {
                                         });
                                         setDataViewerOpen(message.id);
                                       }}
-                                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded-md transition-colors"
+                                      className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded-md transition-colors flex-shrink-0"
                                       title="Open in fullscreen"
                                     >
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                       </svg>
-                                      Expand
+                                      <span className="hidden sm:inline">Expand</span>
                                     </button>
                                   </div>
 
@@ -1522,14 +1531,14 @@ export default function AIPage() {
                           <div className="mt-3 space-y-3">
                             {/* Main value - featured card */}
                             {mainValue && (
-                              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-100 dark:to-gray-200 p-5">
+                              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-100 dark:to-gray-200 p-4 sm:p-5">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 dark:bg-black/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 dark:bg-black/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-                                <div className="relative">
+                                <div className="relative min-w-0">
                                   <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                                     {mainValue.label}
                                   </span>
-                                  <div className="text-4xl font-bold text-white dark:text-gray-900 mt-1 tracking-tight">
+                                  <div className="text-2xl sm:text-4xl font-bold text-white dark:text-gray-900 mt-1 tracking-tight break-words overflow-hidden">
                                     {typeof mainValue.value === "number"
                                       ? mainValue.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
                                       : String(mainValue.value)}
@@ -1539,14 +1548,14 @@ export default function AIPage() {
                             )}
                             {/* Other values - stat cards */}
                             {otherValues.length > 0 && (
-                              <div className={`grid gap-2 ${otherValues.length >= 3 ? 'grid-cols-3' : otherValues.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                              <div className={`grid gap-2 ${otherValues.length >= 3 ? 'grid-cols-2 sm:grid-cols-3' : otherValues.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                                 {otherValues.map((item, idx) => (
                                   <div
                                     key={idx}
-                                    className="rounded-xl bg-gray-100 dark:bg-[#1a1a1a] px-4 py-3 hover:bg-gray-150 dark:hover:bg-[#1a1a1a] transition-colors"
+                                    className="rounded-xl bg-gray-100 dark:bg-[#1a1a1a] px-3 sm:px-4 py-3 hover:bg-gray-150 dark:hover:bg-[#1a1a1a] transition-colors min-w-0 overflow-hidden"
                                   >
-                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium block">{item.label}</span>
-                                    <div className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
+                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium block truncate">{item.label}</span>
+                                    <div className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white mt-1 break-words line-clamp-3" title={String(item.value ?? "")}>
                                       {typeof item.value === "number"
                                         ? item.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
                                         : String(item.value)}
@@ -1582,7 +1591,7 @@ export default function AIPage() {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "table" }))}
-                                className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                   currentView === "table"
                                     ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                     : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1594,7 +1603,7 @@ export default function AIPage() {
                                 <>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "bar" }))}
-                                    className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                       currentView === "bar"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1604,7 +1613,7 @@ export default function AIPage() {
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "line" }))}
-                                    className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                       currentView === "line"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1614,7 +1623,7 @@ export default function AIPage() {
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "pie" }))}
-                                    className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                       currentView === "pie"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
@@ -1624,7 +1633,7 @@ export default function AIPage() {
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "area" }))}
-                                    className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs rounded-md transition-colors ${
                                       currentView === "area"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
