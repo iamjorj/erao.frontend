@@ -2734,15 +2734,6 @@ function FilesModal({
                   </p>
                 </div>
 
-                {/* Status */}
-                {isCompleted(file.status) ? (
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" title="Ready" />
-                ) : isProcessing(file.status) ? (
-                  <div className="w-3 h-3 border border-yellow-500 border-t-transparent rounded-full animate-spin flex-shrink-0" title="Processing" />
-                ) : isFailed(file.status) ? (
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" title="Failed" />
-                ) : null}
-
                 {/* Delete - show on hover */}
                 <button
                   onClick={(e) => {
@@ -2763,17 +2754,9 @@ function FilesModal({
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-gray-100 dark:border-[#262626] flex gap-2">
-          {selectedFileId && (
-            <button
-              onClick={() => onSelect("")}
-              className="flex-1 h-9 flex items-center justify-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#262626] rounded-lg transition-colors"
-            >
-              Clear
-            </button>
-          )}
           <button
             onClick={onUpload}
-            className={`${selectedFileId ? 'flex-1' : 'w-full'} h-9 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#262626] rounded-lg transition-colors`}
+            className="w-full h-9 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#262626] rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

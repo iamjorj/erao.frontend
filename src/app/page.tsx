@@ -1,27 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Navbar, Footer } from "@/components/shared";
 
 function ContactSalesButton({ variant = "outline" }: { variant?: "outline" | "filled" }) {
-  const [copied, setCopied] = useState(false);
-  const handleClick = () => {
-    navigator.clipboard.writeText("sales@erao.digital");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
   return (
-    <button
-      onClick={handleClick}
+    <Link
+      href="/contact"
       className={`block w-full py-3 text-center rounded-xl text-sm font-medium transition-colors ${
         variant === "filled"
           ? "bg-black text-white hover:bg-gray-800"
           : "border border-gray-300 hover:bg-gray-50"
       }`}
     >
-      {copied ? "Email copied!" : "Contact Sales"}
-    </button>
+      Contact Sales
+    </Link>
   );
 }
 
@@ -243,13 +236,7 @@ export default function LandingPage() {
                 <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                3 queries/month
-              </li>
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Table & chart views
+                10 queries/month
               </li>
             </ul>
             <ContactSalesButton />
@@ -277,13 +264,7 @@ export default function LandingPage() {
                 <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                50 queries/month
-              </li>
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Export to CSV/Excel/PDF
+                100 queries/month
               </li>
             </ul>
             <ContactSalesButton variant="filled" />
@@ -308,13 +289,7 @@ export default function LandingPage() {
                 <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                100 queries/month
-              </li>
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Export to CSV/Excel/PDF
+                Unlimited queries
               </li>
             </ul>
             <ContactSalesButton />

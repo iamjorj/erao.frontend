@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { PageLayout, SUPPORT_EMAIL } from "@/components/shared";
+import { PageLayout } from "@/components/shared";
+
+const SALES_EMAIL = "sales@erao.digital";
+const SUPPORT_EMAIL = "support@erao.digital";
 
 export default function ContactPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
-  const handleCopy = async (type: string) => {
+  const handleCopy = async (type: string, email: string) => {
     try {
-      await navigator.clipboard.writeText(SUPPORT_EMAIL);
+      await navigator.clipboard.writeText(email);
       setCopied(type);
       setTimeout(() => setCopied(null), 2000);
     } catch (err) {
@@ -22,69 +25,15 @@ export default function ContactPage() {
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">Get in Touch</h1>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Have questions about Erao? We&apos;re here to help. Click any card below to copy our email address.
+            Have questions about Erao? We&apos;re here to help.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
-          {/* General */}
-          <button
-            onClick={() => handleCopy("general")}
-            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
-          >
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
-              copied === "general" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
-            }`}>
-              {copied === "general" ? (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              )}
-            </div>
-            <h3 className="text-lg font-semibold mb-2">General Inquiries</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Questions about Erao? Want to learn more about what we offer?
-            </p>
-            <span className={`inline-flex items-center gap-2 text-sm font-medium text-black`}>
-              {copied === "general" ? "Email Copied!" : "Click to Copy Email"}
-            </span>
-          </button>
-
-          {/* Support */}
-          <button
-            onClick={() => handleCopy("support")}
-            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center text-left"
-          >
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
-              copied === "support" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
-            }`}>
-              {copied === "support" ? (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              )}
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Technical Support</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Having issues? Need help setting up your database connections?
-            </p>
-            <span className={`inline-flex items-center gap-2 text-sm font-medium text-black`}>
-              {copied === "support" ? "Email Copied!" : "Click to Copy Email"}
-            </span>
-          </button>
-
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl mx-auto">
           {/* Sales */}
           <button
-            onClick={() => handleCopy("sales")}
-            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center text-left sm:col-span-2 md:col-span-1"
+            onClick={() => handleCopy("sales", SALES_EMAIL)}
+            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center"
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
               copied === "sales" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
@@ -100,38 +49,42 @@ export default function ContactPage() {
               )}
             </div>
             <h3 className="text-lg font-semibold mb-2">Sales</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Looking for custom solutions or team pricing?
+            <p className="text-sm text-gray-600 mb-3">
+              Interested in upgrading your plan or custom solutions?
             </p>
-            <span className={`inline-flex items-center gap-2 text-sm font-medium text-black`}>
-              {copied === "sales" ? "Email Copied!" : "Click to Copy Email"}
+            <p className="text-sm font-medium text-gray-900 mb-3">{SALES_EMAIL}</p>
+            <span className="inline-flex items-center gap-2 text-sm font-medium text-black">
+              {copied === "sales" ? "Email Copied!" : "Click to Copy"}
             </span>
           </button>
-        </div>
 
-        {/* Direct Email Display */}
-        <div className="mt-10 sm:mt-16 max-w-2xl mx-auto text-center">
-          <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-5 sm:p-8">
-            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">Our Email Address</h2>
-            <p className="text-gray-600 mb-4">
-              Click to copy:
-            </p>
-            <button
-              onClick={() => handleCopy("direct")}
-              className="text-lg font-medium text-black bg-white px-4 py-2 rounded-lg border border-gray-200 hover:border-black hover:shadow-sm transition-all cursor-pointer"
-            >
-              {copied === "direct" ? (
-                <span className="inline-flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Copied!
-                </span>
+          {/* Support */}
+          <button
+            onClick={() => handleCopy("support", SUPPORT_EMAIL)}
+            className="group border border-gray-200 rounded-xl sm:rounded-2xl p-5 sm:p-8 hover:border-black hover:shadow-lg transition-all text-center"
+          >
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5 transition-colors ${
+              copied === "support" ? "bg-white border border-gray-200 text-black" : "bg-gray-100 group-hover:bg-black group-hover:text-white"
+            }`}>
+              {copied === "support" ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               ) : (
-                SUPPORT_EMAIL
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
               )}
-            </button>
-          </div>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Support</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Need help with your account, connections, or technical issues?
+            </p>
+            <p className="text-sm font-medium text-gray-900 mb-3">{SUPPORT_EMAIL}</p>
+            <span className="inline-flex items-center gap-2 text-sm font-medium text-black">
+              {copied === "support" ? "Email Copied!" : "Click to Copy"}
+            </span>
+          </button>
         </div>
 
         {/* Response Time */}

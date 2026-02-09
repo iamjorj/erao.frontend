@@ -1,26 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PageLayout } from "@/components/shared";
 
 function ContactSalesButton({ label, popular }: { label: string; popular: boolean }) {
-  const [copied, setCopied] = useState(false);
-  const handleClick = () => {
-    navigator.clipboard.writeText("sales@erao.digital");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
   return (
-    <button
-      onClick={handleClick}
+    <Link
+      href="/contact"
       className={`block w-full py-3 text-center rounded-xl text-sm font-medium transition-colors mb-6 ${
         popular
           ? "bg-black text-white hover:bg-gray-800"
           : "border border-gray-300 hover:bg-gray-50"
       }`}
     >
-      {copied ? "Email copied!" : label}
-    </button>
+      {label}
+    </Link>
   );
 }
 
@@ -31,10 +26,7 @@ const plans = [
     price: 0,
     features: [
       { name: "1 database connection", included: true },
-      { name: "3 queries/month", included: true },
-      { name: "Table & chart views", included: true },
-      { name: "7-day conversation history", included: true },
-      { name: "Export to CSV/Excel", included: false },
+      { name: "10 queries/month", included: true },
     ],
     cta: "Contact Sales",
     popular: false,
@@ -45,10 +37,7 @@ const plans = [
     price: 49,
     features: [
       { name: "5 database connections", included: true },
-      { name: "50 queries/month", included: true },
-      { name: "Table & chart views", included: true },
-      { name: "Unlimited conversation history", included: true },
-      { name: "Export to CSV/Excel/PDF", included: true },
+      { name: "100 queries/month", included: true },
     ],
     cta: "Contact Sales",
     popular: true,
@@ -59,10 +48,7 @@ const plans = [
     price: 299,
     features: [
       { name: "Unlimited database connections", included: true },
-      { name: "100 queries/month", included: true },
-      { name: "Table & chart views", included: true },
-      { name: "Unlimited conversation history", included: true },
-      { name: "Export to CSV/Excel/PDF", included: true },
+      { name: "Unlimited queries", included: true },
     ],
     cta: "Contact Sales",
     popular: false,
@@ -72,7 +58,7 @@ const plans = [
 const faqs = [
   {
     question: "Can I try Erao for free?",
-    answer: "Yes! Our Free plan lets you connect 1 database and run 3 queries per month at no cost. No credit card required to get started.",
+    answer: "Yes! Our Free plan lets you connect 1 database and run 10 queries per month at no cost. No credit card required to get started.",
   },
   {
     question: "Can I delete my account?",
@@ -177,9 +163,7 @@ export default function PricingPage() {
               <tbody>
                 {[
                   { feature: "Database connections", free: "1", pro: "5", enterprise: "Unlimited" },
-                  { feature: "Queries per month", free: "3", pro: "50", enterprise: "100" },
-                  { feature: "Conversation history", free: "7 days", pro: "Unlimited", enterprise: "Unlimited" },
-                  { feature: "Export formats", free: "—", pro: "CSV, Excel, PDF", enterprise: "CSV, Excel, PDF" },
+                  { feature: "Queries per month", free: "10", pro: "100", enterprise: "Unlimited" },
                 ].map((row) => (
                   <tr key={row.feature} className="border-b border-gray-100">
                     <td className="py-3 sm:py-4 pr-2 sm:pr-4 text-xs sm:text-sm text-gray-700">{row.feature}</td>

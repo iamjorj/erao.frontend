@@ -127,7 +127,7 @@ const MobileAccordion = ({
   items,
   isOpen,
   onToggle,
-  onLinkClick
+  onLinkClick,
 }: {
   label: string;
   items: { href: string; label: string; desc: string }[];
@@ -135,14 +135,14 @@ const MobileAccordion = ({
   onToggle: () => void;
   onLinkClick: () => void;
 }) => (
-  <div className="border-b border-gray-100">
+  <div>
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between py-3 text-left"
+      className="w-full flex items-center justify-between py-2.5 text-left"
     >
-      <span className="font-medium text-gray-900">{label}</span>
+      <span className="text-sm font-medium text-gray-900">{label}</span>
       <svg
-        className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -151,13 +151,13 @@ const MobileAccordion = ({
       </svg>
     </button>
     {isOpen && (
-      <div className="pb-3 pl-4 space-y-2">
+      <div className="pb-2 pl-3 space-y-0.5">
         {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             onClick={onLinkClick}
-            className="block py-2 text-sm text-gray-600 hover:text-black transition-colors"
+            className="block py-1.5 text-sm text-gray-500 hover:text-black transition-colors"
           >
             {item.label}
           </Link>
@@ -219,10 +219,10 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
 
   return (
     <>
-      <nav className="w-full max-w-5xl mx-auto px-6 h-16 flex items-center justify-between relative z-50">
-        <Link href="/" className="flex items-center gap-2.5">
-          <LogoIcon className="w-10 h-10 sm:w-12 sm:h-12" />
-          <span className="font-semibold text-lg sm:text-xl">Erao</span>
+      <nav className="fixed top-0 left-0 right-0 h-14 px-5 sm:px-6 flex items-center justify-between z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <Link href="/" className="flex items-center gap-2">
+          <LogoIcon className="w-8 h-8 sm:w-10 sm:h-10" />
+          <span className="font-semibold text-base sm:text-lg">Erao</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -276,33 +276,34 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 -mr-2 text-gray-600 hover:text-black transition-colors"
+          className="md:hidden p-1.5 -mr-1.5 text-gray-500 hover:text-black transition-colors"
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? (
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
             </svg>
           )}
         </button>
       </nav>
+      <div className="h-14" />
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div className="fixed inset-0 top-14 z-40 md:hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/10"
             onClick={closeMobileMenu}
           />
 
           {/* Menu Panel */}
-          <div className="absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <div className="px-6 py-4">
+          <div className="absolute top-0 left-0 right-0 bg-white shadow-sm max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
+            <div className="px-5 py-1">
               {/* Navigation Accordions */}
               <MobileAccordion
                 label={navDropdowns.product.label}
@@ -334,18 +335,18 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
               />
 
               {/* Auth Buttons */}
-              <div className="pt-4 mt-2 border-t border-gray-100 space-y-3">
+              <div className="pt-3 mt-1 border-t border-gray-100 flex items-center gap-3 pb-4">
                 <Link
                   href="/login"
                   onClick={closeMobileMenu}
-                  className="block w-full text-center py-3 text-gray-600 hover:text-black transition-colors font-medium"
+                  className="flex-1 text-center py-2.5 text-sm text-gray-600 hover:text-black transition-colors font-medium border border-gray-200 rounded-lg"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/register"
                   onClick={closeMobileMenu}
-                  className="block w-full text-center bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                  className="flex-1 text-center bg-black text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
                 >
                   Start Free
                 </Link>

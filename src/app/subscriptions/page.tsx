@@ -2,23 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { api, auth, SubscriptionPlan, SubscriptionResponse } from "@/lib/api";
-
-function ContactSalesBtn() {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText("sales@erao.digital");
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-      className="w-full h-9 rounded-lg text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-    >
-      {copied ? "Email copied!" : "Contact Sales"}
-    </button>
-  );
-}
 
 export default function SubscriptionsPage() {
   return (
@@ -139,8 +124,9 @@ function SubscriptionsContent() {
     );
   }
 
+  const isUnlimited = currentSubscription?.queriesPerMonth === -1;
   const usagePercent = currentSubscription
-    ? Math.round((currentSubscription.queriesUsed / currentSubscription.queriesPerMonth) * 100)
+    ? isUnlimited ? 0 : Math.round((currentSubscription.queriesUsed / currentSubscription.queriesPerMonth) * 100)
     : 0;
 
   return (
@@ -196,7 +182,7 @@ function SubscriptionsContent() {
                   <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                     {currentSubscription.queriesUsed}
                     <span className="text-base font-normal text-gray-400 dark:text-gray-500">
-                      /{currentSubscription.queriesPerMonth}
+                      {currentSubscription.queriesPerMonth === -1 ? " used" : `/${currentSubscription.queriesPerMonth}`}
                     </span>
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">queries used</p>
@@ -207,7 +193,7 @@ function SubscriptionsContent() {
               <div>
                 <div className="flex items-center justify-between text-xs mb-2">
                   <span className="text-gray-500 dark:text-gray-400">Usage this cycle</span>
-                  <span className="text-gray-700 dark:text-gray-300">{usagePercent}%</span>
+                  <span className="text-gray-700 dark:text-gray-300">{isUnlimited ? "Unlimited" : `${usagePercent}%`}</span>
                 </div>
                 <div className="h-1.5 bg-gray-200 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
                   <div
@@ -242,10 +228,17 @@ function SubscriptionsContent() {
                 }`}
               >
                 {/* Badge */}
-                {(plan.isCurrent || plan.isPopular) && (
+                {plan.isCurrent && (
+                  <div className="absolute -top-2.5 left-4">
+                    <span className="inline-block px-2 py-0.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-600 dark:text-gray-400 text-[10px] font-medium rounded">
+                      Current
+                    </span>
+                  </div>
+                )}
+                {!plan.isCurrent && plan.isPopular && (
                   <div className="absolute -top-2.5 left-4">
                     <span className="inline-block px-2 py-0.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium rounded">
-                      {plan.isCurrent ? "Current" : "Popular"}
+                      Popular
                     </span>
                   </div>
                 )}
@@ -268,7 +261,12 @@ function SubscriptionsContent() {
                       Current plan
                     </button>
                   ) : (
-                    <ContactSalesBtn />
+                    <Link
+                      href="/contact-sales"
+                      className="block w-full h-9 rounded-lg text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors leading-9 text-center"
+                    >
+                      Contact Sales
+                    </Link>
                   )}
 
                   {/* Features */}
@@ -287,7 +285,7 @@ function SubscriptionsContent() {
                   <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#1a1a1a] space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-500 dark:text-gray-400">Queries/mo</span>
-                      <span className="text-gray-700 dark:text-gray-300">{plan.queriesPerMonth}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{plan.queriesPerMonth === -1 ? "Unlimited" : plan.queriesPerMonth}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-500 dark:text-gray-400">Databases</span>
