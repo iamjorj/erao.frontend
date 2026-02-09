@@ -27,20 +27,23 @@ interface DataChartProps {
   chartType: ChartType;
 }
 
-// Hook to detect mobile screen
-function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState(false);
+// Hook to detect screen size
+function useScreenSize(): "mobile" | "tablet" | "desktop" {
+  const [size, setSize] = useState<"mobile" | "tablet" | "desktop">("desktop");
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+    const check = () => {
+      const w = window.innerWidth;
+      if (w < 640) setSize("mobile");
+      else if (w < 1024) setSize("tablet");
+      else setSize("desktop");
     };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
-  return isMobile;
+  return size;
 }
 
 // Color palette for charts (works well on both light and dark)
@@ -172,15 +175,18 @@ function sampleData(
 
 export function DataChart({ data, columns, chartType }: DataChartProps) {
   const isDark = useDarkMode();
-  const isMobile = useIsMobile();
+  const screenSize = useScreenSize();
+  const isMobile = screenSize === "mobile";
 
-  // Responsive chart dimensions
-  const chartHeight = isMobile ? 220 : 300;
-  const pieOuterRadius = isMobile ? 60 : 90;
-  const fontSize = isMobile ? 8 : 10;
+  // Responsive chart dimensions - fill available space
+  const chartHeight = isMobile ? 250 : screenSize === "tablet" ? 300 : 320;
+  const pieOuterRadius = isMobile ? 70 : screenSize === "tablet" ? 85 : 100;
+  const fontSize = isMobile ? 8 : screenSize === "tablet" ? 9 : 10;
   const legendFontSize = isMobile ? "10px" : "12px";
   const margins = isMobile
-    ? { top: 10, right: 10, left: 0, bottom: 40 }
+    ? { top: 5, right: 5, left: 0, bottom: 35 }
+    : screenSize === "tablet"
+    ? { top: 10, right: 15, left: 10, bottom: 50 }
     : { top: 20, right: 30, left: 20, bottom: 60 };
 
   // Memoize all chart data processing
@@ -526,7 +532,7 @@ export function DataChart({ data, columns, chartType }: DataChartProps) {
   };
 
   return (
-    <div className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-2 sm:p-4 transition-colors">
+    <div className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors overflow-hidden">
       {isLargeDataset && chartType !== "table" && (
         <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mb-1 sm:mb-2 text-center">
           {chartType === "pie" ? "Top 10" : chartType === "line" || chartType === "area" ? `${data.length} rows` : `Top 30 of ${data.length}`}

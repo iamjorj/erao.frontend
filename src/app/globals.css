@@ -44,9 +44,14 @@ form:focus-visible {
   outline: none;
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling & prevent horizontal overflow */
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 /* Fade in animation for carousel */

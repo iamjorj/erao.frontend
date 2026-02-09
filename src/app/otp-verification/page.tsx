@@ -139,8 +139,8 @@ function OtpVerificationContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
-      <div className="w-full max-w-[400px] px-6 flex flex-col items-center gap-8">
+    <div className="h-dvh bg-white text-gray-900 flex flex-col items-center justify-center overflow-hidden">
+      <div className="w-full max-w-[400px] px-4 sm:px-6 flex flex-col items-center gap-6 sm:gap-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <LogoIcon className="w-12 h-12" />
@@ -171,7 +171,7 @@ function OtpVerificationContent() {
 
         <form onSubmit={handleVerify} className="w-full flex flex-col gap-6">
           {/* OTP Input Boxes */}
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-2 sm:gap-3">
             {otp.map((digit, index) => (
               <input
                 key={index}
@@ -185,7 +185,7 @@ function OtpVerificationContent() {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={handlePaste}
-                className="w-12 h-14 text-center text-lg font-semibold bg-[#f5f5f5] rounded-[10px] outline-none focus:ring-2 focus:ring-black"
+                className="w-10 h-12 sm:w-12 sm:h-14 text-center text-base sm:text-lg font-semibold bg-[#f5f5f5] rounded-[10px] outline-none focus:ring-2 focus:ring-black"
               />
             ))}
           </div>
@@ -227,8 +227,8 @@ function OtpVerificationContent() {
 export default function OtpVerificationPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
-        <div className="w-full max-w-[400px] px-6 flex flex-col items-center gap-8">
+      <div className="h-dvh bg-white text-gray-900 flex flex-col items-center justify-center overflow-hidden">
+        <div className="w-full max-w-[400px] px-4 sm:px-6 flex flex-col items-center gap-6 sm:gap-8">
           <div className="flex items-center gap-2">
             <LogoIcon className="w-12 h-12" />
             <span className="font-bold text-2xl tracking-tight">Erao</span>

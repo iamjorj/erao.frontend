@@ -66,20 +66,23 @@ function useDarkMode(): boolean {
   return isDark;
 }
 
-// Hook to detect mobile screen
-function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState(false);
+// Hook to detect screen size
+function useScreenSize(): "mobile" | "tablet" | "desktop" {
+  const [size, setSize] = useState<"mobile" | "tablet" | "desktop">("desktop");
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+    const check = () => {
+      const w = window.innerWidth;
+      if (w < 640) setSize("mobile");
+      else if (w < 1024) setSize("tablet");
+      else setSize("desktop");
     };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
-  return isMobile;
+  return size;
 }
 
 // Truncate long labels
@@ -280,7 +283,8 @@ function LargeChart({
   chartType: ChartType;
   isDark: boolean;
 }) {
-  const isMobile = useIsMobile();
+  const screenSize = useScreenSize();
+  const isMobile = screenSize === "mobile";
 
   // Theme colors - pure black theme for dark mode
   const gridColor = isDark ? "#333333" : "#e5e7eb";
@@ -289,12 +293,14 @@ function LargeChart({
   const tooltipBorder = isDark ? "#333333" : "#e5e7eb";
   const tooltipText = isDark ? "#f9fafb" : "#111827";
 
-  // Responsive dimensions
-  const chartHeight = isMobile ? 280 : 500;
-  const pieOuterRadius = isMobile ? 80 : 180;
-  const fontSize = isMobile ? 9 : 12;
+  // Responsive dimensions - fill the container fully
+  const chartHeight = isMobile ? 350 : screenSize === "tablet" ? 450 : 550;
+  const pieOuterRadius = isMobile ? 100 : screenSize === "tablet" ? 140 : 200;
+  const fontSize = isMobile ? 9 : screenSize === "tablet" ? 10 : 12;
   const margins = isMobile
-    ? { top: 10, right: 10, left: 10, bottom: 50 }
+    ? { top: 10, right: 5, left: 5, bottom: 45 }
+    : screenSize === "tablet"
+    ? { top: 15, right: 20, left: 25, bottom: 60 }
     : { top: 20, right: 30, left: 40, bottom: 80 };
 
   // Memoize chart data processing
@@ -678,7 +684,7 @@ export function DataViewerModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-end sm:items-center justify-center z-50 sm:p-4">
-      <div className={`rounded-t-2xl sm:rounded-2xl w-full sm:max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col overflow-hidden shadow-2xl transition-colors ${
+      <div className={`rounded-t-2xl sm:rounded-2xl w-full sm:max-w-6xl h-[95dvh] sm:h-[90vh] flex flex-col overflow-hidden shadow-2xl transition-colors ${
         isDark ? "bg-[#0a0a0a]" : "bg-white"
       }`}>
         {/* Header */}
@@ -812,8 +818,10 @@ export function DataViewerModal({
           {currentView === "table" ? (
             <FullscreenVirtualTable columns={columns} rows={rows} isDark={isDark} />
           ) : (
-            <div className="h-full p-2 sm:p-6 flex items-center justify-center overflow-auto">
-              <LargeChart data={rows} columns={columns} chartType={currentView} isDark={isDark} />
+            <div className="h-full p-1 sm:p-4 lg:p-6 flex items-center justify-center overflow-auto">
+              <div className="w-full h-full flex items-center justify-center">
+                <LargeChart data={rows} columns={columns} chartType={currentView} isDark={isDark} />
+              </div>
             </div>
           )}
         </div>

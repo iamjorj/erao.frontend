@@ -57,8 +57,8 @@ function ResetPasswordContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md px-6">
+    <div className="h-dvh bg-white text-gray-900 flex flex-col items-center justify-center overflow-hidden">
+      <div className="w-full max-w-md px-4 sm:px-6">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
             <LogoIcon className="w-12 h-12" />
@@ -137,8 +137,8 @@ function ResetPasswordContent() {
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center">
-        <div className="w-full max-w-md px-6 text-center">
+      <div className="h-dvh bg-white text-gray-900 flex flex-col items-center justify-center overflow-hidden">
+        <div className="w-full max-w-md px-4 sm:px-6 text-center">
           <div className="inline-flex items-center gap-2 mb-4">
             <LogoIcon className="w-12 h-12" />
             <span className="font-bold text-2xl tracking-tight">Erao</span>

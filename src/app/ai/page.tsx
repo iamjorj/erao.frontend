@@ -2463,7 +2463,7 @@ function AddDatabaseModal({
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
       <div className="bg-white dark:bg-[#111111] rounded-t-2xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a]">
+        <div className="px-4 sm:px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a]">
           <h2 className="text-base font-medium text-gray-900 dark:text-white">New Connection</h2>
           <button
             onClick={onClose}
@@ -2475,23 +2475,23 @@ function AddDatabaseModal({
           </button>
         </div>
 
-        <div className="px-5 py-4 overflow-y-auto max-h-[calc(90vh-130px)] custom-scrollbar">
+        <div className="px-4 sm:px-5 py-4 overflow-y-auto max-h-[calc(90vh-130px)] custom-scrollbar">
           {/* Database Type Selection */}
           <div className="mb-5">
-            <div className="flex gap-2">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {databaseTypes.map((type) => (
                 <button
                   key={type.value}
                   type="button"
                   onClick={() => handleDatabaseTypeSelect(type.value)}
-                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-lg border transition-all ${
+                  className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2.5 sm:py-3 rounded-lg border transition-all ${
                     formData.databaseType === type.value
                       ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-[#1a1a1a]"
                       : "border-gray-200 dark:border-[#262626] hover:border-gray-300 dark:hover:border-[#404040]"
                   }`}
                 >
-                  <img src={databaseLogos[type.value]} alt={type.label} className="w-6 h-6 object-contain" />
-                  <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">{type.label}</span>
+                  <img src={databaseLogos[type.value]} alt={type.label} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
+                  <span className="text-[9px] sm:text-[10px] font-medium text-gray-600 dark:text-gray-400 truncate max-w-full px-1">{type.label}</span>
                 </button>
               ))}
             </div>
@@ -2515,7 +2515,7 @@ function AddDatabaseModal({
                 value={formData.host}
                 onChange={(e) => handleFieldChange("host", e.target.value)}
                 placeholder="Host"
-                className="flex-1 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="flex-1 min-w-0 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
               <input
                 type="text"
@@ -2523,7 +2523,7 @@ function AddDatabaseModal({
                 value={portInput}
                 onChange={(e) => handlePortChange(e.target.value)}
                 placeholder="Port"
-                className="w-20 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-center"
+                className="w-16 sm:w-20 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-2 sm:px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-center"
               />
             </div>
 
@@ -2537,7 +2537,7 @@ function AddDatabaseModal({
               />
             </div>
 
-            <div className="flex gap-2">
+            <div>
               <input
                 type="text"
                 value={formData.username}
@@ -2546,8 +2546,10 @@ function AddDatabaseModal({
                 autoComplete="off"
                 data-lpignore="true"
                 data-form-type="other"
-                className="flex-1 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
+            </div>
+            <div>
               <input
                 type="password"
                 value={formData.password}
@@ -2556,7 +2558,7 @@ function AddDatabaseModal({
                 autoComplete="new-password"
                 data-lpignore="true"
                 data-form-type="other"
-                className="flex-1 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
           </div>
@@ -2588,7 +2590,7 @@ function AddDatabaseModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-100 dark:border-[#1a1a1a] flex justify-end gap-2">
+        <div className="px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-[#1a1a1a] flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
@@ -2601,7 +2603,7 @@ function AddDatabaseModal({
               type="button"
               onClick={handleTest}
               disabled={isTesting || !isFormValid}
-              className="px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-3 sm:px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isTesting ? (
                 <>
@@ -2617,7 +2619,7 @@ function AddDatabaseModal({
               type="button"
               onClick={handleSave}
               disabled={isLoading}
-              className="px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 flex items-center gap-2"
+              className="px-3 sm:px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 flex items-center gap-2"
             >
               {isLoading ? (
                 <>

@@ -58,11 +58,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center px-4 relative">
+    <div className="h-dvh bg-white text-gray-900 flex flex-col items-center justify-center px-4 relative overflow-hidden">
       {/* Back Button */}
       <Link
         href="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -70,7 +70,7 @@ export default function LoginPage() {
         Back
       </Link>
 
-      <div className="w-full max-w-[400px] flex flex-col items-center gap-8">
+      <div className="w-full max-w-[400px] flex flex-col items-center gap-6 sm:gap-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <LogoIcon className="w-12 h-12" />
