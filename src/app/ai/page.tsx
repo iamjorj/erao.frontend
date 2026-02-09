@@ -328,6 +328,7 @@ export default function AIPage() {
   // Chat menu state
   const [chatMenuOpen, setChatMenuOpen] = useState<string | null>(null);
   const [chatMenuOpenUp, setChatMenuOpenUp] = useState(false);
+  const [chatMenuPos, setChatMenuPos] = useState<{ top: number; left: number } | null>(null);
   const chatListRef = useRef<HTMLDivElement>(null);
 
   // Delete confirmation modal state
@@ -373,7 +374,7 @@ export default function AIPage() {
 
   // Close chat menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => setChatMenuOpen(null);
+    const handleClickOutside = () => { setChatMenuOpen(null); setChatMenuPos(null); };
     if (chatMenuOpen) {
       document.addEventListener("click", handleClickOutside);
       return () => document.removeEventListener("click", handleClickOutside);
@@ -1115,16 +1116,17 @@ export default function AIPage() {
                               e.stopPropagation();
                               if (chatMenuOpen === chat.id) {
                                 setChatMenuOpen(null);
+                                setChatMenuPos(null);
                               } else {
                                 const button = e.currentTarget;
-                                const container = chatListRef.current;
-                                if (container) {
-                                  const containerRect = container.getBoundingClientRect();
-                                  const buttonRect = button.getBoundingClientRect();
-                                  const buttonBottom = buttonRect.bottom - containerRect.top;
-                                  const containerHeight = containerRect.height;
-                                  setChatMenuOpenUp(buttonBottom > containerHeight - 100);
-                                }
+                                const buttonRect = button.getBoundingClientRect();
+                                const spaceBelow = window.innerHeight - buttonRect.bottom;
+                                const openUp = spaceBelow < 100;
+                                setChatMenuOpenUp(openUp);
+                                setChatMenuPos({
+                                  top: openUp ? buttonRect.top : buttonRect.bottom + 4,
+                                  left: buttonRect.right - 128, // 128 = w-32 menu width
+                                });
                                 setChatMenuOpen(chat.id);
                               }
                             }}
@@ -1140,52 +1142,68 @@ export default function AIPage() {
                               <circle cx="12" cy="18" r="2" />
                             </svg>
                           </button>
-                          {/* Dropdown menu */}
-                          {chatMenuOpen === chat.id && (
-                            <div
-                              className={`absolute right-0 w-32 bg-white dark:bg-[#111111] rounded-lg border border-gray-200 dark:border-[#262626] shadow-sm overflow-hidden ${
-                                chatMenuOpenUp ? "bottom-full mb-1" : "top-full mt-1"
-                              }`}
-                            >
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setChatMenuOpen(null);
-                                  setEditingConversationId(chat.id);
-                                  setEditingTitle(chat.title || "New Chat");
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] flex items-center gap-2"
-                              >
-                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                                Rename
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setChatMenuOpen(null);
-                                  setDeleteConfirm({
-                                    type: 'conversation',
-                                    id: chat.id,
-                                    name: chat.title || 'New Chat'
-                                  });
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center gap-2"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                Delete
-                              </button>
-                            </div>
-                          )}
+                          {/* Dropdown menu - rendered as fixed portal to avoid overflow clipping */}
                         </div>
                       )}
                   </div>
               ))
             )}
           </div>
+
+          {/* Chat context menu - fixed position to avoid overflow clipping */}
+          {chatMenuOpen && chatMenuPos && (
+            <div
+              className="fixed w-32 bg-white dark:bg-[#111111] rounded-lg border border-gray-200 dark:border-[#262626] shadow-lg overflow-hidden z-[200]"
+              style={{
+                top: chatMenuOpenUp ? undefined : chatMenuPos.top,
+                bottom: chatMenuOpenUp ? window.innerHeight - chatMenuPos.top + 4 : undefined,
+                left: chatMenuPos.left,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const chatId = chatMenuOpen;
+                  const chat = conversations.find(c => c.id === chatId);
+                  setChatMenuOpen(null);
+                  setChatMenuPos(null);
+                  if (chat) {
+                    setEditingConversationId(chat.id);
+                    setEditingTitle(chat.title || "New Chat");
+                  }
+                }}
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] flex items-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Rename
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const chatId = chatMenuOpen;
+                  const chat = conversations.find(c => c.id === chatId);
+                  setChatMenuOpen(null);
+                  setChatMenuPos(null);
+                  if (chat) {
+                    setDeleteConfirm({
+                      type: 'conversation',
+                      id: chat.id,
+                      name: chat.title || 'New Chat'
+                    });
+                  }
+                }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+              </button>
+            </div>
+          )}
         </div>
 
         {/* User Profile */}
