@@ -110,7 +110,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-[10px]">
+            <div className="bg-gray-50 border-l-2 border-l-red-400 text-gray-600 text-sm px-4 py-3 rounded-r-lg">
               {error}
             </div>
           )}

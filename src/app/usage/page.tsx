@@ -139,7 +139,7 @@ export default function UsagePage() {
         </div>
 
         {error && (
-          <div className="mb-6 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg">
+          <div className="mb-6 px-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border-l-2 border-l-red-400 dark:border-l-red-500 text-gray-600 dark:text-gray-300 text-sm rounded-r-lg">
             {error}
           </div>
         )}
@@ -188,12 +188,14 @@ export default function UsagePage() {
             </div>
 
             {percentUsed >= 80 && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
-                Running low on queries.{" "}
-                <Link href="/subscriptions" className="underline hover:no-underline">
-                  Upgrade your plan
-                </Link>
-              </p>
+              <div className="mt-3 px-3 py-2 bg-gray-50 dark:bg-[#111111] border-l-2 border-l-gray-400 dark:border-l-gray-500 rounded-r-lg">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Running low on queries.{" "}
+                  <Link href="/subscriptions" className="text-gray-900 dark:text-white font-medium hover:underline">
+                    Upgrade your plan
+                  </Link>
+                </p>
+              </div>
             )}
           </div>
         </section>

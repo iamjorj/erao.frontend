@@ -88,13 +88,13 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-[10px]">
+            <div className="bg-gray-50 border-l-2 border-l-red-400 text-gray-600 text-sm px-4 py-3 rounded-r-lg">
               {error}
               {emailNotVerified && (
                 <button
                   onClick={handleResendVerification}
                   disabled={resending}
-                  className="block mt-2 text-black font-semibold hover:underline disabled:opacity-50"
+                  className="block mt-2 text-gray-900 font-medium hover:underline disabled:opacity-50"
                 >
                   {resending ? "Sending..." : "Resend verification code"}
                 </button>

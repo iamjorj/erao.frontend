@@ -115,13 +115,13 @@ export default function ProfilePage() {
         </div>
 
         {error && (
-          <div className="mb-6 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg">
+          <div className="mb-6 px-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border-l-2 border-l-red-400 dark:border-l-red-500 text-gray-600 dark:text-gray-300 text-sm rounded-r-lg">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-6 px-4 py-3 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-sm rounded-lg">
+          <div className="mb-6 px-4 py-3 bg-gray-50 dark:bg-[#1a1a1a] border-l-2 border-l-gray-900 dark:border-l-white text-gray-600 dark:text-gray-300 text-sm rounded-r-lg">
             {success}
           </div>
         )}

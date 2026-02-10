@@ -43,8 +43,18 @@ function stripCodeBlocks(content: string): string {
     .replace(/\{"columns":\[[\s\S]*$/gi, "") // Remove JSON starting with columns
     .replace(/\n\|[^\n]*\|(\n\|[^\n]*\|)*/g, "") // Remove markdown tables
     .replace(/\(Query returned[^)\n]*\)?/gi, "") // Remove "(Query returned...)" text
+    // Remove hanging phrases that reference removed SQL blocks
+    .replace(/(?:here(?:'s| is) the (?:sql |updated )?query[:\.]?|let(?:'s| me) (?:proceed|execute|run)[^.\n]*[:\.]?|i'?ll (?:run|execute|check|query)[^.\n]*[:\.]?|let's see the results[!.]?)/gi, "")
     .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
     .trim();
+}
+
+function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "number") return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  const str = String(value);
+  return str === "null" ? "-" : str;
 }
 
 // Helper to convert array rows to object rows
@@ -227,11 +237,11 @@ function VirtualTable({
                   {columns.map((col) => (
                     <span
                       key={col}
-                      className="text-sm text-gray-700 dark:text-gray-300 truncate flex-shrink-0"
+                      className={`text-sm truncate flex-shrink-0 ${row[col] === null || row[col] === undefined ? "text-gray-400 dark:text-gray-500" : "text-gray-700 dark:text-gray-300"}`}
                       style={{ width: colWidth }}
-                      title={String(row[col] ?? "")}
+                      title={formatCellValue(row[col])}
                     >
-                      {String(row[col] ?? "")}
+                      {formatCellValue(row[col])}
                     </span>
                   ))}
                 </div>
@@ -313,6 +323,7 @@ export default function AIPage() {
 
   // Error state
   const [error, setError] = useState<string | null>(null);
+  const [showUsageLimitAlert, setShowUsageLimitAlert] = useState(false);
 
   // Account menu state
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -349,6 +360,7 @@ export default function AIPage() {
 
   // Chart view state - tracks view mode per message
   const [chartViews, setChartViews] = useState<Record<string, ChartType>>({});
+  const [expandedSql, setExpandedSql] = useState<Set<string>>(new Set());
 
   // Fullscreen data viewer state
   const [dataViewerOpen, setDataViewerOpen] = useState<string | null>(null);
@@ -872,7 +884,12 @@ export default function AIPage() {
         setCurrentPhase(null);
         setIsSending(false);
         if (err instanceof ApiError) {
-          setError(err.message);
+          const msg = err.message.toLowerCase();
+          if (msg.includes("query limit") || msg.includes("usage limit") || msg.includes("limit reached")) {
+            setShowUsageLimitAlert(true);
+          } else {
+            setError(err.message);
+          }
         } else {
           setError("Failed to send message");
         }
@@ -1383,9 +1400,36 @@ export default function AIPage() {
             messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message) => (
               <div key={message.id}>
                 {isAssistantMessage(message.role) ? (
-                  <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 overflow-hidden">
+                  <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
                     <MarkdownResponse content={stripCodeBlocks(message.content)} />
+                    {/* SQL Query Viewer */}
+                    {message.sqlQuery && (
+                      <div className="mt-1">
+                        <button
+                          onClick={() => setExpandedSql(prev => {
+                            const next = new Set(prev);
+                            if (next.has(message.id)) next.delete(message.id);
+                            else next.add(message.id);
+                            return next;
+                          })}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="opacity-60">
+                            <path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                          {expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" className={`transition-transform ${expandedSql.has(message.id) ? "rotate-180" : ""}`}>
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                        {expandedSql.has(message.id) && (
+                          <pre className="mt-2 p-3 rounded-lg bg-gray-900 dark:bg-black/40 text-gray-300 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-gray-800 dark:border-gray-700/30">
+                            {message.sqlQuery}
+                          </pre>
+                        )}
+                      </div>
+                    )}
                     {(() => {
                       const parsedResults = parseQueryResult(message.queryResult);
                       if (!parsedResults || parsedResults.length === 0) return null;
@@ -1562,9 +1606,7 @@ export default function AIPage() {
                                     {mainValue.label}
                                   </span>
                                   <div className="text-2xl sm:text-4xl font-bold text-white dark:text-gray-900 mt-1 tracking-tight break-words overflow-hidden">
-                                    {typeof mainValue.value === "number"
-                                      ? mainValue.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                                      : String(mainValue.value)}
+                                    {formatCellValue(mainValue.value)}
                                   </div>
                                 </div>
                               </div>
@@ -1578,10 +1620,8 @@ export default function AIPage() {
                                     className="rounded-xl bg-gray-100 dark:bg-[#1a1a1a] px-3 sm:px-4 py-3 hover:bg-gray-150 dark:hover:bg-[#1a1a1a] transition-colors min-w-0 overflow-hidden"
                                   >
                                     <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium block truncate">{item.label}</span>
-                                    <div className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white mt-1 break-words line-clamp-3" title={String(item.value ?? "")}>
-                                      {typeof item.value === "number"
-                                        ? item.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                                        : String(item.value)}
+                                    <div className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white mt-1 break-words line-clamp-3" title={formatCellValue(item.value)}>
+                                      {formatCellValue(item.value)}
                                     </div>
                                   </div>
                                 ))}
@@ -1915,7 +1955,7 @@ export default function AIPage() {
         {/* Error Message */}
         {error && (
           <div className="px-3 sm:px-8 pb-2">
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg">
+            <div className="bg-gray-50 dark:bg-[#1a1a1a] border-l-2 border-l-red-400 dark:border-l-red-500 text-gray-600 dark:text-gray-300 text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-r-lg">
               {error}
             </div>
           </div>
@@ -2124,6 +2164,42 @@ export default function AIPage() {
                 className="flex-1 h-10 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Usage Limit Alert */}
+      {showUsageLimitAlert && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-end sm:items-center justify-center z-[70]">
+          <div className="bg-white dark:bg-[#161616] rounded-t-2xl sm:rounded-xl w-full sm:max-w-sm sm:mx-4 shadow-2xl border border-transparent dark:border-[#262626]">
+            <div className="p-5 sm:p-6">
+              <div className="w-10 h-10 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center mb-4">
+                <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Usage limit reached</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                You&apos;ve used all queries for this billing cycle. Upgrade your plan or wait for the next cycle to continue.
+              </p>
+            </div>
+            <div className="border-t border-gray-100 dark:border-[#262626] p-3 sm:p-4 flex gap-3">
+              <button
+                onClick={() => setShowUsageLimitAlert(false)}
+                className="flex-1 h-9 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                Dismiss
+              </button>
+              <button
+                onClick={() => {
+                  setShowUsageLimitAlert(false);
+                  window.location.href = "/subscriptions";
+                }}
+                className="flex-1 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              >
+                Upgrade
               </button>
             </div>
           </div>

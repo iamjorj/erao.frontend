@@ -158,13 +158,13 @@ function OtpVerificationContent() {
         </div>
 
         {error && (
-          <div className="w-full bg-red-50 text-red-600 px-4 py-2 rounded-[10px] text-sm text-center">
+          <div className="w-full bg-gray-50 border-l-2 border-l-red-400 text-gray-600 px-4 py-2.5 rounded-r-lg text-sm">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="w-full bg-green-50 text-green-600 px-4 py-2 rounded-[10px] text-sm text-center">
+          <div className="w-full bg-gray-50 border-l-2 border-l-gray-900 text-gray-600 px-4 py-2.5 rounded-r-lg text-sm">
             {success}
           </div>
         )}

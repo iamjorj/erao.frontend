@@ -161,7 +161,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-[10px]">
+              <div className="bg-gray-50 border-l-2 border-l-red-400 text-gray-600 text-sm px-4 py-3 rounded-r-lg">
                 {error}
               </div>
             )}
@@ -210,7 +210,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-[10px]">
+              <div className="bg-gray-50 border-l-2 border-l-red-400 text-gray-600 text-sm px-4 py-3 rounded-r-lg">
                 {error}
               </div>
             )}
@@ -270,7 +270,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-[10px]">
+              <div className="bg-gray-50 border-l-2 border-l-red-400 text-gray-600 text-sm px-4 py-3 rounded-r-lg">
                 {error}
               </div>
             )}
@@ -320,8 +320,8 @@ export default function ForgotPasswordPage() {
         {/* Step: Success */}
         {step === "success" && (
           <div className="w-full flex flex-col items-center gap-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
