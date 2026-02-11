@@ -25,7 +25,7 @@ import {
   isProcessing,
   getTierName,
 } from "@/lib/api";
-import { DataChart, ChartType, detectChartType, ChartSettings, defaultChartSettings } from "@/components/DataChart";
+import { DataChart, ChartType, detectChartType, ChartSettings, defaultChartSettings, ChartManipulation, AggregationType } from "@/components/DataChart";
 import { DataViewerModal } from "@/components/DataViewerModal";
 import { MarkdownResponse } from "@/components/MarkdownResponse";
 import { FilterModal, FilterOperator, AdvancedFilter } from "@/components/FilterModal";
@@ -166,11 +166,15 @@ function VirtualTable({
   rows,
   filters = {},
   advancedFilters,
+  truncated,
+  maxRows,
 }: {
   columns: string[];
   rows: Record<string, unknown>[];
   filters?: Record<string, unknown[]>;
   advancedFilters?: Record<string, AdvancedFilter[]>;
+  truncated?: boolean;
+  maxRows?: number;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -245,7 +249,7 @@ function VirtualTable({
     count: filteredRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 40,
-    overscan: 10,
+    overscan: 20, // Increased for smoother scrolling with large datasets
   });
 
   // Calculate column width based on number of columns
@@ -355,15 +359,22 @@ function VirtualTable({
       </div>
 
       {/* Row count indicator */}
-      <div className="text-xs text-gray-400 text-center py-2 border-t border-gray-100 dark:border-[#262626]">
-        {hasActiveFilters ? (
-          <>
-            Showing {filteredRows.length} of {rows.length} rows
-            <span className="text-gray-500 dark:text-gray-400 ml-1">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active)</span>
-          </>
-        ) : (
-          `${rows.length} rows total`
+      <div className="text-xs text-center py-2 border-t border-gray-100 dark:border-[#262626]">
+        {truncated && (
+          <div className="text-amber-600 dark:text-amber-400 mb-1">
+            ⚠ Results limited to {maxRows?.toLocaleString() || '100,000'} rows
+          </div>
         )}
+        <span className="text-gray-400">
+          {hasActiveFilters ? (
+            <>
+              Showing {filteredRows.length.toLocaleString()} of {rows.length.toLocaleString()} rows
+              <span className="text-gray-500 dark:text-gray-400 ml-1">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active)</span>
+            </>
+          ) : (
+            `${rows.length.toLocaleString()} rows`
+          )}
+        </span>
       </div>
     </div>
   );
@@ -630,6 +641,96 @@ export default function AIPage() {
   const [chartSettings, setChartSettings] = useState<ChartSettings>(defaultChartSettings);
   const [showChartSettings, setShowChartSettings] = useState<string | null>(null); // viewKey of open settings dropdown
   const [showFilterModal, setShowFilterModal] = useState<string | null>(null); // viewKey of open filter modal
+  const [showChartManipulation, setShowChartManipulation] = useState<string | null>(null); // viewKey of open manipulation dropdown
+  const [chartManipulations, setChartManipulations] = useState<Record<string, ChartManipulation>>({}); // manipulation state per viewKey
+
+  // Manipulation handlers
+  const getManipulation = useCallback((viewKey: string): ChartManipulation => {
+    return chartManipulations[viewKey] || {
+      excludedCategories: new Set(),
+      columnAggregations: {},
+      hiddenColumns: new Set(),
+    };
+  }, [chartManipulations]);
+
+  const setManipulation = useCallback((viewKey: string, manipulation: ChartManipulation) => {
+    setChartManipulations(prev => ({ ...prev, [viewKey]: manipulation }));
+  }, []);
+
+  const resetManipulation = useCallback((viewKey: string) => {
+    setChartManipulations(prev => {
+      const { [viewKey]: _, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  const hasActiveManipulation = useCallback((viewKey: string): boolean => {
+    const m = chartManipulations[viewKey];
+    if (!m) return false;
+    return m.excludedCategories.size > 0 ||
+           Object.keys(m.columnAggregations).length > 0 ||
+           m.hiddenColumns.size > 0;
+  }, [chartManipulations]);
+
+  // Analyze data for manipulation modal - matches DataChart's findBestCategoricalColumn logic
+  const analyzeDataForManipulation = useCallback((columns: string[], rows: Record<string, unknown>[]) => {
+    // Find numeric columns
+    const numericColumns = columns.filter((col) =>
+      rows.some((row) => {
+        const val = row[col];
+        if (val === null || val === undefined || val === '') return false;
+        if (typeof val === "number") return true;
+        const numVal = Number(val);
+        return !isNaN(numVal) && isFinite(numVal);
+      })
+    );
+
+    const nonNumericColumns = columns.filter(col => !numericColumns.includes(col));
+
+    // Priority patterns for grouping columns (same as DataChart)
+    const categoryPatterns = [
+      'category', 'type', 'status', 'gender', 'sex', 'class', 'group', 'department',
+      'region', 'country', 'state', 'city', 'branch', 'segment', 'channel',
+      'product', 'brand', 'vendor', 'supplier', 'customer_type', 'user_type',
+      'year', 'month', 'quarter', 'period', 'day', 'weekday'
+    ];
+
+    // Find categorical column using same priority as DataChart
+    let categoricalColumn: string | null = null;
+    let categories: string[] = [];
+
+    // First try to find columns matching priority patterns
+    for (const pattern of categoryPatterns) {
+      const match = nonNumericColumns.find(col => col.toLowerCase().includes(pattern));
+      if (match) {
+        const uniqueValues = new Set(rows.map(row => String(row[match] ?? '')));
+        if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
+          categoricalColumn = match;
+          categories = Array.from(uniqueValues).slice(0, 30);
+          break;
+        }
+      }
+    }
+
+    // Then find any non-numeric column with good cardinality
+    if (!categoricalColumn) {
+      for (const col of nonNumericColumns) {
+        const uniqueValues = new Set(rows.map(row => String(row[col] ?? '')));
+        if (uniqueValues.size >= 2 && uniqueValues.size <= 30) {
+          categoricalColumn = col;
+          categories = Array.from(uniqueValues).slice(0, 30);
+          break;
+        }
+      }
+    }
+
+    return {
+      numericColumns,
+      categoricalColumn,
+      categories,
+      isCategorical: categoricalColumn !== null && categories.length >= 2,
+    };
+  }, []);
 
   // Load chart settings from localStorage on mount
   useEffect(() => {
@@ -1852,6 +1953,22 @@ export default function AIPage() {
                                           chartType={currentView}
                                         />
                                       )}
+                                      {/* Data Adjust Button - only for charts */}
+                                      {currentView !== "table" && (
+                                        <button
+                                          onClick={() => setShowChartManipulation(showChartManipulation === viewKey ? null : viewKey)}
+                                          className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                                            hasActiveManipulation(viewKey) || showChartManipulation === viewKey
+                                              ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
+                                              : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                          }`}
+                                          title="Adjust chart data"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
+                                          </svg>
+                                        </button>
+                                      )}
                                       {/* Expand Button */}
                                       <button
                                         onClick={() => {
@@ -1895,6 +2012,137 @@ export default function AIPage() {
                                     />
                                   )}
 
+                                  {/* Data Manipulation Modal */}
+                                  {showChartManipulation === viewKey && currentView !== "table" && (() => {
+                                    const analysis = analyzeDataForManipulation(result.columns, result.rows);
+                                    const manipulation = getManipulation(viewKey);
+                                    return (
+                                      <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl shadow-lg p-4 bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#333]">
+                                        <div className="space-y-4">
+                                          <div className="text-[10px] font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between text-gray-400 dark:text-gray-400 border-gray-100 dark:border-[#333]">
+                                            <span>Data Settings</span>
+                                            <div className="flex items-center gap-2">
+                                              {hasActiveManipulation(viewKey) && (
+                                                <button
+                                                  onClick={() => resetManipulation(viewKey)}
+                                                  className="text-[10px] transition-colors text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-white"
+                                                >
+                                                  Reset
+                                                </button>
+                                              )}
+                                              <button
+                                                onClick={() => setShowChartManipulation(null)}
+                                                className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-gray-400"
+                                              >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                              </button>
+                                            </div>
+                                          </div>
+
+                                          {/* Columns */}
+                                          {analysis.numericColumns.length > 1 && (
+                                            <div>
+                                              <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Columns</span>
+                                              <div className="flex flex-wrap gap-1.5">
+                                                {analysis.numericColumns.map((col) => {
+                                                  const isHidden = manipulation.hiddenColumns.has(col);
+                                                  return (
+                                                    <button
+                                                      key={col}
+                                                      onClick={() => {
+                                                        const newHidden = new Set(manipulation.hiddenColumns);
+                                                        if (isHidden) newHidden.delete(col);
+                                                        else newHidden.add(col);
+                                                        setManipulation(viewKey, { ...manipulation, hiddenColumns: newHidden });
+                                                      }}
+                                                      className={`px-2.5 py-1 text-xs rounded-md transition-all ${
+                                                        isHidden
+                                                          ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444]'
+                                                          : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'
+                                                      }`}
+                                                    >
+                                                      {col.length > 12 ? col.substring(0, 12) + '...' : col}
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Categories */}
+                                          {analysis.isCategorical && analysis.categories.length > 0 && (
+                                            <div>
+                                              <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Categories</span>
+                                              <div className="flex flex-wrap gap-1.5">
+                                                {analysis.categories.slice(0, 12).map((cat) => {
+                                                  const isExcluded = manipulation.excludedCategories.has(cat);
+                                                  return (
+                                                    <button
+                                                      key={cat}
+                                                      onClick={() => {
+                                                        const newExcluded = new Set(manipulation.excludedCategories);
+                                                        if (isExcluded) newExcluded.delete(cat);
+                                                        else newExcluded.add(cat);
+                                                        setManipulation(viewKey, { ...manipulation, excludedCategories: newExcluded });
+                                                      }}
+                                                      className={`px-2.5 py-1 text-xs rounded-md transition-all ${
+                                                        isExcluded
+                                                          ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444] line-through'
+                                                          : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'
+                                                      }`}
+                                                    >
+                                                      {cat.length > 10 ? cat.substring(0, 10) + '...' : cat}
+                                                    </button>
+                                                  );
+                                                })}
+                                                {analysis.categories.length > 12 && (
+                                                  <span className="px-2.5 py-1 text-xs text-gray-400 dark:text-gray-500">+{analysis.categories.length - 12}</span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Aggregation */}
+                                          {analysis.isCategorical && analysis.numericColumns.length > 0 && (
+                                            <div>
+                                              <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Aggregation</span>
+                                              <div className="space-y-2">
+                                                {analysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).slice(0, 4).map((col) => (
+                                                  <div key={col} className="flex items-center gap-2">
+                                                    <span className="text-xs min-w-[60px] truncate flex-shrink-0 text-gray-600 dark:text-gray-300">{col}</span>
+                                                    <select
+                                                      value={manipulation.columnAggregations[col] || 'COUNT'}
+                                                      onChange={(e) => setManipulation(viewKey, {
+                                                        ...manipulation,
+                                                        columnAggregations: { ...manipulation.columnAggregations, [col]: e.target.value as AggregationType }
+                                                      })}
+                                                      className="flex-1 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] text-gray-700 dark:text-gray-200 focus:ring-gray-400 dark:focus:ring-gray-500"
+                                                    >
+                                                      <option value="COUNT">Count</option>
+                                                      <option value="SUM">Sum</option>
+                                                      <option value="AVG">Average</option>
+                                                      <option value="MIN">Min</option>
+                                                      <option value="MAX">Max</option>
+                                                    </select>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Empty state */}
+                                          {!analysis.isCategorical && analysis.numericColumns.length <= 1 && (
+                                            <div className="text-xs text-center py-3 text-gray-400 dark:text-gray-500">
+                                              No adjustable data options
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+
                                   {/* Chart View */}
                                   {currentView !== "table" && (
                                     <DataChart
@@ -1902,6 +2150,8 @@ export default function AIPage() {
                                       columns={result.columns}
                                       chartType={currentView}
                                       settings={chartSettings}
+                                      manipulation={getManipulation(viewKey)}
+                                      onManipulationChange={(m) => setManipulation(viewKey, m)}
                                     />
                                   )}
 
@@ -1912,6 +2162,8 @@ export default function AIPage() {
                                       rows={result.rows}
                                       filters={tableFilters[viewKey] || {}}
                                       advancedFilters={advancedTableFilters[viewKey]}
+                                      truncated={result.truncated}
+                                      maxRows={result.maxRows}
                                     />
                                   )}
                                 </div>
@@ -2157,6 +2409,22 @@ export default function AIPage() {
                                     chartType={currentView}
                                   />
                                 )}
+                                {/* Data Adjust Button - only for charts */}
+                                {currentView !== "table" && (
+                                  <button
+                                    onClick={() => setShowChartManipulation(showChartManipulation === message.id ? null : message.id)}
+                                    className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                                      hasActiveManipulation(message.id) || showChartManipulation === message.id
+                                        ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
+                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                    }`}
+                                    title="Adjust chart data"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
+                                    </svg>
+                                  </button>
+                                )}
                                 {/* Expand Button */}
                                 <button
                                   onClick={() => {
@@ -2200,6 +2468,137 @@ export default function AIPage() {
                             />
                           )}
 
+                          {/* Data Manipulation Modal */}
+                          {showChartManipulation === message.id && currentView !== "table" && (() => {
+                            const analysis = analyzeDataForManipulation(parsedResult.columns, parsedResult.rows);
+                            const manipulation = getManipulation(message.id);
+                            return (
+                              <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl shadow-lg p-4 bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#333]">
+                                <div className="space-y-4">
+                                  <div className="text-[10px] font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between text-gray-400 dark:text-gray-400 border-gray-100 dark:border-[#333]">
+                                    <span>Data Settings</span>
+                                    <div className="flex items-center gap-2">
+                                      {hasActiveManipulation(message.id) && (
+                                        <button
+                                          onClick={() => resetManipulation(message.id)}
+                                          className="text-[10px] transition-colors text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-white"
+                                        >
+                                          Reset
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => setShowChartManipulation(null)}
+                                        className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-gray-400"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Columns */}
+                                  {analysis.numericColumns.length > 1 && (
+                                    <div>
+                                      <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Columns</span>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {analysis.numericColumns.map((col) => {
+                                          const isHidden = manipulation.hiddenColumns.has(col);
+                                          return (
+                                            <button
+                                              key={col}
+                                              onClick={() => {
+                                                const newHidden = new Set(manipulation.hiddenColumns);
+                                                if (isHidden) newHidden.delete(col);
+                                                else newHidden.add(col);
+                                                setManipulation(message.id, { ...manipulation, hiddenColumns: newHidden });
+                                              }}
+                                              className={`px-2.5 py-1 text-xs rounded-md transition-all ${
+                                                isHidden
+                                                  ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444]'
+                                                  : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'
+                                              }`}
+                                            >
+                                              {col.length > 12 ? col.substring(0, 12) + '...' : col}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Categories */}
+                                  {analysis.isCategorical && analysis.categories.length > 0 && (
+                                    <div>
+                                      <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Categories</span>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {analysis.categories.slice(0, 12).map((cat) => {
+                                          const isExcluded = manipulation.excludedCategories.has(cat);
+                                          return (
+                                            <button
+                                              key={cat}
+                                              onClick={() => {
+                                                const newExcluded = new Set(manipulation.excludedCategories);
+                                                if (isExcluded) newExcluded.delete(cat);
+                                                else newExcluded.add(cat);
+                                                setManipulation(message.id, { ...manipulation, excludedCategories: newExcluded });
+                                              }}
+                                              className={`px-2.5 py-1 text-xs rounded-md transition-all ${
+                                                isExcluded
+                                                  ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444] line-through'
+                                                  : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'
+                                              }`}
+                                            >
+                                              {cat.length > 10 ? cat.substring(0, 10) + '...' : cat}
+                                            </button>
+                                          );
+                                        })}
+                                        {analysis.categories.length > 12 && (
+                                          <span className="px-2.5 py-1 text-xs text-gray-400 dark:text-gray-500">+{analysis.categories.length - 12}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Aggregation */}
+                                  {analysis.isCategorical && analysis.numericColumns.length > 0 && (
+                                    <div>
+                                      <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Aggregation</span>
+                                      <div className="space-y-2">
+                                        {analysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).slice(0, 4).map((col) => (
+                                          <div key={col} className="flex items-center gap-2">
+                                            <span className="text-xs min-w-[60px] truncate flex-shrink-0 text-gray-600 dark:text-gray-300">{col}</span>
+                                            <select
+                                              value={manipulation.columnAggregations[col] || 'COUNT'}
+                                              onChange={(e) => setManipulation(message.id, {
+                                                ...manipulation,
+                                                columnAggregations: { ...manipulation.columnAggregations, [col]: e.target.value as AggregationType }
+                                              })}
+                                              className="flex-1 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] text-gray-700 dark:text-gray-200 focus:ring-gray-400 dark:focus:ring-gray-500"
+                                            >
+                                              <option value="COUNT">Count</option>
+                                              <option value="SUM">Sum</option>
+                                              <option value="AVG">Average</option>
+                                              <option value="MIN">Min</option>
+                                              <option value="MAX">Max</option>
+                                            </select>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Empty state */}
+                                  {!analysis.isCategorical && analysis.numericColumns.length <= 1 && (
+                                    <div className="text-xs text-center py-3 text-gray-400 dark:text-gray-500">
+                                      No adjustable data options
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           {/* Chart View */}
                           {currentView !== "table" && (
                             <DataChart
@@ -2207,6 +2606,8 @@ export default function AIPage() {
                               columns={parsedResult.columns}
                               chartType={currentView}
                               settings={chartSettings}
+                              manipulation={getManipulation(message.id)}
+                              onManipulationChange={(m) => setManipulation(message.id, m)}
                             />
                           )}
 
@@ -2217,6 +2618,8 @@ export default function AIPage() {
                               rows={parsedResult.rows}
                               filters={tableFilters[message.id] || {}}
                               advancedFilters={advancedTableFilters[message.id]}
+                              truncated={parsedResult.truncated}
+                              maxRows={parsedResult.maxRows}
                             />
                           )}
                         </div>

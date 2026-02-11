@@ -216,6 +216,8 @@ export interface QueryResult {
   rows: Record<string, unknown>[];
   rowCount: number;
   executionTimeMs: number;
+  truncated?: boolean;
+  maxRows?: number;
 }
 
 export interface ChatRequest {

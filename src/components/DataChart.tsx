@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -21,6 +21,7 @@ import {
 } from "recharts";
 
 export type ChartType = "bar" | "line" | "pie" | "area" | "table";
+export type AggregationType = 'COUNT' | 'AVG' | 'SUM' | 'MIN' | 'MAX';
 
 export interface ChartSettings {
   yAxisMin: number | 'auto';
@@ -43,11 +44,21 @@ export const defaultChartSettings: ChartSettings = {
   legendPosition: 'bottom',
 };
 
+// Chart manipulation state
+export interface ChartManipulation {
+  excludedCategories: Set<string>;
+  columnAggregations: Record<string, AggregationType>;
+  hiddenColumns: Set<string>;
+}
+
 interface DataChartProps {
   data: Record<string, unknown>[];
   columns: string[];
   chartType: ChartType;
   settings?: ChartSettings;
+  manipulation?: ChartManipulation;
+  onManipulationChange?: (manipulation: ChartManipulation) => void;
+  fillContainer?: boolean; // When true, chart fills parent container instead of using fixed height
 }
 
 // Hook to detect screen size
@@ -166,57 +177,271 @@ function truncateLabel(label: string, maxLength: number = 15): string {
   return label.substring(0, maxLength - 3) + "...";
 }
 
-// Aggregate data by label column for large datasets
-function aggregateData(
+// Column semantic type detection
+type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric';
+
+function detectColumnType(columnName: string): ColumnSemanticType {
+  const name = columnName.toLowerCase();
+
+  // ID columns - should COUNT, not SUM
+  if (name.includes('_id') || name.endsWith('id') || name === 'id' ||
+      name.includes('_key') || name.endsWith('key') ||
+      name.includes('_no') || name.endsWith('no') || name === 'no' ||
+      name.includes('_code') || name.endsWith('code') ||
+      name.includes('index') || name === 'row' || name === 'rownum') {
+    return 'id';
+  }
+
+  // Score/Rating columns - should AVG
+  if (name.includes('score') || name.includes('rating') || name.includes('grade') ||
+      name.includes('cgpa') || name.includes('gpa') || name.includes('marks') ||
+      name.includes('rank') || name.includes('level') || name.includes('tier') ||
+      name.includes('points') || name.includes('stars')) {
+    return 'score';
+  }
+
+  // Percentage columns - should AVG
+  if (name.includes('percent') || name.includes('pct') || name.includes('rate') ||
+      name.includes('ratio') || name.includes('proportion') || name.endsWith('%')) {
+    return 'percentage';
+  }
+
+  // Count columns - should SUM (they're already counts)
+  if (name.includes('count') || name.includes('quantity') || name.includes('qty') ||
+      name.includes('num_') || name.startsWith('n_') || name.includes('total') ||
+      name.includes('_cnt')) {
+    return 'count';
+  }
+
+  // Amount/Money columns - should SUM
+  if (name.includes('amount') || name.includes('price') || name.includes('cost') ||
+      name.includes('revenue') || name.includes('salary') || name.includes('income') ||
+      name.includes('expense') || name.includes('payment') || name.includes('fee') ||
+      name.includes('balance') || name.includes('budget') || name.includes('profit') ||
+      name.includes('loss') || name.includes('value') || name.includes('sum') ||
+      name.includes('money') || name.includes('$') || name.includes('usd') ||
+      name.includes('eur') || name.includes('gbp')) {
+    return 'amount';
+  }
+
+  return 'numeric';
+}
+
+// Find the best categorical column for grouping
+function findBestCategoricalColumn(
+  data: Record<string, unknown>[],
+  columns: string[],
+  numericColumns: string[]
+): string | null {
+  const nonNumericColumns = columns.filter(col => !numericColumns.includes(col));
+
+  // Priority patterns for grouping columns
+  const categoryPatterns = [
+    'category', 'type', 'status', 'gender', 'sex', 'class', 'group', 'department',
+    'region', 'country', 'state', 'city', 'branch', 'segment', 'channel',
+    'product', 'brand', 'vendor', 'supplier', 'customer_type', 'user_type',
+    'year', 'month', 'quarter', 'period', 'day', 'weekday'
+  ];
+
+  // First try to find columns matching priority patterns
+  for (const pattern of categoryPatterns) {
+    const match = nonNumericColumns.find(col => col.toLowerCase().includes(pattern));
+    if (match) {
+      const uniqueValues = new Set(data.map(row => String(row[match] ?? ''))).size;
+      if (uniqueValues >= 2 && uniqueValues <= 50) {
+        return match;
+      }
+    }
+  }
+
+  // Then find any non-numeric column with good cardinality (2-30 unique values)
+  for (const col of nonNumericColumns) {
+    const uniqueValues = new Set(data.map(row => String(row[col] ?? ''))).size;
+    if (uniqueValues >= 2 && uniqueValues <= 30) {
+      return col;
+    }
+  }
+
+  // Fall back to first non-numeric column if it has reasonable cardinality
+  if (nonNumericColumns.length > 0) {
+    const firstCol = nonNumericColumns[0];
+    const uniqueValues = new Set(data.map(row => String(row[firstCol] ?? ''))).size;
+    if (uniqueValues <= 100) {
+      return firstCol;
+    }
+  }
+
+  return null;
+}
+
+// Aggregate info for tooltip/legend
+interface AggregationInfo {
+  column: string;
+  aggregation: AggregationType;
+  displayName: string;
+  detectedType: ColumnSemanticType;
+}
+
+// Smart aggregation based on column semantics
+function smartAggregateData(
   data: Record<string, unknown>[],
   labelColumn: string,
   valueColumns: string[],
-  maxItems: number = 50
-): Record<string, unknown>[] {
-  // Group by label and sum values
-  const grouped = new Map<string, Record<string, number>>();
+  maxItems: number = 50,
+  userAggregations?: Record<string, AggregationType>,
+  excludedCategories?: Set<string>
+): { chartData: Record<string, unknown>[]; aggregationInfo: AggregationInfo[] } {
+  // Determine aggregation type for each column
+  const aggregationInfo: AggregationInfo[] = valueColumns.map(col => {
+    const detectedType = detectColumnType(col);
+
+    // Check if user has specified an aggregation
+    if (userAggregations && userAggregations[col]) {
+      const aggregation = userAggregations[col];
+      return {
+        column: col,
+        aggregation,
+        displayName: `${aggregation} ${col}`,
+        detectedType,
+      };
+    }
+
+    let aggregation: AggregationType;
+    let displayName: string;
+
+    switch (detectedType) {
+      case 'id':
+        aggregation = 'COUNT';
+        displayName = `Count`;
+        break;
+      case 'score':
+      case 'percentage':
+        aggregation = 'AVG';
+        displayName = `Avg ${col}`;
+        break;
+      case 'amount':
+      case 'count':
+        aggregation = 'SUM';
+        displayName = `Total ${col}`;
+        break;
+      default:
+        // For unknown numeric, use AVG if values are small, COUNT if looks like IDs
+        const sampleValues = data.slice(0, 100).map(row => {
+          const val = row[col];
+          return typeof val === 'number' ? val : Number(val) || 0;
+        }).filter(v => v !== 0);
+
+        if (sampleValues.length > 0) {
+          const avg = sampleValues.reduce((a, b) => a + b, 0) / sampleValues.length;
+          const max = Math.max(...sampleValues);
+          // If values look like sequential IDs (high values, close to row count)
+          if (max > data.length * 0.5 && avg > data.length * 0.3) {
+            aggregation = 'COUNT';
+            displayName = `Count`;
+          } else if (max <= 100 || avg <= 50) {
+            // Small values, probably ratings/scores
+            aggregation = 'AVG';
+            displayName = `Avg ${col}`;
+          } else {
+            aggregation = 'SUM';
+            displayName = `Total ${col}`;
+          }
+        } else {
+          aggregation = 'COUNT';
+          displayName = `Count`;
+        }
+    }
+
+    return { column: col, aggregation, displayName, detectedType };
+  });
+
+  // Group by label
+  const grouped = new Map<string, { values: Record<string, number[]>; count: number }>();
 
   data.forEach((row) => {
     const label = String(row[labelColumn] ?? "Unknown");
+
+    // Skip excluded categories
+    if (excludedCategories?.has(label)) return;
+
     if (!grouped.has(label)) {
-      grouped.set(label, {});
+      grouped.set(label, { values: {}, count: 0 });
       valueColumns.forEach((col) => {
-        grouped.get(label)![col] = 0;
+        grouped.get(label)!.values[col] = [];
       });
     }
     const group = grouped.get(label)!;
+    group.count++;
     valueColumns.forEach((col) => {
       const val = row[col];
-      group[col] += typeof val === "number" ? val : Number(val) || 0;
+      const numVal = typeof val === "number" ? val : Number(val) || 0;
+      group.values[col].push(numVal);
     });
   });
 
-  // Convert to array and sort by first value column (descending)
-  const result: Record<string, unknown>[] = Array.from(grouped.entries()).map(([label, values]) => ({
-    name: truncateLabel(label),
-    fullName: label,
-    ...values,
-  }));
+  // Calculate aggregated values
+  const result: Record<string, unknown>[] = Array.from(grouped.entries()).map(([label, group]) => {
+    const item: Record<string, unknown> = {
+      name: truncateLabel(label),
+      fullName: label,
+      _count: group.count, // Store count for reference
+    };
 
-  // Sort by the first value column descending
-  if (valueColumns.length > 0) {
-    result.sort((a, b) => (b[valueColumns[0]] as number) - (a[valueColumns[0]] as number));
-  }
+    aggregationInfo.forEach(({ column, aggregation }) => {
+      const values = group.values[column];
+      let calcResult: number;
+
+      switch (aggregation) {
+        case 'COUNT':
+          calcResult = values.length;
+          break;
+        case 'AVG':
+          calcResult = values.length > 0
+            ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) / 100
+            : 0;
+          break;
+        case 'SUM':
+          calcResult = values.reduce((a, b) => a + b, 0);
+          break;
+        case 'MIN':
+          calcResult = values.length > 0 ? Math.min(...values) : 0;
+          break;
+        case 'MAX':
+          calcResult = values.length > 0 ? Math.max(...values) : 0;
+          break;
+      }
+
+      item[column] = calcResult;
+    });
+
+    return item;
+  });
+
+  // Sort by count (most common categories first) or first value column
+  result.sort((a, b) => (b._count as number) - (a._count as number));
 
   // Limit to maxItems
-  return result.slice(0, maxItems);
+  return { chartData: result.slice(0, maxItems), aggregationInfo };
 }
 
-// Sample data evenly for line/area charts to show trends
-function sampleData(
+// Check if label column is categorical (few unique values - good for aggregation)
+function isCategoricalColumn(data: Record<string, unknown>[], labelColumn: string): boolean {
+  const uniqueValues = new Set(data.map(row => String(row[labelColumn] ?? "")));
+  // Categorical if 2-30 unique values and much less than data size
+  return uniqueValues.size >= 2 && uniqueValues.size <= 30 && uniqueValues.size < data.length * 0.5;
+}
+
+// Sample data with rolling average for smooth line/area charts
+function sampleDataWithRollingAvg(
   data: Record<string, unknown>[],
   labelColumn: string,
   valueColumns: string[],
-  maxPoints: number = 100
+  maxPoints: number = 100,
+  aggregationInfo: AggregationInfo[]
 ): Record<string, unknown>[] {
   if (data.length <= maxPoints) {
-    return data.map((row) => {
-      const fullName = String(row[labelColumn] ?? "");
+    return data.map((row, idx) => {
+      const fullName = String(row[labelColumn] ?? `Row ${idx + 1}`);
       const item: Record<string, unknown> = {
         name: truncateLabel(fullName, 12),
         fullName: fullName,
@@ -229,31 +454,72 @@ function sampleData(
     });
   }
 
-  // Sample evenly across the dataset
-  const step = Math.ceil(data.length / maxPoints);
+  // For large datasets, create buckets and aggregate
+  const bucketSize = Math.ceil(data.length / maxPoints);
   const sampled: Record<string, unknown>[] = [];
 
-  for (let i = 0; i < data.length; i += step) {
-    const row = data[i];
-    const fullName = String(row[labelColumn] ?? "");
+  for (let i = 0; i < data.length; i += bucketSize) {
+    const bucket = data.slice(i, Math.min(i + bucketSize, data.length));
+    const firstRow = bucket[0];
+    const lastRow = bucket[bucket.length - 1];
+
+    // Use range label for bucket
+    const startLabel = String(firstRow[labelColumn] ?? `Row ${i + 1}`);
+    const endLabel = String(lastRow[labelColumn] ?? `Row ${i + bucket.length}`);
+    const label = bucket.length > 1 ? `${truncateLabel(startLabel, 8)}...` : startLabel;
+
     const item: Record<string, unknown> = {
-      name: truncateLabel(fullName, 12),
-      fullName: fullName,
+      name: label,
+      fullName: bucket.length > 1 ? `${startLabel} to ${endLabel}` : startLabel,
+      _bucketSize: bucket.length,
     };
+
+    // Aggregate each column according to its type
     valueColumns.forEach((col) => {
-      const val = row[col];
-      item[col] = typeof val === "number" ? val : Number(val) || 0;
+      const info = aggregationInfo.find(a => a.column === col);
+      const values = bucket.map(row => {
+        const val = row[col];
+        return typeof val === "number" ? val : Number(val) || 0;
+      });
+
+      if (info?.aggregation === 'SUM') {
+        item[col] = values.reduce((a, b) => a + b, 0);
+      } else if (info?.aggregation === 'COUNT') {
+        item[col] = values.length;
+      } else {
+        // AVG for scores or unknown
+        item[col] = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) / 100;
+      }
     });
+
     sampled.push(item);
   }
 
   return sampled;
 }
 
-export function DataChart({ data, columns, chartType, settings = defaultChartSettings }: DataChartProps) {
+export function DataChart({
+  data,
+  columns,
+  chartType,
+  settings = defaultChartSettings,
+  manipulation,
+  onManipulationChange,
+  fillContainer = false,
+}: DataChartProps) {
   const isDark = useDarkMode();
   const screenSize = useScreenSize();
   const isMobile = screenSize === "mobile";
+
+  // Local state for manipulation if not controlled
+  const [localManipulation, setLocalManipulation] = useState<ChartManipulation>({
+    excludedCategories: new Set(),
+    columnAggregations: {},
+    hiddenColumns: new Set(),
+  });
+
+  const currentManipulation = manipulation || localManipulation;
+  const setManipulation = onManipulationChange || setLocalManipulation;
 
   // Get colors based on theme setting
   const chartColors = settings.colorTheme === 'custom' && settings.customColors?.length
@@ -261,7 +527,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
     : COLOR_THEMES[settings.colorTheme] || COLORS;
 
   // Responsive chart dimensions - fill available space
-  const chartHeight = isMobile ? 250 : screenSize === "tablet" ? 300 : 320;
+  const chartHeight = fillContainer ? "100%" : (isMobile ? 250 : screenSize === "tablet" ? 300 : 320);
   const pieOuterRadius = isMobile ? 70 : screenSize === "tablet" ? 85 : 100;
   const fontSize = isMobile ? 8 : screenSize === "tablet" ? 9 : 10;
   const legendFontSize = isMobile ? "10px" : "12px";
@@ -288,34 +554,146 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
       })
     );
 
+    // Find best categorical column for grouping (smart detection)
+    const bestCategoryColumn = findBestCategoricalColumn(data, columns, numericColumns);
+
     // Find first non-numeric column to use as label, or use first column
     const nonNumericColumns = columns.filter(col => !numericColumns.includes(col));
-    const labelColumn = nonNumericColumns.length > 0 ? nonNumericColumns[0] : columns[0];
+
+    // Prefer best categorical column, then any non-numeric, then first column
+    const labelColumn = bestCategoryColumn || (nonNumericColumns.length > 0 ? nonNumericColumns[0] : columns[0]);
 
     // Use numeric columns as data columns, excluding the label column if it was numeric
     const dataColumns = numericColumns.filter(col => col !== labelColumn);
 
     // If no data columns found but we have numeric columns, use all except first as data
     // and first as label (fallback for all-numeric data)
-    const finalDataColumns = dataColumns.length > 0
+    const allDataColumns = dataColumns.length > 0
       ? dataColumns
       : numericColumns.length > 1
         ? numericColumns.slice(1)
         : numericColumns;
 
+    // Filter out hidden columns
+    const finalDataColumns = allDataColumns.filter(col => !currentManipulation.hiddenColumns.has(col));
+
+    // Store all columns for the manipulation UI (including hidden ones)
+    const allAvailableColumns = allDataColumns;
+
     const isLargeDataset = data.length > 50;
+
+    // Build aggregation info for all value columns
+    const aggregationInfo: AggregationInfo[] = finalDataColumns.map(col => {
+      const type = detectColumnType(col);
+      let aggregation: AggregationType;
+      let displayName: string;
+
+      switch (type) {
+        case 'id':
+          aggregation = 'COUNT';
+          displayName = `Count`;
+          break;
+        case 'score':
+        case 'percentage':
+          aggregation = 'AVG';
+          displayName = `Avg ${col}`;
+          break;
+        case 'amount':
+        case 'count':
+          aggregation = 'SUM';
+          displayName = `Total ${col}`;
+          break;
+        default:
+          // For unknown numeric, check if values look like IDs
+          const sampleValues = data.slice(0, 100).map(row => {
+            const val = row[col];
+            return typeof val === 'number' ? val : Number(val) || 0;
+          }).filter(v => v !== 0);
+
+          if (sampleValues.length > 0) {
+            const avg = sampleValues.reduce((a, b) => a + b, 0) / sampleValues.length;
+            const max = Math.max(...sampleValues);
+            if (max > data.length * 0.5 && avg > data.length * 0.3) {
+              aggregation = 'COUNT';
+              displayName = `Count`;
+            } else if (max <= 100 || avg <= 50) {
+              aggregation = 'AVG';
+              displayName = `Avg ${col}`;
+            } else {
+              aggregation = 'SUM';
+              displayName = `Total ${col}`;
+            }
+          } else {
+            aggregation = 'COUNT';
+            displayName = `Count`;
+          }
+      }
+
+      return { column: col, aggregation, displayName, detectedType: type };
+    });
+
+    // Check if label column is categorical (few unique values)
+    const isCategorical = isCategoricalColumn(data, labelColumn);
 
     // Process data based on chart type and size
     let chartData: Record<string, unknown>[];
+    let finalAggregationInfo = aggregationInfo;
 
-    if (chartType === "line" || chartType === "area") {
-      // For line/area, sample data to show trends
-      chartData = sampleData(data, labelColumn, finalDataColumns, 100);
+    // Count unique values in label column
+    const uniqueLabelCount = new Set(data.map(row => String(row[labelColumn] ?? ""))).size;
+
+    // For line/area charts with very few categories (like Gender: Male/Female),
+    // don't aggregate - it creates meaningless straight lines
+    const shouldAggregateForLineArea = isCategorical && uniqueLabelCount > 5;
+
+    // For ALL chart types with categorical data, aggregate first (except line/area with few categories)
+    if (isCategorical && (chartType === "bar" || chartType === "pie" || shouldAggregateForLineArea)) {
+      // Use smart aggregation for categorical data
+      const maxItems = chartType === "pie" ? 10 : 50;
+      const result = smartAggregateData(
+        data,
+        labelColumn,
+        finalDataColumns,
+        maxItems,
+        currentManipulation.columnAggregations,
+        currentManipulation.excludedCategories
+      );
+      chartData = result.chartData;
+      finalAggregationInfo = result.aggregationInfo;
+    } else if (chartType === "line" || chartType === "area") {
+      // For line/area with non-categorical data OR few categories, sample with rolling average
+      chartData = sampleDataWithRollingAvg(data, labelColumn, finalDataColumns, 100, aggregationInfo);
     } else {
-      // For bar/pie, aggregate data
-      chartData = isLargeDataset
-        ? aggregateData(data, labelColumn, finalDataColumns, chartType === "pie" ? 10 : 30)
-        : data.map((row) => {
+      // For bar/pie with non-categorical data
+      if (isLargeDataset) {
+        const result = smartAggregateData(
+          data,
+          labelColumn,
+          finalDataColumns,
+          chartType === "pie" ? 10 : 30,
+          currentManipulation.columnAggregations,
+          currentManipulation.excludedCategories
+        );
+        chartData = result.chartData;
+        finalAggregationInfo = result.aggregationInfo;
+      } else {
+        // Small dataset - still use smart aggregation for consistency
+        const uniqueLabels = new Set(data.map(row => String(row[labelColumn] ?? "")));
+        if (uniqueLabels.size < data.length * 0.8) {
+          // Has grouping potential
+          const result = smartAggregateData(
+            data,
+            labelColumn,
+            finalDataColumns,
+            chartType === "pie" ? 10 : 30,
+            currentManipulation.columnAggregations,
+            currentManipulation.excludedCategories
+          );
+          chartData = result.chartData;
+          finalAggregationInfo = result.aggregationInfo;
+        } else {
+          // Mostly unique values - just format for display
+          chartData = data.slice(0, 50).map((row) => {
             const fullName = String(row[labelColumn] ?? "");
             const item: Record<string, unknown> = {
               name: truncateLabel(fullName),
@@ -327,13 +705,18 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
             });
             return item;
           });
+        }
+      }
     }
+
+    // Get all unique categories for manipulation UI
+    const allCategories = Array.from(new Set(data.map(row => String(row[labelColumn] ?? "Unknown"))));
 
     const hasNonZeroValues = chartData.some((item) =>
       finalDataColumns.some((col) => (item[col] as number) > 0)
     );
 
-    // Prepare pie data (note: fill will be applied dynamically based on settings)
+    // Prepare pie data with smart aggregation
     let pieData: Array<{ name: string; fullName: string; value: number }> = [];
     if (chartType === "pie") {
       if (finalDataColumns.length === 1) {
@@ -343,29 +726,60 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
           value: item[finalDataColumns[0]] as number,
         }));
       } else {
-        pieData = finalDataColumns.map((col) => ({
-          name: col,
-          fullName: col,
-          value: chartData.reduce((sum, item) => sum + (item[col] as number), 0),
-        }));
+        // For pie with multiple columns, show column totals
+        pieData = finalDataColumns.map((col) => {
+          const info = finalAggregationInfo.find(a => a.column === col);
+          const values = chartData.map(item => item[col] as number);
+          let value: number;
+
+          if (info?.aggregation === 'AVG') {
+            value = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) / 100;
+          } else {
+            value = values.reduce((a, b) => a + b, 0);
+          }
+
+          return {
+            name: info?.displayName || col,
+            fullName: col,
+            value,
+          };
+        });
       }
       // Filter zeros and sort by value
       pieData = pieData.filter((item) => item.value > 0).sort((a, b) => b.value - a.value);
     }
 
+    // Build chart description
+    let chartDescription = '';
+    if ((isLargeDataset || isCategorical) && bestCategoryColumn) {
+      const firstAgg = finalAggregationInfo[0];
+      if (firstAgg) {
+        chartDescription = `${firstAgg.displayName} by ${labelColumn}`;
+      }
+    }
+
     return {
       chartData,
       dataColumns: finalDataColumns,
+      allAvailableColumns,
       pieData,
       hasNonZeroValues,
       isLargeDataset,
+      aggregationInfo: finalAggregationInfo,
+      labelColumn,
+      chartDescription,
+      isCategorical,
+      allCategories,
     };
-  }, [data, columns, chartType]);
+  }, [data, columns, chartType, currentManipulation]);
 
   if (!chartConfig) return null;
 
-  const { chartData, dataColumns, pieData, hasNonZeroValues, isLargeDataset } = chartConfig;
+  const { chartData, dataColumns, allAvailableColumns, pieData, hasNonZeroValues, isLargeDataset, aggregationInfo, chartDescription, isCategorical, allCategories, labelColumn } = chartConfig;
   const dataCount = chartData.length;
+
+  // Disable animations for large datasets to improve performance
+  const enableAnimations = dataCount <= 50;
 
   // Theme colors - pure black theme for dark mode
   const gridColor = isDark ? "#333333" : "#e5e7eb";
@@ -374,8 +788,8 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
   const tooltipBorder = isDark ? "#333333" : "#e5e7eb";
   const tooltipText = isDark ? "#f9fafb" : "#111827";
 
-  // X-axis config
-  const getXAxisConfig = () => {
+  // X-axis config - memoized to prevent recalculation
+  const xAxisConfig = useMemo(() => {
     if (dataCount <= 10) {
       return { interval: 0, angle: 0, textAnchor: "middle" as const, dy: 10 };
     } else if (dataCount <= 20) {
@@ -384,16 +798,24 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
       const skipInterval = Math.ceil(dataCount / 15);
       return { interval: skipInterval - 1, angle: -45, textAnchor: "end" as const, dy: 5 };
     }
-  };
+  }, [dataCount]);
 
-  const xAxisConfig = getXAxisConfig();
   const bottomMargin = dataCount > 10 ? 60 : 20;
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) => {
+  // Memoized tooltip content renderer to prevent re-renders
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderTooltipContent = useCallback((props: any) => {
+    const { active, payload, label } = props as {
+      active?: boolean;
+      payload?: Array<{ name: string; value: number; color: string; dataKey?: string }>;
+      label?: string;
+    };
     if (active && payload && payload.length) {
       const found = chartData.find(d => d.name === label);
       const fullName = found ? String(found.fullName) : (label || "");
+      const recordCount = found?._count as number | undefined;
+      const bucketSize = found?._bucketSize as number | undefined;
+
       return (
         <div
           className="rounded-lg p-2 shadow-lg max-w-xs"
@@ -405,16 +827,84 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
           <p className="text-sm font-medium mb-1 truncate" style={{ color: tooltipText }}>
             {fullName}
           </p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-xs" style={{ color: entry.color }}>
-              {entry.name}: {typeof entry.value === "number" ? entry.value.toLocaleString() : entry.value}
+          {recordCount && recordCount > 1 && (
+            <p className="text-[10px] mb-1" style={{ color: tickColor }}>
+              ({recordCount.toLocaleString()} records)
             </p>
-          ))}
+          )}
+          {bucketSize && bucketSize > 1 && (
+            <p className="text-[10px] mb-1" style={{ color: tickColor }}>
+              ({bucketSize.toLocaleString()} rows averaged)
+            </p>
+          )}
+          {payload.map((entry, index) => {
+            const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey || a.column === entry.name);
+            const displayLabel = aggInfo?.displayName || entry.name;
+            const formattedValue = typeof entry.value === "number"
+              ? (aggInfo?.aggregation === 'AVG'
+                ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                : entry.value.toLocaleString())
+              : entry.value;
+
+            return (
+              <p key={index} className="text-xs" style={{ color: entry.color }}>
+                {displayLabel}: {formattedValue}
+              </p>
+            );
+          })}
         </div>
       );
     }
     return null;
-  };
+  }, [chartData, aggregationInfo, tooltipBg, tooltipBorder, tooltipText, tickColor]);
+
+  // Toggle category exclusion
+  const toggleCategory = useCallback((category: string) => {
+    const newExcluded = new Set(currentManipulation.excludedCategories);
+    if (newExcluded.has(category)) {
+      newExcluded.delete(category);
+    } else {
+      newExcluded.add(category);
+    }
+    setManipulation({
+      ...currentManipulation,
+      excludedCategories: newExcluded,
+    });
+  }, [currentManipulation, setManipulation]);
+
+  // Change aggregation for a column
+  const changeAggregation = useCallback((column: string, aggregation: AggregationType) => {
+    setManipulation({
+      ...currentManipulation,
+      columnAggregations: {
+        ...currentManipulation.columnAggregations,
+        [column]: aggregation,
+      },
+    });
+  }, [currentManipulation, setManipulation]);
+
+  // Toggle column visibility
+  const toggleColumn = useCallback((column: string) => {
+    const newHidden = new Set(currentManipulation.hiddenColumns);
+    if (newHidden.has(column)) {
+      newHidden.delete(column);
+    } else {
+      newHidden.add(column);
+    }
+    setManipulation({
+      ...currentManipulation,
+      hiddenColumns: newHidden,
+    });
+  }, [currentManipulation, setManipulation]);
+
+  // Reset manipulations
+  const resetManipulations = useCallback(() => {
+    setManipulation({
+      excludedCategories: new Set(),
+      columnAggregations: {},
+      hiddenColumns: new Set(),
+    });
+  }, [setManipulation]);
 
   if (!hasNonZeroValues) {
     return (
@@ -453,7 +943,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
                   settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
                 ]}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={renderTooltipContent} isAnimationActive={false} />
               {!isMobile && settings.legendPosition !== 'hidden' && (
                 <Legend
                   verticalAlign={settings.legendPosition}
@@ -468,6 +958,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
                   fill={chartColors[index % chartColors.length]}
                   radius={[2, 2, 0, 0]}
                   barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
+                  isAnimationActive={enableAnimations}
                 >
                   {settings.showDataLabels && (
                     <LabelList
@@ -507,7 +998,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
                   settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
                 ]}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={renderTooltipContent} isAnimationActive={false} />
               {!isMobile && settings.legendPosition !== 'hidden' && (
                 <Legend
                   verticalAlign={settings.legendPosition}
@@ -523,6 +1014,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
                   stroke={chartColors[index % chartColors.length]}
                   strokeWidth={isMobile ? 1.5 : 2}
                   dot={!isMobile && dataCount <= 30 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 2 } : false}
+                  isAnimationActive={enableAnimations}
                 >
                   {settings.showDataLabels && !isMobile && dataCount <= 20 && (
                     <LabelList
@@ -562,7 +1054,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
                   settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
                 ]}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={renderTooltipContent} isAnimationActive={false} />
               {!isMobile && settings.legendPosition !== 'hidden' && (
                 <Legend
                   verticalAlign={settings.legendPosition}
@@ -578,6 +1070,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
                   stroke={chartColors[index % chartColors.length]}
                   fill={chartColors[index % chartColors.length]}
                   fillOpacity={0.3}
+                  isAnimationActive={enableAnimations}
                 >
                   {settings.showDataLabels && !isMobile && dataCount <= 20 && (
                     <LabelList
@@ -597,7 +1090,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
       case "pie":
         if (pieData.length === 0) {
           return (
-            <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm`} style={{ height: chartHeight }}>
+            <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm ${fillContainer ? 'h-full' : ''}`} style={fillContainer ? undefined : { height: chartHeight as number }}>
               No data to visualize (all values are 0)
             </div>
           );
@@ -624,6 +1117,7 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
                 label={!isMobile && pieData.length <= 8 && settings.showDataLabels ? renderLabel : false}
                 outerRadius={pieOuterRadius}
                 dataKey="value"
+                isAnimationActive={enableAnimations}
               >
                 {pieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
@@ -660,14 +1154,89 @@ export function DataChart({ data, columns, chartType, settings = defaultChartSet
     }
   };
 
+  // Build info text for the chart
+  const getChartInfoText = () => {
+    const parts: string[] = [];
+
+    // Show data size info
+    if (isCategorical) {
+      parts.push(`${data.length.toLocaleString()} rows → ${dataCount} categories`);
+    } else if (isLargeDataset) {
+      if (chartType === "pie") {
+        parts.push("Top 10 categories");
+      } else if (chartType === "line" || chartType === "area") {
+        if (data.length > 100) {
+          parts.push(`${data.length.toLocaleString()} rows → ${dataCount} points`);
+        } else {
+          parts.push(`${data.length.toLocaleString()} rows`);
+        }
+      } else {
+        parts.push(`Top ${dataCount} of ${data.length.toLocaleString()}`);
+      }
+    }
+
+    // Add aggregation info for the first column
+    if (aggregationInfo && aggregationInfo.length > 0 && chartType !== "pie" && (isCategorical || isLargeDataset)) {
+      const firstAgg = aggregationInfo[0];
+      if (firstAgg.aggregation === 'COUNT') {
+        parts.push("counting records");
+      } else if (firstAgg.aggregation === 'AVG') {
+        parts.push("showing averages");
+      } else if (firstAgg.aggregation === 'SUM') {
+        parts.push("showing totals");
+      } else if (firstAgg.aggregation === 'MIN') {
+        parts.push("showing minimums");
+      } else if (firstAgg.aggregation === 'MAX') {
+        parts.push("showing maximums");
+      }
+    }
+
+    return parts.length > 0 ? parts.join(" • ") : null;
+  };
+
+  const infoText = getChartInfoText();
+
+  // Check if any manipulations are active
+  const hasActiveManipulations = currentManipulation.excludedCategories.size > 0 ||
+    Object.keys(currentManipulation.columnAggregations).length > 0 ||
+    currentManipulation.hiddenColumns.size > 0;
+
   return (
-    <div className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors overflow-hidden">
-      {isLargeDataset && chartType !== "table" && (
-        <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mb-1 sm:mb-2 text-center">
-          {chartType === "pie" ? "Top 10" : chartType === "line" || chartType === "area" ? `${data.length} rows` : `Top 30 of ${data.length}`}
+    <div className="w-full h-full bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors overflow-hidden relative flex flex-col">
+      {/* Header */}
+      <div className="mb-2 sm:mb-3 text-center">
+        {chartDescription && (
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 font-medium">
+            {chartDescription}
+          </div>
+        )}
+        {infoText && (
+          <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
+            {infoText}
+          </div>
+        )}
+      </div>
+
+      {/* Active manipulations indicator */}
+      {hasActiveManipulations && (
+        <div className={`flex items-center gap-1.5 mb-2 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
+          </svg>
+          <span>
+            {currentManipulation.hiddenColumns.size > 0 && `${currentManipulation.hiddenColumns.size} hidden`}
+            {currentManipulation.hiddenColumns.size > 0 && currentManipulation.excludedCategories.size > 0 && ' · '}
+            {currentManipulation.excludedCategories.size > 0 && `${currentManipulation.excludedCategories.size} excluded`}
+            {(currentManipulation.hiddenColumns.size > 0 || currentManipulation.excludedCategories.size > 0) && Object.keys(currentManipulation.columnAggregations).length > 0 && ' · '}
+            {Object.keys(currentManipulation.columnAggregations).length > 0 && 'custom agg'}
+          </span>
         </div>
       )}
-      {renderChart()}
+
+      {/* Chart container - fills remaining space */}
+      <div className="flex-1 min-h-0">
+        {renderChart()}
+      </div>
     </div>
   );
 }

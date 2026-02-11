@@ -4,47 +4,15 @@ import { useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { FilterModal, AdvancedFilter } from "./FilterModal";
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
-  LabelList,
-} from "recharts";
+  DataChart,
+  ChartType,
+  ChartSettings,
+  ChartManipulation,
+  AggregationType,
+  defaultChartSettings,
+} from "./DataChart";
 
-export type ChartType = "bar" | "line" | "pie" | "area" | "table";
-
-// Chart settings interface
-interface ChartSettings {
-  yAxisMin: number | 'auto';
-  yAxisMax: number | 'auto';
-  barWidth: number;
-  showDataLabels: boolean;
-  showGridLines: boolean;
-  colorTheme: 'colorful' | 'monochrome' | 'blue' | 'green' | 'purple' | 'custom';
-  legendPosition: 'top' | 'bottom' | 'hidden';
-  customColors?: string[];
-}
-
-const defaultChartSettings: ChartSettings = {
-  yAxisMin: 'auto',
-  yAxisMax: 'auto',
-  barWidth: 60,
-  showDataLabels: false,
-  showGridLines: true,
-  colorTheme: 'colorful',
-  legendPosition: 'bottom',
-};
+export type { ChartType };
 
 interface DataViewerModalProps {
   isOpen: boolean;
@@ -64,34 +32,6 @@ function formatCellValue(value: unknown): string {
   const str = String(value);
   return str === "null" ? "-" : str;
 }
-
-// Color palettes for charts
-const COLOR_THEMES: Record<ChartSettings['colorTheme'], string[]> = {
-  colorful: [
-    "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-    "#ec4899", "#06b6d4", "#84cc16", "#14b8a6", "#f97316",
-  ],
-  monochrome: [
-    "#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af",
-    "#d1d5db", "#e5e7eb", "#f3f4f6", "#f9fafb", "#111827",
-  ],
-  blue: [
-    "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa",
-    "#93c5fd", "#bfdbfe", "#dbeafe", "#0c4a6e", "#075985",
-  ],
-  green: [
-    "#065f46", "#047857", "#059669", "#10b981", "#34d399",
-    "#6ee7b7", "#a7f3d0", "#d1fae5", "#14532d", "#166534",
-  ],
-  purple: [
-    "#5b21b6", "#6d28d9", "#7c3aed", "#8b5cf6", "#a78bfa",
-    "#c4b5fd", "#ddd6fe", "#ede9fe", "#581c87", "#6b21a8",
-  ],
-  custom: [], // Will use customColors from settings
-};
-
-// Default colors (colorful theme)
-const COLORS = COLOR_THEMES.colorful;
 
 // Dark mode detection hook
 function useDarkMode(): boolean {
@@ -113,91 +53,6 @@ function useDarkMode(): boolean {
   }, []);
 
   return isDark;
-}
-
-// Truncate long labels
-function truncateLabel(label: string, maxLength: number = 15): string {
-  if (label.length <= maxLength) return label;
-  return label.substring(0, maxLength - 3) + "...";
-}
-
-// Aggregate data by label column for large datasets
-function aggregateData(
-  data: Record<string, unknown>[],
-  labelColumn: string,
-  valueColumns: string[],
-  maxItems: number = 50
-): Record<string, unknown>[] {
-  const grouped = new Map<string, Record<string, number>>();
-
-  data.forEach((row) => {
-    const label = String(row[labelColumn] ?? "Unknown");
-    if (!grouped.has(label)) {
-      grouped.set(label, {});
-      valueColumns.forEach((col) => {
-        grouped.get(label)![col] = 0;
-      });
-    }
-    const group = grouped.get(label)!;
-    valueColumns.forEach((col) => {
-      const val = row[col];
-      group[col] += typeof val === "number" ? val : Number(val) || 0;
-    });
-  });
-
-  const result: Record<string, unknown>[] = Array.from(grouped.entries()).map(([label, values]) => ({
-    name: truncateLabel(label, 20),
-    fullName: label,
-    ...values,
-  }));
-
-  if (valueColumns.length > 0) {
-    result.sort((a, b) => (b[valueColumns[0]] as number) - (a[valueColumns[0]] as number));
-  }
-
-  return result.slice(0, maxItems);
-}
-
-// Sample data evenly for line/area charts
-function sampleData(
-  data: Record<string, unknown>[],
-  labelColumn: string,
-  valueColumns: string[],
-  maxPoints: number = 150
-): Record<string, unknown>[] {
-  if (data.length <= maxPoints) {
-    return data.map((row) => {
-      const fullName = String(row[labelColumn] ?? "");
-      const item: Record<string, unknown> = {
-        name: truncateLabel(fullName, 15),
-        fullName: fullName,
-      };
-      valueColumns.forEach((col) => {
-        const val = row[col];
-        item[col] = typeof val === "number" ? val : Number(val) || 0;
-      });
-      return item;
-    });
-  }
-
-  const step = Math.ceil(data.length / maxPoints);
-  const sampled: Record<string, unknown>[] = [];
-
-  for (let i = 0; i < data.length; i += step) {
-    const row = data[i];
-    const fullName = String(row[labelColumn] ?? "");
-    const item: Record<string, unknown> = {
-      name: truncateLabel(fullName, 15),
-      fullName: fullName,
-    };
-    valueColumns.forEach((col) => {
-      const val = row[col];
-      item[col] = typeof val === "number" ? val : Number(val) || 0;
-    });
-    sampled.push(item);
-  }
-
-  return sampled;
 }
 
 // Virtual Table Component for the modal
@@ -309,382 +164,6 @@ function FullscreenVirtualTable({
   );
 }
 
-// Large Chart Component - fills entire parent container
-function LargeChart({
-  data,
-  columns,
-  chartType,
-  isDark,
-  isMobile,
-  settings = defaultChartSettings,
-}: {
-  data: Record<string, unknown>[];
-  columns: string[];
-  chartType: ChartType;
-  isDark: boolean;
-  isMobile: boolean;
-  settings?: ChartSettings;
-}) {
-  // Get colors based on theme setting
-  const chartColors = settings.colorTheme === 'custom' && settings.customColors?.length
-    ? settings.customColors
-    : COLOR_THEMES[settings.colorTheme] || COLORS;
-
-  // Theme colors
-  const gridColor = isDark ? "#333333" : "#e5e7eb";
-  const tickColor = isDark ? "#9ca3af" : "#6b7280";
-  const tooltipBg = isDark ? "#1a1a1a" : "white";
-  const tooltipBorder = isDark ? "#333333" : "#e5e7eb";
-  const tooltipText = isDark ? "#f9fafb" : "#111827";
-
-  const fontSize = isMobile ? 8 : 12;
-  const margins = isMobile
-    ? { top: 8, right: 4, left: 0, bottom: 40 }
-    : { top: 20, right: 30, left: 40, bottom: 80 };
-
-  // Memoize chart data processing
-  const chartConfig = useMemo(() => {
-    if (!data || data.length === 0 || chartType === "table") {
-      return null;
-    }
-
-    const labelColumn = columns[0];
-    const dataColumns = columns.slice(1).filter(col =>
-      data.some(row => {
-        const val = row[col];
-        return typeof val === "number" || !isNaN(Number(val));
-      })
-    );
-
-    const isLargeDataset = data.length > 50;
-
-    let chartData: Record<string, unknown>[];
-
-    if (chartType === "line" || chartType === "area") {
-      chartData = sampleData(data, labelColumn, dataColumns, 150);
-    } else {
-      chartData = isLargeDataset
-        ? aggregateData(data, labelColumn, dataColumns, chartType === "pie" ? 15 : 50)
-        : data.map((row) => {
-            const fullName = String(row[labelColumn] ?? "");
-            const item: Record<string, unknown> = {
-              name: truncateLabel(fullName, 20),
-              fullName: fullName,
-            };
-            dataColumns.forEach((col) => {
-              const val = row[col];
-              item[col] = typeof val === "number" ? val : Number(val) || 0;
-            });
-            return item;
-          });
-    }
-
-    const hasNonZeroValues = chartData.some((item) =>
-      dataColumns.some((col) => (item[col] as number) > 0)
-    );
-
-    let pieData: Array<{ name: string; fullName: string; value: number; fill: string }> = [];
-    if (chartType === "pie") {
-      if (dataColumns.length === 1) {
-        pieData = chartData.map((item, index) => ({
-          name: item.name as string,
-          fullName: item.fullName as string,
-          value: item[dataColumns[0]] as number,
-          fill: chartColors[index % chartColors.length],
-        }));
-      } else {
-        pieData = dataColumns.map((col, index) => ({
-          name: col,
-          fullName: col,
-          value: chartData.reduce((sum, item) => sum + (item[col] as number), 0),
-          fill: chartColors[index % chartColors.length],
-        }));
-      }
-      pieData = pieData.filter((item) => item.value > 0).sort((a, b) => b.value - a.value);
-    }
-
-    return {
-      chartData,
-      dataColumns,
-      pieData,
-      hasNonZeroValues,
-      isLargeDataset,
-    };
-  }, [data, columns, chartType, chartColors]);
-
-  const chartData = chartConfig?.chartData ?? [];
-  const dataColumns = chartConfig?.dataColumns ?? [];
-  const pieData = chartConfig?.pieData ?? [];
-  const hasNonZeroValues = chartConfig?.hasNonZeroValues ?? false;
-  const isLargeDataset = chartConfig?.isLargeDataset ?? false;
-  const dataCount = chartData.length;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderTooltip = useCallback(({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const found = chartData.find((d) => d.name === label);
-      const fullName = found ? String(found.fullName) : label || "";
-      return (
-        <div
-          className="rounded-lg p-2 sm:p-3 shadow-xl max-w-[200px] sm:max-w-sm"
-          style={{
-            backgroundColor: tooltipBg,
-            border: `1px solid ${tooltipBorder}`,
-          }}
-        >
-          <p className="text-xs sm:text-sm font-medium mb-1 sm:mb-2 break-words" style={{ color: tooltipText }}>
-            {fullName}
-          </p>
-          {payload.map((entry: { name: string; value: number; color: string }, index: number) => (
-            <p key={index} className="text-xs sm:text-sm" style={{ color: entry.color }}>
-              {entry.name}: {typeof entry.value === "number" ? entry.value.toLocaleString() : entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  }, [chartData, tooltipBg, tooltipBorder, tooltipText]);
-
-  if (!chartConfig) return null;
-
-  const getXAxisConfig = () => {
-    if (isMobile) {
-      const skipInterval = Math.max(Math.ceil(dataCount / 4), 1);
-      return { interval: skipInterval - 1, angle: -30, textAnchor: "end" as const, dy: 5 };
-    }
-    if (dataCount <= 15) {
-      return { interval: 0, angle: 0, textAnchor: "middle" as const, dy: 10 };
-    } else if (dataCount <= 30) {
-      return { interval: 0, angle: -45, textAnchor: "end" as const, dy: 5 };
-    } else {
-      const skipInterval = Math.ceil(dataCount / 20);
-      return { interval: skipInterval - 1, angle: -45, textAnchor: "end" as const, dy: 5 };
-    }
-  };
-
-  const xAxisConfig = getXAxisConfig();
-
-  if (!hasNonZeroValues) {
-    return (
-      <div className={`w-full h-full flex items-center justify-center ${isDark ? "text-gray-400" : "text-gray-500"} text-sm`}>
-        No data to visualize (all values are 0)
-      </div>
-    );
-  }
-
-  const renderInfo = () => {
-    if (!isLargeDataset) return null;
-    return (
-      <div className={`text-[10px] sm:text-sm text-center py-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-        {chartType === "pie"
-          ? `Top 15 (${data.length} rows)`
-          : chartType === "line" || chartType === "area"
-          ? `${chartData.length} of ${data.length} rows`
-          : `Top 50 of ${data.length} rows`}
-      </div>
-    );
-  };
-
-  // Common axis chart rendering
-  const renderAxisChart = (ChartComponent: typeof BarChart, children: React.ReactNode) => (
-    <div className="w-full h-full flex flex-col">
-      {renderInfo()}
-      <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <ChartComponent data={chartData} margin={margins}>
-            {settings.showGridLines && <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />}
-            <XAxis
-              dataKey="name"
-              tick={{ fontSize, fill: tickColor }}
-              interval={xAxisConfig.interval}
-              angle={xAxisConfig.angle}
-              textAnchor={xAxisConfig.textAnchor}
-              dy={xAxisConfig.dy}
-              height={isMobile ? 50 : (dataCount > 15 ? 90 : 40)}
-            />
-            <YAxis
-              tick={{ fontSize, fill: tickColor }}
-              tickFormatter={(v) => {
-                if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`;
-                if (v >= 1000) return `${(v/1000).toFixed(0)}k`;
-                return v;
-              }}
-              width={isMobile ? 30 : 60}
-              domain={[
-                settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
-                settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
-              ]}
-            />
-            <Tooltip content={renderTooltip} />
-            {!isMobile && settings.legendPosition !== 'hidden' && (
-              <Legend
-                verticalAlign={settings.legendPosition}
-                wrapperStyle={{ fontSize: "13px", paddingTop: settings.legendPosition === 'bottom' ? "10px" : "0", paddingBottom: settings.legendPosition === 'top' ? "10px" : "0", color: tickColor }}
-                formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-              />
-            )}
-            {children}
-          </ChartComponent>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-
-  switch (chartType) {
-    case "bar":
-      return renderAxisChart(
-        BarChart as typeof BarChart,
-        dataColumns.map((col, index) => (
-          <Bar
-            key={col}
-            dataKey={col}
-            fill={chartColors[index % chartColors.length]}
-            radius={[4, 4, 0, 0]}
-            barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
-          >
-            {settings.showDataLabels && (
-              <LabelList
-                dataKey={col}
-                position="top"
-                fill={tickColor}
-                fontSize={isMobile ? 8 : 10}
-                formatter={(v) => {
-                  const n = Number(v);
-                  return isNaN(n) ? String(v) : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
-                }}
-              />
-            )}
-          </Bar>
-        ))
-      );
-
-    case "line":
-      return renderAxisChart(
-        LineChart as unknown as typeof BarChart,
-        dataColumns.map((col, index) => (
-          <Line
-            key={col}
-            type="monotone"
-            dataKey={col}
-            stroke={chartColors[index % chartColors.length]}
-            strokeWidth={isMobile ? 1.5 : 2}
-            dot={!isMobile && dataCount <= 50 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 3 } : false}
-          >
-            {settings.showDataLabels && !isMobile && dataCount <= 20 && (
-              <LabelList
-                dataKey={col}
-                position="top"
-                fill={tickColor}
-                fontSize={9}
-                formatter={(v) => {
-                  const n = Number(v);
-                  return isNaN(n) ? String(v) : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
-                }}
-              />
-            )}
-          </Line>
-        ))
-      );
-
-    case "area":
-      return renderAxisChart(
-        AreaChart as unknown as typeof BarChart,
-        dataColumns.map((col, index) => (
-          <Area
-            key={col}
-            type="monotone"
-            dataKey={col}
-            stroke={chartColors[index % chartColors.length]}
-            fill={chartColors[index % chartColors.length]}
-            fillOpacity={0.3}
-          >
-            {settings.showDataLabels && !isMobile && dataCount <= 20 && (
-              <LabelList
-                dataKey={col}
-                position="top"
-                fill={tickColor}
-                fontSize={9}
-                formatter={(v) => {
-                  const n = Number(v);
-                  return isNaN(n) ? String(v) : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
-                }}
-              />
-            )}
-          </Area>
-        ))
-      );
-
-    case "pie": {
-      if (pieData.length === 0) {
-        return (
-          <div className={`w-full h-full flex items-center justify-center ${isDark ? "text-gray-400" : "text-gray-500"} text-sm`}>
-            No data to visualize (all values are 0)
-          </div>
-        );
-      }
-
-      const total = pieData.reduce((sum, item) => sum + item.value, 0);
-
-      const renderLabel = ({ name, percent }: { name?: string; percent?: number }) => {
-        if (isMobile) return "";
-        if (!percent || percent < 0.03) return "";
-        return `${truncateLabel(name || "", 12)} (${(percent * 100).toFixed(0)}%)`;
-      };
-
-      return (
-        <div className="w-full h-full flex flex-col">
-          {renderInfo()}
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy={isMobile ? "45%" : "45%"}
-                  labelLine={false}
-                  label={!isMobile && pieData.length <= 10 ? renderLabel : false}
-                  outerRadius={isMobile ? "60%" : "35%"}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: tooltipBg,
-                    border: `1px solid ${tooltipBorder}`,
-                    borderRadius: "8px",
-                    fontSize: isMobile ? "11px" : "14px",
-                    color: tooltipText,
-                  }}
-                  itemStyle={{ color: tooltipText }}
-                  labelStyle={{ color: tooltipText }}
-                  formatter={(value) => {
-                    const numValue = typeof value === "number" ? value : Number(value) || 0;
-                    return [`${numValue.toLocaleString()} (${((numValue / total) * 100).toFixed(1)}%)`, ""];
-                  }}
-                />
-                {settings.legendPosition !== 'hidden' && (
-                  <Legend
-                    layout="horizontal"
-                    verticalAlign={settings.legendPosition}
-                    wrapperStyle={{ fontSize: isMobile ? "10px" : "13px", color: tickColor, paddingTop: settings.legendPosition === 'bottom' ? "8px" : "0", paddingBottom: settings.legendPosition === 'top' ? "8px" : "0" }}
-                    formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, isMobile ? 12 : 25)}</span>}
-                  />
-                )}
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      );
-    }
-
-    default:
-      return null;
-  }
-}
 
 export function DataViewerModal({
   isOpen,
@@ -705,9 +184,16 @@ export function DataViewerModal({
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [chartSettings, setChartSettings] = useState<ChartSettings>(initialChartSettings || defaultChartSettings);
   const [showSettings, setShowSettings] = useState(false);
+  const [showManipulation, setShowManipulation] = useState(false);
+  const [manipulation, setManipulation] = useState<ChartManipulation>({
+    excludedCategories: new Set(),
+    columnAggregations: {},
+    hiddenColumns: new Set(),
+  });
   const [editingColorIndex, setEditingColorIndex] = useState<number | null>(null);
   const [addingNewColor, setAddingNewColor] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const manipulationRef = useRef<HTMLDivElement>(null);
 
   // Color picker constants - organized by rows (6 colors per row)
   const defaultCustomColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -752,6 +238,19 @@ export function DataViewerModal({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showSettings]);
+
+  // Close manipulation on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (manipulationRef.current && !manipulationRef.current.contains(event.target as Node)) {
+        setShowManipulation(false);
+      }
+    };
+    if (showManipulation) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showManipulation]);
 
   // Apply advanced filter logic
   const applyAdvancedFilter = useCallback((rowValue: unknown, filter: AdvancedFilter): boolean => {
@@ -809,6 +308,112 @@ export function DataViewerModal({
       return true;
     });
   }, [rows, filters, advancedFilters, applyAdvancedFilter]);
+
+  // Analyze data for manipulation modal - matches DataChart's findBestCategoricalColumn logic
+  const dataAnalysis = useMemo(() => {
+    // Find numeric columns
+    const numericColumns = columns.filter((col) =>
+      filteredRows.some((row) => {
+        const val = row[col];
+        if (val === null || val === undefined || val === '') return false;
+        if (typeof val === "number") return true;
+        const numVal = Number(val);
+        return !isNaN(numVal) && isFinite(numVal);
+      })
+    );
+
+    const nonNumericColumns = columns.filter(col => !numericColumns.includes(col));
+
+    // Priority patterns for grouping columns (same as DataChart)
+    const categoryPatterns = [
+      'category', 'type', 'status', 'gender', 'sex', 'class', 'group', 'department',
+      'region', 'country', 'state', 'city', 'branch', 'segment', 'channel',
+      'product', 'brand', 'vendor', 'supplier', 'customer_type', 'user_type',
+      'year', 'month', 'quarter', 'period', 'day', 'weekday'
+    ];
+
+    // Find categorical column using same priority as DataChart
+    let categoricalColumn: string | null = null;
+    let categories: string[] = [];
+
+    // First try to find columns matching priority patterns
+    for (const pattern of categoryPatterns) {
+      const match = nonNumericColumns.find(col => col.toLowerCase().includes(pattern));
+      if (match) {
+        const uniqueValues = new Set(filteredRows.map(row => String(row[match] ?? '')));
+        if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
+          categoricalColumn = match;
+          categories = Array.from(uniqueValues).slice(0, 30);
+          break;
+        }
+      }
+    }
+
+    // Then find any non-numeric column with good cardinality
+    if (!categoricalColumn) {
+      for (const col of nonNumericColumns) {
+        const uniqueValues = new Set(filteredRows.map(row => String(row[col] ?? '')));
+        if (uniqueValues.size >= 2 && uniqueValues.size <= 30) {
+          categoricalColumn = col;
+          categories = Array.from(uniqueValues).slice(0, 30);
+          break;
+        }
+      }
+    }
+
+    const isCategorical = categoricalColumn !== null && categories.length >= 2;
+
+    return {
+      numericColumns,
+      categoricalColumn,
+      categories,
+      isCategorical,
+    };
+  }, [columns, filteredRows]);
+
+  // Manipulation handlers
+  const toggleCategory = useCallback((category: string) => {
+    setManipulation(prev => {
+      const newExcluded = new Set(prev.excludedCategories);
+      if (newExcluded.has(category)) {
+        newExcluded.delete(category);
+      } else {
+        newExcluded.add(category);
+      }
+      return { ...prev, excludedCategories: newExcluded };
+    });
+  }, []);
+
+  const toggleColumn = useCallback((column: string) => {
+    setManipulation(prev => {
+      const newHidden = new Set(prev.hiddenColumns);
+      if (newHidden.has(column)) {
+        newHidden.delete(column);
+      } else {
+        newHidden.add(column);
+      }
+      return { ...prev, hiddenColumns: newHidden };
+    });
+  }, []);
+
+  const changeAggregation = useCallback((column: string, aggregation: AggregationType) => {
+    setManipulation(prev => ({
+      ...prev,
+      columnAggregations: { ...prev.columnAggregations, [column]: aggregation },
+    }));
+  }, []);
+
+  const resetManipulation = useCallback(() => {
+    setManipulation({
+      excludedCategories: new Set(),
+      columnAggregations: {},
+      hiddenColumns: new Set(),
+    });
+  }, []);
+
+  const hasActiveManipulations = manipulation.excludedCategories.size > 0 ||
+    Object.keys(manipulation.columnAggregations).length > 0 ||
+    manipulation.hiddenColumns.size > 0;
 
   const handleFilterChange = useCallback((column: string, value: unknown) => {
     setFilters(prev => {
@@ -970,41 +575,41 @@ export function DataViewerModal({
         </div>
 
         {/* View Toggle with Toolbar */}
-        <div className={`flex items-center justify-between px-2 sm:px-5 py-1.5 sm:py-2 border-b flex-shrink-0 ${
+        <div className={`flex items-center justify-between px-2 sm:px-5 py-2 sm:py-2.5 border-b flex-shrink-0 ${
           isDark ? "border-[#1a1a1a] bg-[#111]" : "border-gray-100 bg-gray-50/50"
         }`}>
           {/* Chart Type Buttons */}
-          <div className="flex items-center gap-0.5 overflow-x-auto">
+          <div className="flex items-center gap-1 overflow-x-auto">
             {viewButtons.map((btn) => (
               <button
                 key={btn.type}
                 onClick={() => setCurrentView(btn.type)}
-                className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0 flex items-center gap-1.5 ${
+                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 flex items-center gap-2 ${
                   currentView === btn.type
                     ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
                     : isDark ? "text-gray-400 hover:bg-[#1a1a1a]" : "text-gray-500 hover:bg-gray-100"
                 }`}
               >
-                {btn.icon}
+                <span className="[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-[18px] sm:[&>svg]:h-[18px]">{btn.icon}</span>
                 <span className="hidden sm:inline">{btn.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Toolbar: SQL, Filter, Settings */}
-          <div className="flex items-center gap-1 ml-3 pl-3 border-l border-gray-200 dark:border-[#333] relative">
+          {/* Toolbar: SQL, Filter, Data Adjust, Settings */}
+          <div className="flex items-center gap-1.5 ml-3 pl-3 border-l border-gray-200 dark:border-[#333] relative">
             {/* SQL Button */}
             {sqlQuery && (
               <button
                 onClick={() => setShowSql(!showSql)}
-                className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                   showSql
                     ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
                     : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 title={showSql ? "Hide SQL" : "View SQL"}
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" viewBox="0 0 16 16" fill="none" stroke="currentColor">
                   <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
               </button>
@@ -1014,17 +619,194 @@ export function DataViewerModal({
             {currentView === "table" && (
               <button
                 onClick={() => setShowFilterModal(true)}
-                className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                   activeFilterCount > 0
                     ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
                     : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 title={`Filter data${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ''}`}
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
               </button>
+            )}
+
+            {/* Data Adjust Button - only for charts */}
+            {currentView !== "table" && (
+              <div className="relative" ref={manipulationRef}>
+                <button
+                  onClick={() => setShowManipulation(!showManipulation)}
+                  className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                    showManipulation || hasActiveManipulations
+                      ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
+                      : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+                  title="Adjust chart data"
+                >
+                  <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
+                  </svg>
+                </button>
+                {/* Mobile backdrop for manipulation */}
+                {showManipulation && (
+                  <div
+                    className="fixed inset-0 bg-black/30 z-40 sm:hidden"
+                    onClick={() => setShowManipulation(false)}
+                  />
+                )}
+                {/* Manipulation Modal */}
+                {showManipulation && (
+                  <div
+                    className={`fixed z-50 rounded-t-2xl sm:rounded-xl shadow-lg p-4 pb-8 sm:pb-4 overflow-y-auto
+                      inset-x-0 bottom-0 max-h-[75vh]
+                      sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-80 sm:max-h-[80vh] ${
+                      isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
+                    }`}
+                  >
+                    {/* Mobile drag handle */}
+                    <div className="sm:hidden flex justify-center mb-3">
+                      <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`} />
+                    </div>
+                    <div className="space-y-4">
+                      <div className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between ${
+                        isDark ? 'text-gray-400 border-[#333]' : 'text-gray-400 border-gray-100'
+                      }`}>
+                        <span>Data Settings</span>
+                        <div className="flex items-center gap-2">
+                          {hasActiveManipulations && (
+                            <button
+                              onClick={resetManipulation}
+                              className={`text-[10px] sm:text-xs transition-colors ${
+                                isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-gray-700'
+                              }`}
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setShowManipulation(false)}
+                            className={`sm:hidden p-1 rounded-md ${isDark ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Columns - Show/Hide */}
+                      {dataAnalysis.numericColumns.length > 1 && (
+                        <div>
+                          <span className={`text-[11px] mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Columns
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {dataAnalysis.numericColumns.map((col) => {
+                              const isHidden = manipulation.hiddenColumns.has(col);
+                              return (
+                                <button
+                                  key={col}
+                                  onClick={() => toggleColumn(col)}
+                                  className={`px-3 py-1.5 text-xs rounded-md transition-all ${
+                                    isHidden
+                                      ? isDark
+                                        ? 'text-gray-500 bg-transparent border border-[#444]'
+                                        : 'text-gray-400 bg-transparent border border-gray-300'
+                                      : isDark
+                                        ? 'text-white bg-[#333] border border-[#444]'
+                                        : 'text-gray-700 bg-white border border-gray-300 shadow-sm'
+                                  }`}
+                                >
+                                  {col.length > 12 ? col.substring(0, 12) + '...' : col}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Categories - Include/Exclude */}
+                      {dataAnalysis.isCategorical && dataAnalysis.categories.length > 0 && (
+                        <div>
+                          <span className={`text-[11px] mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Categories
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {dataAnalysis.categories.slice(0, 15).map((cat) => {
+                              const isExcluded = manipulation.excludedCategories.has(cat);
+                              return (
+                                <button
+                                  key={cat}
+                                  onClick={() => toggleCategory(cat)}
+                                  className={`px-3 py-1.5 text-xs rounded-md transition-all ${
+                                    isExcluded
+                                      ? isDark
+                                        ? 'text-gray-500 bg-transparent border border-[#444] line-through'
+                                        : 'text-gray-400 bg-transparent border border-gray-300 line-through'
+                                      : isDark
+                                        ? 'text-white bg-[#333] border border-[#444]'
+                                        : 'text-gray-700 bg-white border border-gray-300 shadow-sm'
+                                  }`}
+                                >
+                                  {cat.length > 12 ? cat.substring(0, 12) + '...' : cat}
+                                </button>
+                              );
+                            })}
+                            {dataAnalysis.categories.length > 15 && (
+                              <span className={`px-3 py-1.5 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                +{dataAnalysis.categories.length - 15}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Aggregation */}
+                      {dataAnalysis.isCategorical && dataAnalysis.numericColumns.length > 0 && (
+                        <div>
+                          <span className={`text-[11px] mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Aggregation
+                          </span>
+                          <div className="space-y-2">
+                            {dataAnalysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).map((col) => (
+                              <div key={col} className="flex items-center gap-3">
+                                <span className={`text-xs min-w-[80px] truncate flex-shrink-0 ${
+                                  isDark ? 'text-gray-300' : 'text-gray-600'
+                                }`}>
+                                  {col}
+                                </span>
+                                <select
+                                  value={manipulation.columnAggregations[col] || 'COUNT'}
+                                  onChange={(e) => changeAggregation(col, e.target.value as AggregationType)}
+                                  className={`flex-1 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 ${
+                                    isDark
+                                      ? 'bg-[#333] border border-[#444] text-gray-200 focus:ring-gray-500'
+                                      : 'bg-white border border-gray-300 text-gray-700 focus:ring-gray-400'
+                                  }`}
+                                >
+                                  <option value="COUNT">Count</option>
+                                  <option value="SUM">Sum</option>
+                                  <option value="AVG">Average</option>
+                                  <option value="MIN">Min</option>
+                                  <option value="MAX">Max</option>
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Empty state */}
+                      {!dataAnalysis.isCategorical && dataAnalysis.numericColumns.length <= 1 && (
+                        <div className={`text-xs text-center py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          No adjustable data options for this chart
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Settings Button - only for charts */}
@@ -1032,12 +814,14 @@ export function DataViewerModal({
               <div className="relative" ref={settingsRef}>
                 <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
-                    isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                  className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                    showSettings
+                      ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
+                      : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
                   }`}
                   title="Chart settings"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -1422,12 +1206,24 @@ export function DataViewerModal({
         )}
 
         {/* Content Area - takes ALL remaining space */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className={`flex-1 min-h-0 overflow-hidden ${
+          currentView !== "table"
+            ? isDark ? "bg-[#0d0d0d]" : "bg-gray-100"
+            : ""
+        }`}>
           {currentView === "table" ? (
             <FullscreenVirtualTable columns={columns} rows={filteredRows} isDark={isDark} isMobile={isMobile} />
           ) : (
-            <div className="w-full h-full p-2 sm:p-4">
-              <LargeChart data={filteredRows} columns={columns} chartType={currentView} isDark={isDark} isMobile={isMobile} settings={chartSettings} />
+            <div className="w-full h-full p-3 sm:p-5">
+              <DataChart
+                data={filteredRows}
+                columns={columns}
+                chartType={currentView}
+                settings={chartSettings}
+                manipulation={manipulation}
+                onManipulationChange={setManipulation}
+                fillContainer={true}
+              />
             </div>
           )}
         </div>
