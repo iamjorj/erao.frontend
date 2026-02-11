@@ -409,7 +409,7 @@ function LargeChart({
       hasNonZeroValues,
       isLargeDataset,
     };
-  }, [data, columns, chartType]);
+  }, [data, columns, chartType, chartColors]);
 
   const chartData = chartConfig?.chartData ?? [];
   const dataColumns = chartConfig?.dataColumns ?? [];
@@ -800,6 +800,21 @@ export function DataViewerModal({
 
   const activeFilterCount = Object.values(filters).reduce((sum, v) => sum + (v?.length || 0), 0);
 
+  // Get unique values for a column (for filtering) - must be before early return
+  const getUniqueValues = useCallback((column: string) => {
+    const seen = new Set<string>();
+    const values: unknown[] = [];
+    for (const row of filteredRows) {
+      const val = row[column];
+      const key = String(val);
+      if (!seen.has(key)) {
+        seen.add(key);
+        values.push(val);
+      }
+    }
+    return values.sort((a, b) => String(a).localeCompare(String(b)));
+  }, [filteredRows]);
+
   if (!isOpen) return null;
 
   // Export to CSV (uses filtered rows)
@@ -823,21 +838,6 @@ export function DataViewerModal({
     link.download = `data-export-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
   };
-
-  // Get unique values for a column (for filtering)
-  const getUniqueValues = useCallback((column: string) => {
-    const seen = new Set<string>();
-    const values: unknown[] = [];
-    for (const row of filteredRows) {
-      const val = row[column];
-      const key = String(val);
-      if (!seen.has(key)) {
-        seen.add(key);
-        values.push(val);
-      }
-    }
-    return values.sort((a, b) => String(a).localeCompare(String(b)));
-  }, [filteredRows]);
 
   const viewButtons: { type: ChartType; label: string; icon: React.ReactNode }[] = [
     {

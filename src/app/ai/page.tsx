@@ -32,8 +32,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Helper to strip SQL/JSON code blocks and query result blocks from AI response text
 function stripCodeBlocks(content: string): string {
-  console.log("[DEBUG] stripCodeBlocks input:", content);
-  const result = content
+  return content
     .replace(/```sql[\s\S]*?```/gi, "") // Remove SQL code blocks
     .replace(/```json[\s\S]*?```/gi, "") // Remove JSON code blocks
     .replace(/```[\s\S]*?```/g, "") // Remove any other code blocks
@@ -48,8 +47,6 @@ function stripCodeBlocks(content: string): string {
     .replace(/(?:here(?:'s| is) the (?:sql |updated )?query[:\.]?|let(?:'s| me) (?:proceed|execute|run)[^.\n]*[:\.]?|i'?ll (?:run|execute|check|query)[^.\n]*[:\.]?|let's see the results[!.]?)/gi, "")
     .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
     .trim();
-  console.log("[DEBUG] stripCodeBlocks output:", result);
-  return result;
 }
 
 function formatCellValue(value: unknown): string {

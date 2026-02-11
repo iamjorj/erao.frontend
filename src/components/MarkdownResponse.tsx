@@ -7,7 +7,6 @@ interface MarkdownResponseProps {
 }
 
 export function MarkdownResponse({ content }: MarkdownResponseProps) {
-  console.log("[DEBUG] MarkdownResponse received:", content);
   const parseContent = (text: string) => {
     const lines = text.split("\n");
     const elements: React.ReactNode[] = [];
