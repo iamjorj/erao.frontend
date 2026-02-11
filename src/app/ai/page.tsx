@@ -248,15 +248,37 @@ function VirtualTable({
     overscan: 10,
   });
 
-  // Calculate minimum width based on actual content: row# + columns + gaps + padding
-  const colWidth = 120;
-  const rowNumWidth = 48; // w-12
-  const gap = 10; // gap-2.5
-  const padding = 24; // px-3 both sides
-  const minTableWidth = Math.max(
-    rowNumWidth + columns.length * colWidth + columns.length * gap + padding,
-    400
-  );
+  // Calculate column width based on number of columns
+  // For few columns, let them expand. For many columns, use fixed width with scroll
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (parentRef.current) {
+        setContainerWidth(parentRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  const rowNumWidth = 40; // w-10
+  const gap = 8; // gap-2
+  const padding = 16; // px-2 both sides
+
+  // Calculate if we need horizontal scroll
+  const availableWidth = containerWidth - rowNumWidth - padding - (columns.length * gap);
+  const minColWidth = 100; // Minimum column width before scrolling
+  const needsScroll = columns.length > 0 && (availableWidth / columns.length) < minColWidth;
+
+  // Dynamic column width: expand to fill space when few columns, fixed when many
+  const colWidth = needsScroll ? 120 : Math.max(minColWidth, Math.floor(availableWidth / columns.length));
+
+  // Only set minWidth when horizontal scroll is needed
+  const minTableWidth = needsScroll
+    ? rowNumWidth + columns.length * colWidth + columns.length * gap + padding
+    : undefined;
 
   // Check if any filters are active (simple + advanced)
   const simpleFilterCount = Object.values(filters).reduce((sum, v) => sum + (v?.length || 0), 0);
@@ -273,18 +295,18 @@ function VirtualTable({
         ref={parentRef}
         className="max-h-[400px] overflow-auto custom-scrollbar"
       >
-        {/* Inner container with minimum width for horizontal scroll */}
-        <div style={{ minWidth: `${minTableWidth}px` }}>
+        {/* Inner container - only has minWidth when horizontal scroll is needed */}
+        <div style={minTableWidth ? { minWidth: `${minTableWidth}px` } : undefined}>
           {/* Table Header - sticky top, scrolls horizontally with data */}
           <div
-            className="flex items-center gap-2.5 px-3 py-2.5 bg-[#fafafc] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#262626] sticky top-0 z-10"
+            className="flex items-center gap-2 px-2 py-2.5 bg-[#fafafc] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#262626] sticky top-0 z-10"
           >
-            <span className="w-12 text-xs font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">#</span>
+            <span className="w-10 text-xs font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">#</span>
             {columns.map((col) => (
               <span
                 key={col}
-                className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate flex-shrink-0"
-                style={{ width: colWidth }}
+                className={`text-xs font-semibold text-gray-700 dark:text-gray-300 truncate ${needsScroll ? 'flex-shrink-0' : 'flex-1 min-w-0'}`}
+                style={needsScroll ? { width: colWidth } : { minWidth: minColWidth }}
                 title={col}
               >
                 {col}
@@ -304,7 +326,7 @@ function VirtualTable({
               return (
                 <div
                   key={virtualRow.index}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 absolute w-full ${
+                  className={`flex items-center gap-2 px-2 py-2.5 absolute w-full ${
                     virtualRow.index % 2 === 0 ? "bg-white dark:bg-[#111111]" : "bg-gray-50/50 dark:bg-[#1a1a1a]"
                   }`}
                   style={{
@@ -312,14 +334,14 @@ function VirtualTable({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <span className="w-12 text-xs text-gray-400 flex-shrink-0">
+                  <span className="w-10 text-xs text-gray-400 flex-shrink-0">
                     {virtualRow.index + 1}
                   </span>
                   {columns.map((col) => (
                     <span
                       key={col}
-                      className={`text-sm truncate flex-shrink-0 ${row[col] === null || row[col] === undefined ? "text-gray-400 dark:text-gray-500" : "text-gray-700 dark:text-gray-300"}`}
-                      style={{ width: colWidth }}
+                      className={`text-sm truncate ${needsScroll ? 'flex-shrink-0' : 'flex-1 min-w-0'} ${row[col] === null || row[col] === undefined ? "text-gray-400 dark:text-gray-500" : "text-gray-700 dark:text-gray-300"}`}
+                      style={needsScroll ? { width: colWidth } : { minWidth: minColWidth }}
                       title={formatCellValue(row[col])}
                     >
                       {formatCellValue(row[col])}

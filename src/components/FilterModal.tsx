@@ -330,22 +330,22 @@ export function FilterModal({
             <div className="px-3 py-1.5 sm:py-2 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-[#0f0f0f]">
               Select Column
             </div>
-            <div className="flex sm:flex-col overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto sm:flex-1 pb-1 sm:pb-0">
+            <div className="flex flex-wrap sm:flex-col sm:flex-nowrap sm:overflow-y-auto sm:flex-1 p-1 sm:p-0 gap-1 sm:gap-0">
               {columns.map(col => {
                 const colFilterCount = (filters[col] || []).length + ((advancedFilters?.[col]?.length) || 0);
                 return (
                   <button
                     key={col}
                     onClick={() => handleColumnSelect(col)}
-                    className={`flex-shrink-0 sm:flex-shrink text-left px-3 py-2 text-xs sm:text-sm flex items-center gap-1 sm:justify-between transition-colors whitespace-nowrap sm:whitespace-normal ${
+                    className={`flex-1 sm:flex-initial min-w-[calc(50%-2px)] sm:min-w-0 text-left px-3 py-2 text-xs sm:text-sm flex items-center gap-1 sm:justify-between transition-colors rounded-lg sm:rounded-none ${
                       selectedColumn === col
-                        ? 'bg-gray-100 dark:bg-[#333] text-gray-900 dark:text-white sm:border-r-2 border-gray-900 dark:border-white'
-                        : 'hover:bg-gray-50 dark:hover:bg-[#222] text-gray-700 dark:text-gray-300'
+                        ? 'bg-gray-200 dark:bg-[#333] text-gray-900 dark:text-white sm:bg-gray-100 sm:border-r-2 border-gray-900 dark:border-white'
+                        : 'bg-gray-100 dark:bg-[#222] sm:bg-transparent sm:dark:bg-transparent hover:bg-gray-50 dark:hover:bg-[#222] text-gray-700 dark:text-gray-300'
                     }`}
                   >
                     <span className="truncate">{col}</span>
                     {colFilterCount > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-gray-200 dark:bg-[#444] text-gray-700 dark:text-gray-300 rounded">
+                      <span className="ml-1 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-gray-300 dark:bg-[#444] sm:bg-gray-200 text-gray-700 dark:text-gray-300 rounded">
                         {colFilterCount}
                       </span>
                     )}
