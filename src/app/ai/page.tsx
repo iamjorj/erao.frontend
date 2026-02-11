@@ -1950,6 +1950,36 @@ export default function AIPage() {
 
                         return (
                           <div className="mt-3 space-y-3">
+                            {/* SQL Button for single row results */}
+                            {message.sqlQuery && (
+                              <div className="flex justify-end">
+                                <button
+                                  onClick={() => setExpandedSql(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(message.id)) next.delete(message.id);
+                                    else next.add(message.id);
+                                    return next;
+                                  })}
+                                  className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${
+                                    expandedSql.has(message.id)
+                                      ? "bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-200"
+                                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#262626]"
+                                  }`}
+                                  title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                  </svg>
+                                  <span className="hidden sm:inline">SQL</span>
+                                </button>
+                              </div>
+                            )}
+                            {/* SQL Query Panel */}
+                            {expandedSql.has(message.id) && message.sqlQuery && (
+                              <pre className="p-3 rounded-lg bg-gray-100 dark:bg-[#0f0f0f] text-gray-700 dark:text-gray-300 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-gray-200 dark:border-[#262626]">
+                                {message.sqlQuery}
+                              </pre>
+                            )}
                             {/* Main value - featured card */}
                             {mainValue && (
                               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-100 dark:to-gray-200 p-4 sm:p-5">
