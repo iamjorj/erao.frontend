@@ -39,7 +39,7 @@ function stripCodeBlocks(content: string): string {
     .replace(/\[Query Result:[\s\S]*$/gi, "") // Remove [Query Result: to end of string
     .replace(/\[DATA_CONTEXT:[\s\S]*?\]/gi, "") // Remove [DATA_CONTEXT: ...] tags (including multiline)
     .replace(/\[DATA_CONTEXT:[^\]]*$/gi, "") // Remove unclosed [DATA_CONTEXT: to end
-    .replace(/[,{]?"?(columns|rows|rowCount|executionTimeMs)"?[\s\S]*$/gi, "") // Remove partial JSON results
+    .replace(/[{,]\s*"?(columns|rows|rowCount|executionTimeMs)"?\s*[:\[][\s\S]*$/gi, "") // Remove partial JSON results (require JSON structure)
     .replace(/\{"columns":\[[\s\S]*$/gi, "") // Remove JSON starting with columns
     .replace(/\n\|[^\n]*\|(\n\|[^\n]*\|)*/g, "") // Remove markdown tables
     .replace(/\(Query returned[^)\n]*\)?/gi, "") // Remove "(Query returned...)" text
