@@ -25,7 +25,7 @@ import {
   isProcessing,
   getTierName,
 } from "@/lib/api";
-import { DataChart, ChartType, detectChartType } from "@/components/DataChart";
+import { DataChart, ChartType, detectChartType, ChartSettings, defaultChartSettings } from "@/components/DataChart";
 import { DataViewerModal } from "@/components/DataViewerModal";
 import { MarkdownResponse } from "@/components/MarkdownResponse";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -158,18 +158,479 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-// Virtual Table Component for handling large datasets
-function VirtualTable({
+// Filter Modal Component - single modal for filtering all columns with value search and export
+type FilterOperator = 'equals' | 'contains' | 'starts_with' | 'ends_with' | 'greater_than' | 'less_than' | 'not_equals';
+
+interface AdvancedFilter {
+  operator: FilterOperator;
+  value: string;
+  id: string; // unique identifier for stacking multiple filters
+}
+
+function FilterModal({
   columns,
-  rows
+  rows,
+  filters,
+  advancedFilters,
+  onFilterChange,
+  onAdvancedFilterChange,
+  onClearFilters,
+  onClose,
 }: {
   columns: string[];
   rows: Record<string, unknown>[];
+  filters: Record<string, unknown[]>;
+  advancedFilters?: Record<string, AdvancedFilter[]>;
+  onFilterChange: (column: string, value: unknown) => void;
+  onAdvancedFilterChange?: (column: string, filter: AdvancedFilter | null, action?: 'add' | 'remove') => void;
+  onClearFilters: () => void;
+  onClose: () => void;
+}) {
+  const [selectedColumn, setSelectedColumn] = useState<string | null>(columns[0] || null);
+  const [advancedOperator, setAdvancedOperator] = useState<FilterOperator>('contains');
+  const [advancedValue, setAdvancedValue] = useState("");
+  const [operatorDropdownOpen, setOperatorDropdownOpen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const operators: { value: FilterOperator; label: string }[] = [
+    { value: 'equals', label: 'Equals' },
+    { value: 'not_equals', label: 'Not equals' },
+    { value: 'contains', label: 'Contains' },
+    { value: 'starts_with', label: 'Starts with' },
+    { value: 'ends_with', label: 'Ends with' },
+    { value: 'greater_than', label: 'Greater than' },
+    { value: 'less_than', label: 'Less than' },
+  ];
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
+  // Handle column selection
+  const handleColumnSelect = useCallback((col: string) => {
+    setSelectedColumn(col);
+  }, []);
+
+  // Apply advanced filter logic
+  const applyAdvancedFilter = useCallback((rowValue: unknown, filter: AdvancedFilter): boolean => {
+    const strValue = String(rowValue ?? '').toLowerCase();
+    const filterValue = filter.value.toLowerCase();
+    const numValue = Number(rowValue);
+    const numFilterValue = Number(filter.value);
+
+    switch (filter.operator) {
+      case 'equals':
+        return strValue === filterValue;
+      case 'not_equals':
+        return strValue !== filterValue;
+      case 'contains':
+        return strValue.includes(filterValue);
+      case 'starts_with':
+        return strValue.startsWith(filterValue);
+      case 'ends_with':
+        return strValue.endsWith(filterValue);
+      case 'greater_than':
+        return !isNaN(numValue) && !isNaN(numFilterValue) && numValue > numFilterValue;
+      case 'less_than':
+        return !isNaN(numValue) && !isNaN(numFilterValue) && numValue < numFilterValue;
+      default:
+        return true;
+    }
+  }, []);
+
+  // Get filtered rows based on current filters (both simple and advanced)
+  const filteredRows = useMemo(() => {
+    const hasSimpleFilters = Object.keys(filters).length > 0;
+    const hasAdvancedFilters = advancedFilters && Object.keys(advancedFilters).some(col => advancedFilters[col]?.length > 0);
+
+    if (!hasSimpleFilters && !hasAdvancedFilters) return rows;
+
+    return rows.filter(row => {
+      // Apply simple filters (exact value match)
+      for (const [col, values] of Object.entries(filters)) {
+        if (values && values.length > 0) {
+          const rowValue = String(row[col]);
+          if (!values.some(v => String(v) === rowValue)) {
+            return false;
+          }
+        }
+      }
+
+      // Apply advanced filters (all filters for each column must match - AND logic)
+      if (advancedFilters) {
+        for (const [col, filterArray] of Object.entries(advancedFilters)) {
+          if (filterArray && filterArray.length > 0) {
+            for (const filter of filterArray) {
+              if (filter && filter.value) {
+                if (!applyAdvancedFilter(row[col], filter)) {
+                  return false;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [rows, filters, advancedFilters, applyAdvancedFilter]);
+
+  // Count active filters (simple + advanced)
+  const simpleFilterCount = Object.values(filters).reduce((sum, v) => sum + (v?.length || 0), 0);
+  const advancedFilterCount = advancedFilters
+    ? Object.values(advancedFilters).reduce((sum, arr) => sum + (arr?.length || 0), 0)
+    : 0;
+  const activeFilterCount = simpleFilterCount + advancedFilterCount;
+
+  // Export filtered data as CSV
+  const handleExport = useCallback(() => {
+    const csvHeaders = columns.join(",");
+    const csvRows = filteredRows.map(row =>
+      columns.map(col => {
+        const val = row[col];
+        const str = val === null || val === undefined ? "" : String(val);
+        // Escape quotes and wrap in quotes if contains comma or quote
+        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      }).join(",")
+    );
+    const csv = [csvHeaders, ...csvRows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `filtered_data_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [columns, filteredRows]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div
+        ref={modalRef}
+        className="bg-white dark:bg-[#1a1a1a] rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-2xl h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center py-2">
+          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        </div>
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 dark:border-[#333]">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">Filter Data</span>
+            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+              ({filteredRows.length}/{rows.length})
+            </span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#333] rounded-lg transition-colors"
+              title="Export filtered data as CSV"
+            >
+              <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={onClearFilters}
+                className="px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#333] rounded-lg transition-colors"
+              >
+                Clear
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Active Filters Pills */}
+        {activeFilterCount > 0 && (
+          <div className="px-3 sm:px-4 py-2 border-b border-gray-100 dark:border-[#262626] bg-gray-50/50 dark:bg-[#0f0f0f] max-h-20 sm:max-h-24 overflow-y-auto">
+            <div className="flex flex-wrap gap-1 sm:gap-1.5">
+              {Object.entries(filters).map(([col, values]) =>
+                values?.map((val, idx) => (
+                  <span
+                    key={`${col}-${idx}`}
+                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg"
+                  >
+                    <span className="text-gray-500 dark:text-gray-400">{col}:</span>
+                    <span className="max-w-[80px] truncate">{formatCellValue(val)}</span>
+                    <button
+                      onClick={() => onFilterChange(col, val)}
+                      className="ml-0.5 p-0.5 rounded hover:bg-gray-300 dark:hover:bg-[#444]"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Two Column Layout - stacks on mobile */}
+        <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+          {/* Column Selector - Left Panel (horizontal scroll on mobile) */}
+          <div className="sm:w-48 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-[#333] flex flex-col flex-shrink-0">
+            <div className="px-3 py-1.5 sm:py-2 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-[#0f0f0f]">
+              Select Column
+            </div>
+            <div className="flex sm:flex-col overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto sm:flex-1 pb-1 sm:pb-0">
+              {columns.map(col => {
+                const colFilterCount = (filters[col] || []).length + ((advancedFilters?.[col]?.length) || 0);
+                return (
+                  <button
+                    key={col}
+                    onClick={() => handleColumnSelect(col)}
+                    className={`flex-shrink-0 sm:flex-shrink text-left px-3 py-2 text-xs sm:text-sm flex items-center gap-1 sm:justify-between transition-colors whitespace-nowrap sm:whitespace-normal ${
+                      selectedColumn === col
+                        ? 'bg-gray-100 dark:bg-[#333] text-gray-900 dark:text-white sm:border-r-2 border-gray-900 dark:border-white'
+                        : 'hover:bg-gray-50 dark:hover:bg-[#222] text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <span className="truncate">{col}</span>
+                    {colFilterCount > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-gray-200 dark:bg-[#444] text-gray-700 dark:text-gray-300 rounded">
+                        {colFilterCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Value Selector - Right Panel */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {selectedColumn ? (
+              <div className="flex-1 overflow-y-auto">
+                {/* Advanced Filter Mode */}
+                <div className="p-3 space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    {/* Operator */}
+                    <div className="relative flex-1 sm:flex-none sm:w-40">
+                      <label className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Operator</label>
+                      <button
+                        onClick={() => setOperatorDropdownOpen(!operatorDropdownOpen)}
+                        className="w-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-left flex items-center justify-between hover:border-gray-300 dark:hover:border-[#444] transition-colors"
+                      >
+                        <span>{operators.find(o => o.value === advancedOperator)?.label}</span>
+                        <svg className={`w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-400 transition-transform ${operatorDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {operatorDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 py-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                          {operators.map(op => (
+                            <button
+                              key={op.value}
+                              onClick={() => {
+                                setAdvancedOperator(op.value);
+                                setOperatorDropdownOpen(false);
+                              }}
+                              className={`w-full px-3 py-2 text-xs sm:text-sm text-left transition-colors ${
+                                advancedOperator === op.value
+                                  ? 'bg-gray-100 dark:bg-[#333] text-gray-900 dark:text-white'
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#262626]'
+                              }`}
+                            >
+                              {op.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {/* Value */}
+                    <div className="flex-1">
+                      <label className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Value</label>
+                      <input
+                        type="text"
+                        placeholder="Enter value..."
+                        value={advancedValue}
+                        onChange={(e) => setAdvancedValue(e.target.value)}
+                        className="w-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white outline-none focus:border-gray-400 dark:focus:border-gray-500"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (selectedColumn && advancedValue && onAdvancedFilterChange) {
+                        const newFilter: AdvancedFilter = {
+                          operator: advancedOperator,
+                          value: advancedValue,
+                          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                        };
+                        onAdvancedFilterChange(selectedColumn, newFilter, 'add');
+                        setAdvancedValue("");
+                      }
+                    }}
+                    disabled={!advancedValue}
+                    className={`w-full py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                      advancedValue
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
+                        : 'bg-gray-200 dark:bg-[#333] text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Add Filter
+                  </button>
+
+                  {/* Active Filters List */}
+                  {advancedFilters && advancedFilters[selectedColumn] && advancedFilters[selectedColumn].length > 0 && (
+                    <div className="pt-2 border-t border-gray-100 dark:border-[#333] space-y-1.5">
+                      <div className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Active Filters ({advancedFilters[selectedColumn].length})
+                      </div>
+                      {advancedFilters[selectedColumn].map((filter) => (
+                        <div
+                          key={filter.id}
+                          className="flex items-center justify-between px-2 py-1.5 bg-gray-50 dark:bg-[#1a1a1a] rounded-md text-[10px] sm:text-xs"
+                        >
+                          <span className="text-gray-600 dark:text-gray-300 truncate flex-1 mr-2">
+                            {operators.find(o => o.value === filter.operator)?.label} &quot;{filter.value}&quot;
+                          </span>
+                          <button
+                            onClick={() => onAdvancedFilterChange?.(selectedColumn, filter, 'remove')}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex-shrink-0"
+                          >
+                            <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32 sm:h-full text-xs sm:text-sm text-gray-400">
+                Select a column to filter
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-between flex-shrink-0">
+          <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+            <span className="font-medium text-gray-700 dark:text-gray-300">{filteredRows.length}</span>/{rows.length} rows
+          </span>
+          <button
+            onClick={onClose}
+            className="px-4 sm:px-4 py-1.5 sm:py-1.5 text-xs sm:text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Virtual Table Component for handling large datasets
+function VirtualTable({
+  columns,
+  rows,
+  filters = {},
+  advancedFilters,
+}: {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  filters?: Record<string, unknown[]>;
+  advancedFilters?: Record<string, AdvancedFilter[]>;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Apply advanced filter logic
+  const applyAdvancedFilter = useCallback((value: unknown, filter: AdvancedFilter): boolean => {
+    const strValue = String(value ?? '').toLowerCase();
+    const filterValue = filter.value.toLowerCase();
+    const numValue = Number(value);
+    const numFilterValue = Number(filter.value);
+
+    switch (filter.operator) {
+      case 'equals':
+        return strValue === filterValue;
+      case 'not_equals':
+        return strValue !== filterValue;
+      case 'contains':
+        return strValue.includes(filterValue);
+      case 'starts_with':
+        return strValue.startsWith(filterValue);
+      case 'ends_with':
+        return strValue.endsWith(filterValue);
+      case 'greater_than':
+        return !isNaN(numValue) && !isNaN(numFilterValue) && numValue > numFilterValue;
+      case 'less_than':
+        return !isNaN(numValue) && !isNaN(numFilterValue) && numValue < numFilterValue;
+      default:
+        return true;
+    }
+  }, []);
+
+  // Apply filters to rows (both simple and advanced)
+  const filteredRows = useMemo(() => {
+    const hasSimpleFilters = filters && Object.keys(filters).length > 0;
+    const hasAdvancedFilters = advancedFilters && Object.keys(advancedFilters).some(col => advancedFilters[col]?.length > 0);
+
+    if (!hasSimpleFilters && !hasAdvancedFilters) return rows;
+
+    return rows.filter(row => {
+      // Apply simple filters (exact value match)
+      if (hasSimpleFilters) {
+        for (const [col, values] of Object.entries(filters)) {
+          if (values && values.length > 0) {
+            const rowValue = String(row[col]);
+            if (!values.some(v => String(v) === rowValue)) {
+              return false;
+            }
+          }
+        }
+      }
+
+      // Apply advanced filters (all filters for each column must match - AND logic)
+      if (hasAdvancedFilters && advancedFilters) {
+        for (const [col, filterArray] of Object.entries(advancedFilters)) {
+          if (filterArray && filterArray.length > 0) {
+            // All filters for this column must pass
+            for (const filter of filterArray) {
+              if (filter && filter.value) {
+                if (!applyAdvancedFilter(row[col], filter)) {
+                  return false;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [rows, filters, advancedFilters, applyAdvancedFilter]);
+
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: filteredRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 40,
     overscan: 10,
@@ -184,6 +645,14 @@ function VirtualTable({
     rowNumWidth + columns.length * colWidth + columns.length * gap + padding,
     400
   );
+
+  // Check if any filters are active (simple + advanced)
+  const simpleFilterCount = Object.values(filters).reduce((sum, v) => sum + (v?.length || 0), 0);
+  const advancedFilterCount = advancedFilters
+    ? Object.values(advancedFilters).reduce((sum, arr) => sum + (arr?.length || 0), 0)
+    : 0;
+  const hasActiveFilters = simpleFilterCount > 0 || advancedFilterCount > 0;
+  const activeFilterCount = simpleFilterCount + advancedFilterCount;
 
   return (
     <div className="p-1 overflow-hidden">
@@ -219,7 +688,7 @@ function VirtualTable({
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const row = rows[virtualRow.index];
+              const row = filteredRows[virtualRow.index];
               return (
                 <div
                   key={virtualRow.index}
@@ -253,9 +722,394 @@ function VirtualTable({
 
       {/* Row count indicator */}
       <div className="text-xs text-gray-400 text-center py-2 border-t border-gray-100 dark:border-[#262626]">
-        {rows.length} rows total
+        {hasActiveFilters ? (
+          <>
+            Showing {filteredRows.length} of {rows.length} rows
+            <span className="text-gray-500 dark:text-gray-400 ml-1">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active)</span>
+          </>
+        ) : (
+          `${rows.length} rows total`
+        )}
       </div>
     </div>
+  );
+}
+
+// Chart Settings Dropdown Component - shows relevant settings per chart type
+function ChartSettingsDropdown({
+  settings,
+  onSettingsChange,
+  onClose,
+  chartType,
+}: {
+  settings: ChartSettings;
+  onSettingsChange: (settings: ChartSettings) => void;
+  onClose: () => void;
+  chartType: ChartType;
+}) {
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const colorThemes: { value: ChartSettings['colorTheme']; label: string }[] = [
+    { value: 'colorful', label: 'Colorful' },
+    { value: 'monochrome', label: 'Mono' },
+    { value: 'blue', label: 'Blue' },
+    { value: 'green', label: 'Green' },
+    { value: 'purple', label: 'Purple' },
+    { value: 'custom', label: 'Custom' },
+  ];
+
+  // Default custom colors
+  const defaultCustomColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  // Preset color palette organized by color groups (6 colors per row)
+  const colorRows = [
+    ['#000000', '#1f2937', '#374151', '#6b7280', '#9ca3af', '#d1d5db'],
+    ['#1e3a8a', '#1d4ed8', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'],
+    ['#14532d', '#047857', '#10b981', '#34d399', '#6ee7b7', '#d1fae5'],
+    ['#7f1d1d', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fecaca'],
+    ['#78350f', '#b45309', '#d97706', '#f59e0b', '#fbbf24', '#fef3c7'],
+    ['#4c1d95', '#6d28d9', '#7c3aed', '#8b5cf6', '#a78bfa', '#ddd6fe'],
+  ];
+
+  const [editingColorIndex, setEditingColorIndex] = useState<number | null>(null);
+  const [addingNewColor, setAddingNewColor] = useState(false);
+
+  // Determine which settings to show based on chart type
+  const showYAxis = chartType === 'bar' || chartType === 'line' || chartType === 'area';
+  const showBarWidth = chartType === 'bar';
+  const showDataLabels = chartType !== 'pie'; // Pie has its own label logic
+  const showGridLines = chartType !== 'pie';
+
+  return (
+    <>
+      {/* Mobile backdrop */}
+      <div
+        className="fixed inset-0 bg-black/30 z-40 sm:hidden"
+        onClick={onClose}
+      />
+      <div
+        ref={dropdownRef}
+        className="fixed z-50 bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#333] shadow-lg overflow-y-auto custom-scrollbar
+          inset-x-0 bottom-0 rounded-t-2xl p-4 pb-8 max-h-[75vh]
+          sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:p-4 sm:pb-4 sm:w-72 sm:max-h-[80vh]"
+        onClick={(e) => {
+          e.stopPropagation();
+          // Close color picker when clicking elsewhere in the dropdown
+          if (editingColorIndex !== null || addingNewColor) {
+            const target = e.target as HTMLElement;
+            if (!target.closest('[data-color-picker]')) {
+              setEditingColorIndex(null);
+              setAddingNewColor(false);
+            }
+          }
+        }}
+      >
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center mb-3">
+          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        </div>
+        <div className="space-y-4">
+          {/* Chart type indicator */}
+          <div className="text-[10px] sm:text-xs font-medium text-gray-400 uppercase tracking-wider pb-2 border-b border-gray-100 dark:border-[#333] sticky top-0 bg-white dark:bg-[#1f1f1f] flex items-center justify-between">
+            <span>{chartType} Chart Settings</span>
+            <button
+              onClick={onClose}
+              className="sm:hidden p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#333] text-gray-400"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+        {/* Y-Axis Range - for bar, line, area */}
+        {showYAxis && (
+          <div>
+            <label className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5 sm:mb-2">Y-Axis Range</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Auto"
+                value={settings.yAxisMin === 'auto' ? '' : settings.yAxisMin}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onSettingsChange({
+                    ...settings,
+                    yAxisMin: val === '' ? 'auto' : Number(val) || 0,
+                  });
+                }}
+                className="flex-1 sm:w-24 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#2a2a2a] text-gray-900 dark:text-white outline-none focus:border-gray-400 dark:focus:border-gray-500"
+              />
+              <span className="text-gray-400 text-xs sm:text-sm">to</span>
+              <input
+                type="text"
+                placeholder="Auto"
+                value={settings.yAxisMax === 'auto' ? '' : settings.yAxisMax}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onSettingsChange({
+                    ...settings,
+                    yAxisMax: val === '' ? 'auto' : Number(val) || 0,
+                  });
+                }}
+                className="flex-1 sm:w-24 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#2a2a2a] text-gray-900 dark:text-white outline-none focus:border-gray-400 dark:focus:border-gray-500"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Bar Width - only for bar chart */}
+        {showBarWidth && (
+          <div>
+            <label className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5 sm:mb-2">
+              Bar Width: {settings.barWidth}%
+            </label>
+            <input
+              type="range"
+              min="20"
+              max="100"
+              value={settings.barWidth}
+              onChange={(e) => onSettingsChange({ ...settings, barWidth: Number(e.target.value) })}
+              className="w-full h-2 bg-gray-200 dark:bg-[#333] rounded-lg appearance-none cursor-pointer accent-gray-900 dark:accent-white"
+            />
+          </div>
+        )}
+
+        {/* Data Labels Toggle - not for pie */}
+        {showDataLabels && (
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Data Labels</label>
+            <button
+              onClick={() => onSettingsChange({ ...settings, showDataLabels: !settings.showDataLabels })}
+              className={`w-10 sm:w-11 h-5 sm:h-6 rounded-full transition-colors ${
+                settings.showDataLabels ? 'bg-gray-900 dark:bg-white' : 'bg-gray-300 dark:bg-[#444]'
+              }`}
+            >
+              <div
+                className={`w-4 sm:w-5 h-4 sm:h-5 rounded-full shadow-sm transform transition-transform ${
+                  settings.showDataLabels ? 'translate-x-5 bg-white dark:bg-black' : 'translate-x-0.5 bg-white'
+                }`}
+              />
+            </button>
+          </div>
+        )}
+
+        {/* Grid Lines Toggle - not for pie */}
+        {showGridLines && (
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Grid Lines</label>
+            <button
+              onClick={() => onSettingsChange({ ...settings, showGridLines: !settings.showGridLines })}
+              className={`w-10 sm:w-11 h-5 sm:h-6 rounded-full transition-colors ${
+                settings.showGridLines ? 'bg-gray-900 dark:bg-white' : 'bg-gray-300 dark:bg-[#444]'
+              }`}
+            >
+              <div
+                className={`w-4 sm:w-5 h-4 sm:h-5 rounded-full shadow-sm transform transition-transform ${
+                  settings.showGridLines ? 'translate-x-5 bg-white dark:bg-black' : 'translate-x-0.5 bg-white'
+                }`}
+              />
+            </button>
+          </div>
+        )}
+
+        {/* Color Theme - for all chart types */}
+        <div>
+          <label className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5 sm:mb-2">Color Theme</label>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            {colorThemes.map((theme) => (
+              <button
+                key={theme.value}
+                onClick={() => onSettingsChange({
+                  ...settings,
+                  colorTheme: theme.value,
+                  customColors: theme.value === 'custom' && !settings.customColors?.length
+                    ? defaultCustomColors
+                    : settings.customColors
+                })}
+                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors ${
+                  settings.colorTheme === theme.value
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-black'
+                    : 'bg-gray-100 dark:bg-[#2a2a2a] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333]'
+                }`}
+              >
+                {theme.label}
+              </button>
+            ))}
+          </div>
+          {/* Custom Color Pickers */}
+          {settings.colorTheme === 'custom' && (
+            <div className="mt-3 flex flex-wrap gap-2.5">
+              {(settings.customColors || defaultCustomColors).map((color, index) => (
+                <div key={index} className="relative group" data-color-picker>
+                  <button
+                    onClick={() => {
+                      setAddingNewColor(false);
+                      setEditingColorIndex(editingColorIndex === index ? null : index);
+                    }}
+                    className={`w-8 h-8 rounded-lg cursor-pointer transition-all ${
+                      editingColorIndex === index
+                        ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1f1f1f]'
+                        : 'hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                  {/* Remove button */}
+                  {(settings.customColors || defaultCustomColors).length > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newColors = [...(settings.customColors || defaultCustomColors)];
+                        newColors.splice(index, 1);
+                        onSettingsChange({ ...settings, customColors: newColors });
+                        if (editingColorIndex === index) setEditingColorIndex(null);
+                      }}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gray-800 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  {/* Color Picker Dropdown */}
+                  {editingColorIndex === index && (
+                    <div
+                      className="fixed z-[9999] bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#333] rounded-xl shadow-2xl p-3"
+                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 text-center">Pick a color</div>
+                      <div className="space-y-1.5">
+                        {colorRows.map((row, rowIndex) => (
+                          <div key={rowIndex} className="flex justify-center gap-1.5">
+                            {row.map((paletteColor, pIndex) => (
+                              <button
+                                key={pIndex}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const newColors = [...(settings.customColors || defaultCustomColors)];
+                                  newColors[index] = paletteColor;
+                                  onSettingsChange({ ...settings, customColors: newColors });
+                                  setEditingColorIndex(null);
+                                }}
+                                className={`w-6 h-6 rounded-md cursor-pointer hover:scale-110 transition-transform ${
+                                  color === paletteColor ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-[#1f1f1f]' : ''
+                                }`}
+                                style={{ backgroundColor: paletteColor }}
+                              />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setEditingColorIndex(null)}
+                        className="mt-2 w-full text-xs text-gray-500 hover:text-gray-300 py-1 border-t border-[#333]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {(settings.customColors || defaultCustomColors).length < 8 && (
+                <div className="relative" data-color-picker>
+                  <button
+                    onClick={() => {
+                      setEditingColorIndex(null);
+                      setAddingNewColor(!addingNewColor);
+                    }}
+                    className={`w-8 h-8 rounded-lg border-2 border-dashed flex items-center justify-center transition-all ${
+                      addingNewColor
+                        ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1f1f1f] border-gray-400'
+                        : 'border-[#444] text-gray-500 hover:border-gray-400 hover:text-gray-400'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                  {/* Add New Color Picker */}
+                  {addingNewColor && (
+                    <div
+                      className="fixed z-[9999] bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#333] rounded-xl shadow-2xl p-3"
+                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 text-center">Add a color</div>
+                      <div className="space-y-1.5">
+                        {colorRows.map((row, rowIndex) => (
+                          <div key={rowIndex} className="flex justify-center gap-1.5">
+                            {row.map((paletteColor, pIndex) => (
+                              <button
+                                key={pIndex}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const newColors = [...(settings.customColors || defaultCustomColors), paletteColor];
+                                  onSettingsChange({ ...settings, customColors: newColors });
+                                  setAddingNewColor(false);
+                                }}
+                                className="w-6 h-6 rounded-md cursor-pointer hover:scale-110 transition-transform"
+                                style={{ backgroundColor: paletteColor }}
+                              />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setAddingNewColor(false)}
+                        className="mt-2 w-full text-xs text-gray-500 hover:text-gray-300 py-1 border-t border-[#333]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Legend Position - for all chart types */}
+        <div>
+          <label className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5 sm:mb-2">Legend</label>
+          <div className="flex gap-1.5 sm:gap-2">
+            {(['top', 'bottom', 'hidden'] as const).map((pos) => (
+              <button
+                key={pos}
+                onClick={() => onSettingsChange({ ...settings, legendPosition: pos })}
+                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-lg capitalize transition-colors ${
+                  settings.legendPosition === pos
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-black'
+                    : 'bg-gray-100 dark:bg-[#2a2a2a] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333]'
+                }`}
+              >
+                {pos}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Reset Button */}
+        <button
+          onClick={() => onSettingsChange(defaultChartSettings)}
+          className="w-full text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 py-2 border-t border-gray-100 dark:border-[#333] mt-3"
+        >
+          Reset to defaults
+        </button>
+      </div>
+    </div>
+    </>
   );
 }
 
@@ -362,12 +1216,191 @@ export default function AIPage() {
   const [chartViews, setChartViews] = useState<Record<string, ChartType>>({});
   const [expandedSql, setExpandedSql] = useState<Set<string>>(new Set());
 
+  // Quick Filters state - tracks active filters per table view (keyed by viewKey)
+  // Format: { [viewKey]: { [columnName]: filterValue[] } }
+  const [tableFilters, setTableFilters] = useState<Record<string, Record<string, unknown[]>>>({});
+
+  // Advanced filters state - tracks operator-based filters (stacked - multiple per column)
+  // Format: { [viewKey]: { [columnName]: [{ operator, value, id }] } }
+  const [advancedTableFilters, setAdvancedTableFilters] = useState<Record<string, Record<string, AdvancedFilter[]>>>({});
+
+  // Filter handlers for Quick Filters
+  const handleFilterChange = useCallback((viewKey: string, column: string, value: unknown) => {
+    setTableFilters(prev => {
+      const viewFilters = prev[viewKey] || {};
+      const columnFilters = viewFilters[column] || [];
+
+      // Toggle filter value - if exists remove it, otherwise add it
+      const valueStr = String(value);
+      const exists = columnFilters.some(v => String(v) === valueStr);
+
+      const newColumnFilters = exists
+        ? columnFilters.filter(v => String(v) !== valueStr)
+        : [...columnFilters, value];
+
+      // Remove empty arrays to keep state clean
+      const newViewFilters = { ...viewFilters };
+      if (newColumnFilters.length === 0) {
+        delete newViewFilters[column];
+      } else {
+        newViewFilters[column] = newColumnFilters;
+      }
+
+      // Remove empty view filters
+      if (Object.keys(newViewFilters).length === 0) {
+        const { [viewKey]: _, ...rest } = prev;
+        return rest;
+      }
+
+      return { ...prev, [viewKey]: newViewFilters };
+    });
+  }, []);
+
+  const handleClearFilters = useCallback((viewKey: string) => {
+    setTableFilters(prev => {
+      const { [viewKey]: _, ...rest } = prev;
+      return rest;
+    });
+    setAdvancedTableFilters(prev => {
+      const { [viewKey]: _, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  const handleAdvancedFilterChange = useCallback((viewKey: string, column: string, filter: AdvancedFilter | null, action?: 'add' | 'remove') => {
+    setAdvancedTableFilters(prev => {
+      const viewFilters = prev[viewKey] || {};
+      const columnFilters = viewFilters[column] || [];
+
+      if (action === 'remove' && filter) {
+        // Remove specific filter by id
+        const newColumnFilters = columnFilters.filter(f => f.id !== filter.id);
+
+        if (newColumnFilters.length === 0) {
+          const { [column]: _, ...restCols } = viewFilters;
+          if (Object.keys(restCols).length === 0) {
+            const { [viewKey]: __, ...restViews } = prev;
+            return restViews;
+          }
+          return { ...prev, [viewKey]: restCols };
+        }
+        return { ...prev, [viewKey]: { ...viewFilters, [column]: newColumnFilters } };
+      }
+
+      if (filter === null) {
+        // Clear all filters for this column
+        const { [column]: _, ...restCols } = viewFilters;
+        if (Object.keys(restCols).length === 0) {
+          const { [viewKey]: __, ...restViews } = prev;
+          return restViews;
+        }
+        return { ...prev, [viewKey]: restCols };
+      }
+
+      // Add the filter to the array (stack)
+      return { ...prev, [viewKey]: { ...viewFilters, [column]: [...columnFilters, filter] } };
+    });
+  }, []);
+
+  // Helper function to get filtered rows for a viewKey
+  const getFilteredRows = useCallback((
+    rows: Record<string, unknown>[],
+    viewKey: string
+  ): Record<string, unknown>[] => {
+    const simpleFilters = tableFilters[viewKey] || {};
+    const advancedFilters = advancedTableFilters[viewKey] || {};
+
+    const hasSimpleFilters = Object.keys(simpleFilters).length > 0;
+    const hasAdvancedFilters = Object.keys(advancedFilters).some(col => advancedFilters[col]?.length > 0);
+
+    if (!hasSimpleFilters && !hasAdvancedFilters) return rows;
+
+    return rows.filter(row => {
+      // Apply simple filters (exact value match)
+      for (const [col, values] of Object.entries(simpleFilters)) {
+        if (values && values.length > 0) {
+          const rowValue = String(row[col]);
+          if (!values.some(v => String(v) === rowValue)) {
+            return false;
+          }
+        }
+      }
+
+      // Apply advanced filters (all filters for each column must match - AND logic)
+      for (const [col, filterArray] of Object.entries(advancedFilters)) {
+        if (filterArray && filterArray.length > 0) {
+          for (const filter of filterArray) {
+            if (filter && filter.value) {
+              const strValue = String(row[col] ?? '').toLowerCase();
+              const filterValue = filter.value.toLowerCase();
+              const numValue = Number(row[col]);
+              const numFilterValue = Number(filter.value);
+
+              let matches = true;
+              switch (filter.operator) {
+                case 'equals':
+                  matches = strValue === filterValue;
+                  break;
+                case 'not_equals':
+                  matches = strValue !== filterValue;
+                  break;
+                case 'contains':
+                  matches = strValue.includes(filterValue);
+                  break;
+                case 'starts_with':
+                  matches = strValue.startsWith(filterValue);
+                  break;
+                case 'ends_with':
+                  matches = strValue.endsWith(filterValue);
+                  break;
+                case 'greater_than':
+                  matches = !isNaN(numValue) && !isNaN(numFilterValue) && numValue > numFilterValue;
+                  break;
+                case 'less_than':
+                  matches = !isNaN(numValue) && !isNaN(numFilterValue) && numValue < numFilterValue;
+                  break;
+              }
+              if (!matches) return false;
+            }
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [tableFilters, advancedTableFilters]);
+
+  // Chart settings state with localStorage persistence
+  const [chartSettings, setChartSettings] = useState<ChartSettings>(defaultChartSettings);
+  const [showChartSettings, setShowChartSettings] = useState<string | null>(null); // viewKey of open settings dropdown
+  const [showFilterModal, setShowFilterModal] = useState<string | null>(null); // viewKey of open filter modal
+
+  // Load chart settings from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("chartSettings");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setChartSettings({ ...defaultChartSettings, ...parsed });
+      } catch {
+        // Invalid JSON, use defaults
+      }
+    }
+  }, []);
+
+  // Save chart settings to localStorage
+  useEffect(() => {
+    localStorage.setItem("chartSettings", JSON.stringify(chartSettings));
+  }, [chartSettings]);
+
   // Fullscreen data viewer state
   const [dataViewerOpen, setDataViewerOpen] = useState<string | null>(null);
   const [dataViewerData, setDataViewerData] = useState<{
     columns: string[];
     rows: Record<string, unknown>[];
     chartType: ChartType;
+    sqlQuery?: string;
+    viewKey: string;
   } | null>(null);
 
   // Scroll to bottom of messages
@@ -618,21 +1651,21 @@ export default function AIPage() {
     switch (typeName) {
       case "Excel":
         return (
-          <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14.17 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V7.83L14.17 2zM13 8V3.5L18.5 9H13V8zM6 20V4h5v6h7v10H6z"/>
             <path d="M8.5 11L10.5 14L8.5 17H10L11.25 15L12.5 17H14L12 14L14 11H12.5L11.25 13L10 11H8.5z"/>
           </svg>
         );
       case "Word":
         return (
-          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
             <path d="M8 12h1.5l1 4 1-4h1l1 4 1-4H15l-1.5 6h-1l-1-4-1 4h-1L8 12z"/>
           </svg>
         );
       case "Csv":
         return (
-          <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
             <path d="M8 12v6h8v-6H8zm2 2h4v2h-4v-2z"/>
           </svg>
@@ -1403,33 +2436,6 @@ export default function AIPage() {
                   <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
                     <MarkdownResponse content={stripCodeBlocks(message.content)} />
-                    {/* SQL Query Viewer */}
-                    {message.sqlQuery && (
-                      <div className="mt-1">
-                        <button
-                          onClick={() => setExpandedSql(prev => {
-                            const next = new Set(prev);
-                            if (next.has(message.id)) next.delete(message.id);
-                            else next.add(message.id);
-                            return next;
-                          })}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="opacity-60">
-                            <path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                          </svg>
-                          {expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
-                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" className={`transition-transform ${expandedSql.has(message.id) ? "rotate-180" : ""}`}>
-                            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </button>
-                        {expandedSql.has(message.id) && (
-                          <pre className="mt-2 p-3 rounded-lg bg-gray-900 dark:bg-black/40 text-gray-300 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-gray-800 dark:border-gray-700/30">
-                            {message.sqlQuery}
-                          </pre>
-                        )}
-                      </div>
-                    )}
                     {(() => {
                       const parsedResults = parseQueryResult(message.queryResult);
                       if (!parsedResults || parsedResults.length === 0) return null;
@@ -1524,32 +2530,122 @@ export default function AIPage() {
                                         </>
                                       )}
                                     </div>
-                                    {/* Expand Button */}
-                                    <button
-                                      onClick={() => {
-                                        setDataViewerData({
-                                          columns: result.columns,
-                                          rows: result.rows,
-                                          chartType: currentView,
-                                        });
-                                        setDataViewerOpen(message.id);
+                                    {/* Toolbar: SQL, Filter, Settings, Expand */}
+                                    <div className="flex items-center gap-1 flex-shrink-0 relative ml-3 pl-3 border-l border-gray-200 dark:border-[#333]">
+                                      {/* SQL Button - only show on first table */}
+                                      {idx === 0 && message.sqlQuery && (
+                                        <button
+                                          onClick={() => setExpandedSql(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(message.id)) next.delete(message.id);
+                                            else next.add(message.id);
+                                            return next;
+                                          })}
+                                          className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                                            expandedSql.has(message.id)
+                                              ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
+                                              : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                          }`}
+                                          title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
+                                        >
+                                          <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                                            <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
+                                          </svg>
+                                        </button>
+                                      )}
+                                      {/* Filter Button - only for table view */}
+                                      {currentView === "table" && (() => {
+                                        const hasSimpleFilters = Object.values(tableFilters[viewKey] || {}).some(v => v?.length);
+                                        const hasAdvancedFilters = Object.values(advancedTableFilters[viewKey] || {}).some(arr => arr?.length > 0);
+                                        const hasAnyFilters = hasSimpleFilters || hasAdvancedFilters;
+                                        return (
+                                          <button
+                                            onClick={() => setShowFilterModal(viewKey)}
+                                            className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                                              hasAnyFilters
+                                                ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
+                                                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                            }`}
+                                            title="Filter data"
+                                          >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                            </svg>
+                                          </button>
+                                        );
+                                      })()}
+                                      {/* Settings Gear - only show when viewing charts */}
+                                      {currentView !== "table" && (
+                                        <button
+                                          onClick={() => setShowChartSettings(showChartSettings === viewKey ? null : viewKey)}
+                                          className="flex items-center justify-center w-7 h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                          title="Chart settings"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          </svg>
+                                        </button>
+                                      )}
+                                      {/* Settings Dropdown */}
+                                      {showChartSettings === viewKey && (
+                                        <ChartSettingsDropdown
+                                          settings={chartSettings}
+                                          onSettingsChange={setChartSettings}
+                                          onClose={() => setShowChartSettings(null)}
+                                          chartType={currentView}
+                                        />
+                                      )}
+                                      {/* Expand Button */}
+                                      <button
+                                        onClick={() => {
+                                          setDataViewerData({
+                                            columns: result.columns,
+                                            rows: result.rows,
+                                            chartType: currentView,
+                                            sqlQuery: message.sqlQuery || undefined,
+                                            viewKey,
+                                          });
+                                          setDataViewerOpen(message.id);
                                       }}
-                                      className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded-md transition-colors flex-shrink-0"
-                                      title="Open in fullscreen"
+                                      className="flex items-center justify-center w-7 h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                      title="Expand fullscreen"
                                     >
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                       </svg>
-                                      <span className="hidden sm:inline">Expand</span>
                                     </button>
+                                    </div>
                                   </div>
+
+                                  {/* SQL Query Panel - show when expanded (only on first table) */}
+                                  {idx === 0 && expandedSql.has(message.id) && message.sqlQuery && (
+                                    <pre className="mx-3 mt-3 mb-2 p-3 rounded-lg bg-gray-100 dark:bg-[#0f0f0f] text-gray-700 dark:text-gray-300 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-gray-200 dark:border-[#262626]">
+                                      {message.sqlQuery}
+                                    </pre>
+                                  )}
+
+                                  {/* Filter Modal */}
+                                  {showFilterModal === viewKey && (
+                                    <FilterModal
+                                      columns={result.columns}
+                                      rows={result.rows}
+                                      filters={tableFilters[viewKey] || {}}
+                                      advancedFilters={advancedTableFilters[viewKey]}
+                                      onFilterChange={(col, val) => handleFilterChange(viewKey, col, val)}
+                                      onAdvancedFilterChange={(col, filter, action) => handleAdvancedFilterChange(viewKey, col, filter, action)}
+                                      onClearFilters={() => handleClearFilters(viewKey)}
+                                      onClose={() => setShowFilterModal(null)}
+                                    />
+                                  )}
 
                                   {/* Chart View */}
                                   {currentView !== "table" && (
                                     <DataChart
-                                      data={result.rows}
+                                      data={getFilteredRows(result.rows, viewKey)}
                                       columns={result.columns}
                                       chartType={currentView}
+                                      settings={chartSettings}
                                     />
                                   )}
 
@@ -1558,6 +2654,8 @@ export default function AIPage() {
                                     <VirtualTable
                                       columns={result.columns}
                                       rows={result.rows}
+                                      filters={tableFilters[viewKey] || {}}
+                                      advancedFilters={advancedTableFilters[viewKey]}
                                     />
                                   )}
                                 </div>
@@ -1707,32 +2805,122 @@ export default function AIPage() {
                                 </>
                               )}
                             </div>
-                              {/* Expand Button */}
-                              <button
-                                onClick={() => {
-                                  setDataViewerData({
-                                    columns: parsedResult.columns,
-                                    rows: parsedResult.rows,
-                                    chartType: currentView,
-                                  });
-                                  setDataViewerOpen(message.id);
-                                }}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded-md transition-colors"
-                                title="Open in fullscreen"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                                </svg>
-                                Expand
-                              </button>
+                              {/* Toolbar: SQL, Filter, Settings, Expand */}
+                              <div className="flex items-center gap-1 flex-shrink-0 relative ml-3 pl-3 border-l border-gray-200 dark:border-[#333]">
+                                {/* SQL Button */}
+                                {message.sqlQuery && (
+                                  <button
+                                    onClick={() => setExpandedSql(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(message.id)) next.delete(message.id);
+                                      else next.add(message.id);
+                                      return next;
+                                    })}
+                                    className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                                      expandedSql.has(message.id)
+                                        ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
+                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                    }`}
+                                    title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
+                                  >
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                                      <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
+                                    </svg>
+                                  </button>
+                                )}
+                                {/* Filter Button - only for table view */}
+                                {currentView === "table" && (() => {
+                                  const hasSimpleFilters = Object.values(tableFilters[message.id] || {}).some(v => v?.length);
+                                  const hasAdvancedFilters = Object.values(advancedTableFilters[message.id] || {}).some(arr => arr?.length > 0);
+                                  const hasAnyFilters = hasSimpleFilters || hasAdvancedFilters;
+                                  return (
+                                    <button
+                                      onClick={() => setShowFilterModal(message.id)}
+                                      className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                                        hasAnyFilters
+                                          ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
+                                          : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                      }`}
+                                      title="Filter data"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                      </svg>
+                                    </button>
+                                  );
+                                })()}
+                                {/* Settings Gear - only show when viewing charts */}
+                                {currentView !== "table" && (
+                                  <button
+                                    onClick={() => setShowChartSettings(showChartSettings === message.id ? null : message.id)}
+                                    className="flex items-center justify-center w-7 h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                    title="Chart settings"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                  </button>
+                                )}
+                                {/* Settings Dropdown */}
+                                {showChartSettings === message.id && (
+                                  <ChartSettingsDropdown
+                                    settings={chartSettings}
+                                    onSettingsChange={setChartSettings}
+                                    onClose={() => setShowChartSettings(null)}
+                                    chartType={currentView}
+                                  />
+                                )}
+                                {/* Expand Button */}
+                                <button
+                                  onClick={() => {
+                                    setDataViewerData({
+                                      columns: parsedResult.columns,
+                                      rows: parsedResult.rows,
+                                      chartType: currentView,
+                                      sqlQuery: message.sqlQuery || undefined,
+                                      viewKey: message.id,
+                                    });
+                                    setDataViewerOpen(message.id);
+                                  }}
+                                  className="flex items-center justify-center w-7 h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                  title="Expand fullscreen"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                  </svg>
+                                </button>
+                              </div>
                           </div>
+
+                          {/* SQL Query Panel - show when expanded */}
+                          {expandedSql.has(message.id) && message.sqlQuery && (
+                            <pre className="mx-3 mt-3 mb-2 p-3 rounded-lg bg-gray-100 dark:bg-[#0f0f0f] text-gray-700 dark:text-gray-300 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-gray-200 dark:border-[#262626]">
+                              {message.sqlQuery}
+                            </pre>
+                          )}
+
+                          {/* Filter Modal */}
+                          {showFilterModal === message.id && (
+                            <FilterModal
+                              columns={parsedResult.columns}
+                              rows={parsedResult.rows}
+                              filters={tableFilters[message.id] || {}}
+                              advancedFilters={advancedTableFilters[message.id]}
+                              onFilterChange={(col, val) => handleFilterChange(message.id, col, val)}
+                              onAdvancedFilterChange={(col, filter, action) => handleAdvancedFilterChange(message.id, col, filter, action)}
+                              onClearFilters={() => handleClearFilters(message.id)}
+                              onClose={() => setShowFilterModal(null)}
+                            />
+                          )}
 
                           {/* Chart View */}
                           {currentView !== "table" && (
                             <DataChart
-                              data={parsedResult.rows}
+                              data={getFilteredRows(parsedResult.rows, message.id)}
                               columns={parsedResult.columns}
                               chartType={currentView}
+                              settings={chartSettings}
                             />
                           )}
 
@@ -1741,6 +2929,8 @@ export default function AIPage() {
                             <VirtualTable
                               columns={parsedResult.columns}
                               rows={parsedResult.rows}
+                              filters={tableFilters[message.id] || {}}
+                              advancedFilters={advancedTableFilters[message.id]}
                             />
                           )}
                         </div>
@@ -2125,6 +3315,9 @@ export default function AIPage() {
           columns={dataViewerData.columns}
           rows={dataViewerData.rows}
           initialChartType={dataViewerData.chartType}
+          sqlQuery={dataViewerData.sqlQuery}
+          initialChartSettings={chartSettings}
+          onSettingsChange={setChartSettings}
         />
       )}
 
@@ -2984,18 +4177,32 @@ function SchemaViewerModal({
               </button>
             </div>
           </div>
-          {viewMode === "list" && (
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search tables and columns..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#262626] rounded-xl pl-10 pr-4 text-sm outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-[#252525] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-              />
-              <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+          {/* Search - always visible */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search tables and columns..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#262626] rounded-xl pl-10 pr-10 text-sm outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-[#252525] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            />
+            <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {filteredTables.length} of {(schema?.tables || []).length} tables match
             </div>
           )}
         </div>
@@ -3015,7 +4222,7 @@ function SchemaViewerModal({
               No tables found
             </div>
           ) : viewMode === "diagram" ? (
-            <ERDiagramView tables={schema?.tables || []} />
+            <ERDiagramView tables={filteredTables} searchQuery={searchQuery} />
           ) : (
             <div className="p-6">
               {filteredTables.length === 0 ? (
@@ -3044,8 +4251,18 @@ function SchemaViewerModal({
 }
 
 // ERD Diagram View Component
-function ERDiagramView({ tables }: { tables: TableSchema[] }) {
+function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; searchQuery?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Highlight matching text
+  const highlightMatch = (text: string) => {
+    if (!searchQuery) return text;
+    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? <mark key={i} className="bg-yellow-300 dark:bg-yellow-500/50 text-yellow-900 dark:text-yellow-100 rounded px-0.5">{part}</mark> : part
+    );
+  };
   const initialPositions = useMemo(() => {
     const cols = Math.ceil(Math.sqrt(tables.length));
     const pos: Record<string, { x: number; y: number }> = {};
@@ -3389,7 +4606,7 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span className="font-medium text-sm truncate">{table.name}</span>
+                <span className="font-medium text-sm truncate">{highlightMatch(table.name)}</span>
                 {table.rowCount !== null && (
                   <span className="ml-auto text-xs text-gray-400">{table.rowCount.toLocaleString()}</span>
                 )}
@@ -3406,18 +4623,18 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
                   >
                     <div className="w-4 flex justify-center">
                       {pkColumns.has(column.name) ? (
-                        <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M12.65 10A5.99 5.99 0 007 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 005.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
                         </svg>
                       ) : fkColumns.has(column.name) ? (
-                        <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                       ) : (
                         <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-[#333333]" />
                       )}
                     </div>
-                    <span className="font-medium text-gray-700 dark:text-gray-200 truncate flex-1">{column.name}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-200 truncate flex-1">{highlightMatch(column.name)}</span>
                     <span className="text-gray-400 font-mono text-[10px]">{column.dataType}</span>
                   </div>
                 ))}
@@ -3431,19 +4648,19 @@ function ERDiagramView({ tables }: { tables: TableSchema[] }) {
       <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] px-3 py-2">
         <div className="flex gap-4 text-xs">
           <div className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12.65 10A5.99 5.99 0 007 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 005.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
             </svg>
             <span className="text-gray-600 dark:text-gray-300">Primary Key</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
             <span className="text-gray-600 dark:text-gray-300">Foreign Key</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-0.5 bg-indigo-500 rounded" />
+            <div className="w-6 h-0.5 bg-gray-500 rounded" />
             <span className="text-gray-600 dark:text-gray-300">Relationship</span>
           </div>
         </div>
@@ -3505,17 +4722,17 @@ function TableCard({
             <span>{table.rowCount.toLocaleString()} rows</span>
           )}
           {table.primaryKeys.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">
+            <span className="px-1.5 py-0.5 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
               {table.primaryKeys.length} PK
             </span>
           )}
           {table.foreignKeys.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+            <span className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
               {table.foreignKeys.length} FK
             </span>
           )}
           {table.indexes.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded">
+            <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
               {table.indexes.length} IDX
             </span>
           )}
@@ -3535,11 +4752,11 @@ function TableCard({
                 <div className="flex items-center gap-3">
                   <div className="w-5 flex justify-center">
                     {pkColumns.has(column.name) ? (
-                      <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12.65 10A5.99 5.99 0 007 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 005.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
                       </svg>
                     ) : fkColumns.has(column.name) ? (
-                      <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                     ) : (
@@ -3554,10 +4771,10 @@ function TableCard({
                     {column.maxLength && `(${column.maxLength})`}
                   </span>
                   {column.isIdentity && (
-                    <span className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded">AUTO</span>
+                    <span className="text-xs text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">AUTO</span>
                   )}
                   {!column.isNullable && (
-                    <span className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">NOT NULL</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">NOT NULL</span>
                   )}
                 </div>
               </div>
@@ -3566,18 +4783,18 @@ function TableCard({
 
           {/* Foreign Keys Section */}
           {table.foreignKeys.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-[#262626] bg-blue-50/50 dark:bg-blue-900/20 px-4 py-3">
-              <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Foreign Keys</p>
+            <div className="border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#151515] px-4 py-3">
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Foreign Keys</p>
               <div className="space-y-1.5">
                 {table.foreignKeys.map((fk, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-700">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600">
                       {fk.column}
                     </span>
                     <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
-                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-700">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600">
                       {fk.referencedTable}.{fk.referencedColumn}
                     </span>
                     {(fk.onDelete || fk.onUpdate) && (
@@ -3595,21 +4812,21 @@ function TableCard({
 
           {/* Indexes Section */}
           {table.indexes.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-[#262626] bg-purple-50/50 dark:bg-purple-900/20 px-4 py-3">
-              <p className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-2">Indexes</p>
+            <div className="border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#151515] px-4 py-3">
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Indexes</p>
               <div className="space-y-1.5">
                 {table.indexes.map((index, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                     <span className="font-medium">{index.name}</span>
                     <span className="text-gray-400">on</span>
-                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-700">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600">
                       {index.columns.join(', ')}
                     </span>
                     {index.isUnique && (
-                      <span className="text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 rounded">UNIQUE</span>
+                      <span className="text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">UNIQUE</span>
                     )}
                     {index.isClustered && (
-                      <span className="text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 rounded">CLUSTERED</span>
+                      <span className="text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">CLUSTERED</span>
                     )}
                   </div>
                 ))}

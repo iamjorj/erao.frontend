@@ -352,6 +352,44 @@ export interface FileContentResponse {
   currentPage: number;
 }
 
+// Data Exploration types
+export interface PreviewResult {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  tableName?: string;
+  executionTimeMs: number;
+}
+
+export interface ColumnStats {
+  columnName: string;
+  dataType: string;
+  totalCount: number;
+  nullCount: number;
+  nullPercentage: number;
+  uniqueCount: number;
+  minValue: unknown;
+  maxValue: unknown;
+  avgValue: number | null;
+  sampleValues: unknown[];
+}
+
+export interface SuggestedQuery {
+  title: string;
+  description: string;
+  query: string;
+  category: string;
+}
+
+export interface DataInsight {
+  type: string;
+  title: string;
+  description: string;
+  query?: string;
+  severity: 'info' | 'warning' | 'important';
+  metadata: Record<string, unknown>;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -689,6 +727,46 @@ class ApiClient {
   async deleteFile(fileId: string): Promise<ApiResponse<null>> {
     return this.request<null>(`/api/files/${fileId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // ========== Data Exploration endpoints ==========
+
+  async getDatabaseTablePreview(databaseId: string, tableName: string, limit = 50): Promise<ApiResponse<PreviewResult>> {
+    return this.request<PreviewResult>(`/api/data-exploration/databases/${databaseId}/preview?table=${encodeURIComponent(tableName)}&limit=${limit}`);
+  }
+
+  async getDatabaseColumnStats(databaseId: string, tableName: string, columnName: string): Promise<ApiResponse<ColumnStats>> {
+    return this.request<ColumnStats>(`/api/data-exploration/databases/${databaseId}/column-stats?table=${encodeURIComponent(tableName)}&column=${encodeURIComponent(columnName)}`);
+  }
+
+  async getFilePreview(fileId: string, limit = 50): Promise<ApiResponse<PreviewResult>> {
+    return this.request<PreviewResult>(`/api/data-exploration/files/${fileId}/preview?limit=${limit}`);
+  }
+
+  async getFileColumnStats(fileId: string, columnName: string): Promise<ApiResponse<ColumnStats>> {
+    return this.request<ColumnStats>(`/api/data-exploration/files/${fileId}/column-stats?column=${encodeURIComponent(columnName)}`);
+  }
+
+  async getDatabaseSuggestions(databaseId: string, tableName?: string): Promise<ApiResponse<SuggestedQuery[]>> {
+    const params = tableName ? `?table=${encodeURIComponent(tableName)}` : '';
+    return this.request<SuggestedQuery[]>(`/api/data-exploration/databases/${databaseId}/suggestions${params}`);
+  }
+
+  async getFileSuggestions(fileId: string): Promise<ApiResponse<SuggestedQuery[]>> {
+    return this.request<SuggestedQuery[]>(`/api/data-exploration/files/${fileId}/suggestions`);
+  }
+
+  async getDatabaseInsights(databaseId: string, tableName: string): Promise<ApiResponse<DataInsight[]>> {
+    return this.request<DataInsight[]>(`/api/data-exploration/databases/${databaseId}/insights`, {
+      method: 'POST',
+      body: JSON.stringify({ tableName }),
+    });
+  }
+
+  async getFileInsights(fileId: string): Promise<ApiResponse<DataInsight[]>> {
+    return this.request<DataInsight[]>(`/api/data-exploration/files/${fileId}/insights`, {
+      method: 'POST',
     });
   }
 }

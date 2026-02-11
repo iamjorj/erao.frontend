@@ -18,9 +18,32 @@ import {
   Legend,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 
 export type ChartType = "bar" | "line" | "pie" | "area" | "table";
+
+// Chart settings interface
+interface ChartSettings {
+  yAxisMin: number | 'auto';
+  yAxisMax: number | 'auto';
+  barWidth: number;
+  showDataLabels: boolean;
+  showGridLines: boolean;
+  colorTheme: 'colorful' | 'monochrome' | 'blue' | 'green' | 'purple' | 'custom';
+  legendPosition: 'top' | 'bottom' | 'hidden';
+  customColors?: string[];
+}
+
+const defaultChartSettings: ChartSettings = {
+  yAxisMin: 'auto',
+  yAxisMax: 'auto',
+  barWidth: 60,
+  showDataLabels: false,
+  showGridLines: true,
+  colorTheme: 'colorful',
+  legendPosition: 'bottom',
+};
 
 interface DataViewerModalProps {
   isOpen: boolean;
@@ -28,21 +51,46 @@ interface DataViewerModalProps {
   columns: string[];
   rows: Record<string, unknown>[];
   initialChartType?: ChartType;
+  sqlQuery?: string;
+  initialChartSettings?: ChartSettings;
+  onSettingsChange?: (settings: ChartSettings) => void;
 }
 
-// Color palette for charts (works well on both light and dark)
-const COLORS = [
-  "#3b82f6", // blue
-  "#10b981", // green
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#8b5cf6", // purple
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#84cc16", // lime
-  "#14b8a6", // teal
-  "#f97316", // orange
-];
+function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "number") return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  const str = String(value);
+  return str === "null" ? "-" : str;
+}
+
+// Color palettes for charts
+const COLOR_THEMES: Record<ChartSettings['colorTheme'], string[]> = {
+  colorful: [
+    "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+    "#ec4899", "#06b6d4", "#84cc16", "#14b8a6", "#f97316",
+  ],
+  monochrome: [
+    "#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af",
+    "#d1d5db", "#e5e7eb", "#f3f4f6", "#f9fafb", "#111827",
+  ],
+  blue: [
+    "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa",
+    "#93c5fd", "#bfdbfe", "#dbeafe", "#0c4a6e", "#075985",
+  ],
+  green: [
+    "#065f46", "#047857", "#059669", "#10b981", "#34d399",
+    "#6ee7b7", "#a7f3d0", "#d1fae5", "#14532d", "#166534",
+  ],
+  purple: [
+    "#5b21b6", "#6d28d9", "#7c3aed", "#8b5cf6", "#a78bfa",
+    "#c4b5fd", "#ddd6fe", "#ede9fe", "#581c87", "#6b21a8",
+  ],
+  custom: [], // Will use customColors from settings
+};
+
+// Default colors (colorful theme)
+const COLORS = COLOR_THEMES.colorful;
 
 // Dark mode detection hook
 function useDarkMode(): boolean {
@@ -267,13 +315,20 @@ function LargeChart({
   chartType,
   isDark,
   isMobile,
+  settings = defaultChartSettings,
 }: {
   data: Record<string, unknown>[];
   columns: string[];
   chartType: ChartType;
   isDark: boolean;
   isMobile: boolean;
+  settings?: ChartSettings;
 }) {
+  // Get colors based on theme setting
+  const chartColors = settings.colorTheme === 'custom' && settings.customColors?.length
+    ? settings.customColors
+    : COLOR_THEMES[settings.colorTheme] || COLORS;
+
   // Theme colors
   const gridColor = isDark ? "#333333" : "#e5e7eb";
   const tickColor = isDark ? "#9ca3af" : "#6b7280";
@@ -334,14 +389,14 @@ function LargeChart({
           name: item.name as string,
           fullName: item.fullName as string,
           value: item[dataColumns[0]] as number,
-          fill: COLORS[index % COLORS.length],
+          fill: chartColors[index % chartColors.length],
         }));
       } else {
         pieData = dataColumns.map((col, index) => ({
           name: col,
           fullName: col,
           value: chartData.reduce((sum, item) => sum + (item[col] as number), 0),
-          fill: COLORS[index % COLORS.length],
+          fill: chartColors[index % chartColors.length],
         }));
       }
       pieData = pieData.filter((item) => item.value > 0).sort((a, b) => b.value - a.value);
@@ -437,7 +492,7 @@ function LargeChart({
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <ChartComponent data={chartData} margin={margins}>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+            {settings.showGridLines && <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />}
             <XAxis
               dataKey="name"
               tick={{ fontSize, fill: tickColor }}
@@ -455,11 +510,16 @@ function LargeChart({
                 return v;
               }}
               width={isMobile ? 30 : 60}
+              domain={[
+                settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
+                settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
+              ]}
             />
             <Tooltip content={renderTooltip} />
-            {!isMobile && (
+            {!isMobile && settings.legendPosition !== 'hidden' && (
               <Legend
-                wrapperStyle={{ fontSize: "13px", paddingTop: "10px", color: tickColor }}
+                verticalAlign={settings.legendPosition}
+                wrapperStyle={{ fontSize: "13px", paddingTop: settings.legendPosition === 'bottom' ? "10px" : "0", paddingBottom: settings.legendPosition === 'top' ? "10px" : "0", color: tickColor }}
                 formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
               />
             )}
@@ -475,7 +535,26 @@ function LargeChart({
       return renderAxisChart(
         BarChart as typeof BarChart,
         dataColumns.map((col, index) => (
-          <Bar key={col} dataKey={col} fill={COLORS[index % COLORS.length]} radius={[4, 4, 0, 0]} />
+          <Bar
+            key={col}
+            dataKey={col}
+            fill={chartColors[index % chartColors.length]}
+            radius={[4, 4, 0, 0]}
+            barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
+          >
+            {settings.showDataLabels && (
+              <LabelList
+                dataKey={col}
+                position="top"
+                fill={tickColor}
+                fontSize={isMobile ? 8 : 10}
+                formatter={(v) => {
+                  const n = Number(v);
+                  return isNaN(n) ? String(v) : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
+                }}
+              />
+            )}
+          </Bar>
         ))
       );
 
@@ -487,10 +566,23 @@ function LargeChart({
             key={col}
             type="monotone"
             dataKey={col}
-            stroke={COLORS[index % COLORS.length]}
+            stroke={chartColors[index % chartColors.length]}
             strokeWidth={isMobile ? 1.5 : 2}
-            dot={!isMobile && dataCount <= 50 ? { fill: COLORS[index % COLORS.length], strokeWidth: 2, r: 3 } : false}
-          />
+            dot={!isMobile && dataCount <= 50 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 3 } : false}
+          >
+            {settings.showDataLabels && !isMobile && dataCount <= 20 && (
+              <LabelList
+                dataKey={col}
+                position="top"
+                fill={tickColor}
+                fontSize={9}
+                formatter={(v) => {
+                  const n = Number(v);
+                  return isNaN(n) ? String(v) : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
+                }}
+              />
+            )}
+          </Line>
         ))
       );
 
@@ -502,10 +594,23 @@ function LargeChart({
             key={col}
             type="monotone"
             dataKey={col}
-            stroke={COLORS[index % COLORS.length]}
-            fill={COLORS[index % COLORS.length]}
+            stroke={chartColors[index % chartColors.length]}
+            fill={chartColors[index % chartColors.length]}
             fillOpacity={0.3}
-          />
+          >
+            {settings.showDataLabels && !isMobile && dataCount <= 20 && (
+              <LabelList
+                dataKey={col}
+                position="top"
+                fill={tickColor}
+                fontSize={9}
+                formatter={(v) => {
+                  const n = Number(v);
+                  return isNaN(n) ? String(v) : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
+                }}
+              />
+            )}
+          </Area>
         ))
       );
 
@@ -542,7 +647,7 @@ function LargeChart({
                   dataKey="value"
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                   ))}
                 </Pie>
                 <Tooltip
@@ -560,12 +665,14 @@ function LargeChart({
                     return [`${numValue.toLocaleString()} (${((numValue / total) * 100).toFixed(1)}%)`, ""];
                   }}
                 />
-                <Legend
-                  layout={isMobile ? "horizontal" : "horizontal"}
-                  verticalAlign="bottom"
-                  wrapperStyle={{ fontSize: isMobile ? "10px" : "13px", color: tickColor, paddingTop: "8px" }}
-                  formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, isMobile ? 12 : 25)}</span>}
-                />
+                {settings.legendPosition !== 'hidden' && (
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign={settings.legendPosition}
+                    wrapperStyle={{ fontSize: isMobile ? "10px" : "13px", color: tickColor, paddingTop: settings.legendPosition === 'bottom' ? "8px" : "0", paddingBottom: settings.legendPosition === 'top' ? "8px" : "0" }}
+                    formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, isMobile ? 12 : 25)}</span>}
+                  />
+                )}
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -584,10 +691,45 @@ export function DataViewerModal({
   columns,
   rows,
   initialChartType = "table",
+  sqlQuery,
+  initialChartSettings,
+  onSettingsChange,
 }: DataViewerModalProps) {
   const [currentView, setCurrentView] = useState<ChartType>(initialChartType);
   const isDark = useDarkMode();
   const [isMobile, setIsMobile] = useState(false);
+  const [showSql, setShowSql] = useState(false);
+  const [filters, setFilters] = useState<Record<string, unknown[]>>({});
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [chartSettings, setChartSettings] = useState<ChartSettings>(initialChartSettings || defaultChartSettings);
+  const [showSettings, setShowSettings] = useState(false);
+  const [editingColorIndex, setEditingColorIndex] = useState<number | null>(null);
+  const [addingNewColor, setAddingNewColor] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Color picker constants - organized by rows (6 colors per row)
+  const defaultCustomColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const colorRows = [
+    ['#000000', '#1f2937', '#374151', '#6b7280', '#9ca3af', '#d1d5db'],
+    ['#1e3a8a', '#1d4ed8', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'],
+    ['#14532d', '#047857', '#10b981', '#34d399', '#6ee7b7', '#d1fae5'],
+    ['#7f1d1d', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fecaca'],
+    ['#78350f', '#b45309', '#d97706', '#f59e0b', '#fbbf24', '#fef3c7'],
+    ['#4c1d95', '#6d28d9', '#7c3aed', '#8b5cf6', '#a78bfa', '#ddd6fe'],
+  ];
+
+  // Sync settings when initialChartSettings changes
+  useEffect(() => {
+    if (initialChartSettings) {
+      setChartSettings(initialChartSettings);
+    }
+  }, [initialChartSettings]);
+
+  // Notify parent of settings changes
+  const handleSettingsChange = useCallback((newSettings: ChartSettings) => {
+    setChartSettings(newSettings);
+    onSettingsChange?.(newSettings);
+  }, [onSettingsChange]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -596,22 +738,74 @@ export function DataViewerModal({
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Close settings on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setShowSettings(false);
+      }
+    };
+    if (showSettings) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showSettings]);
+
+  // Filter rows based on active filters
+  const filteredRows = useMemo(() => {
+    if (Object.keys(filters).length === 0) return rows;
+    return rows.filter(row => {
+      for (const [col, values] of Object.entries(filters)) {
+        if (values && values.length > 0) {
+          const rowValue = String(row[col]);
+          if (!values.some(v => String(v) === rowValue)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [rows, filters]);
+
+  const handleFilterChange = useCallback((column: string, value: unknown) => {
+    setFilters(prev => {
+      const current = prev[column] || [];
+      const valueStr = String(value);
+      const exists = current.some(v => String(v) === valueStr);
+      if (exists) {
+        const newValues = current.filter(v => String(v) !== valueStr);
+        if (newValues.length === 0) {
+          const { [column]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [column]: newValues };
+      }
+      return { ...prev, [column]: [...current, value] };
+    });
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({});
+  }, []);
+
   // Check if data is chartable
   const hasNumericData = useMemo(() => {
     return columns.slice(1).some((col) =>
-      rows.some((row) => {
+      filteredRows.some((row) => {
         const val = row[col];
         return typeof val === "number" || !isNaN(Number(val));
       })
     );
-  }, [columns, rows]);
+  }, [columns, filteredRows]);
+
+  const activeFilterCount = Object.values(filters).reduce((sum, v) => sum + (v?.length || 0), 0);
 
   if (!isOpen) return null;
 
-  // Export to CSV
+  // Export to CSV (uses filtered rows)
   const handleExportCSV = () => {
     const headers = columns.join(",");
-    const csvRows = rows.map((row) =>
+    const csvRows = filteredRows.map((row) =>
       columns.map((col) => {
         const val = row[col];
         const strVal = String(val ?? "");
@@ -629,6 +823,21 @@ export function DataViewerModal({
     link.download = `data-export-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
   };
+
+  // Get unique values for a column (for filtering)
+  const getUniqueValues = useCallback((column: string) => {
+    const seen = new Set<string>();
+    const values: unknown[] = [];
+    for (const row of filteredRows) {
+      const val = row[column];
+      const key = String(val);
+      if (!seen.has(key)) {
+        seen.add(key);
+        values.push(val);
+      }
+    }
+    return values.sort((a, b) => String(a).localeCompare(String(b)));
+  }, [filteredRows]);
 
   const viewButtons: { type: ChartType; label: string; icon: React.ReactNode }[] = [
     {
@@ -662,14 +871,13 @@ export function DataViewerModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 dark:bg-black/80 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={onClose}
     >
       <div
         className={`
           w-full h-full
-          sm:w-[calc(100vw-24px)] sm:h-[calc(100vh-24px)] sm:rounded-xl
-          flex flex-col overflow-hidden shadow-2xl transition-colors
+          flex flex-col overflow-hidden transition-colors
           ${isDark ? "bg-[#0a0a0a]" : "bg-white"}
         `}
         onClick={(e) => e.stopPropagation()}
@@ -713,35 +921,726 @@ export function DataViewerModal({
           </div>
         </div>
 
-        {/* View Toggle - compact */}
-        <div className={`flex items-center gap-0.5 px-2 sm:px-5 py-1.5 sm:py-2 border-b flex-shrink-0 overflow-x-auto ${
+        {/* View Toggle with Toolbar */}
+        <div className={`flex items-center justify-between px-2 sm:px-5 py-1.5 sm:py-2 border-b flex-shrink-0 ${
           isDark ? "border-[#1a1a1a] bg-[#111]" : "border-gray-100 bg-gray-50/50"
         }`}>
-          {viewButtons.map((btn) => (
-            <button
-              key={btn.type}
-              onClick={() => setCurrentView(btn.type)}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0 flex items-center gap-1.5 ${
-                currentView === btn.type
-                  ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
-                  : isDark ? "text-gray-400 hover:bg-[#1a1a1a]" : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {btn.icon}
-              <span className="hidden sm:inline">{btn.label}</span>
-            </button>
-          ))}
+          {/* Chart Type Buttons */}
+          <div className="flex items-center gap-0.5 overflow-x-auto">
+            {viewButtons.map((btn) => (
+              <button
+                key={btn.type}
+                onClick={() => setCurrentView(btn.type)}
+                className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0 flex items-center gap-1.5 ${
+                  currentView === btn.type
+                    ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
+                    : isDark ? "text-gray-400 hover:bg-[#1a1a1a]" : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                {btn.icon}
+                <span className="hidden sm:inline">{btn.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Toolbar: SQL, Filter, Settings */}
+          <div className="flex items-center gap-1 ml-3 pl-3 border-l border-gray-200 dark:border-[#333] relative">
+            {/* SQL Button */}
+            {sqlQuery && (
+              <button
+                onClick={() => setShowSql(!showSql)}
+                className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                  showSql
+                    ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
+                    : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+                title={showSql ? "Hide SQL" : "View SQL"}
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                  <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+
+            {/* Filter Button - only for table view */}
+            {currentView === "table" && (
+              <button
+                onClick={() => setShowFilterModal(true)}
+                className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                  activeFilterCount > 0
+                    ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
+                    : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+                title={`Filter data${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ''}`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Settings Button - only for charts */}
+            {currentView !== "table" && (
+              <div className="relative" ref={settingsRef}>
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                    isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+                  title="Chart settings"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+                {/* Mobile backdrop for settings */}
+                {showSettings && (
+                  <div
+                    className={`fixed inset-0 bg-black/30 z-40 sm:hidden`}
+                    onClick={() => setShowSettings(false)}
+                  />
+                )}
+                {/* Settings Dropdown */}
+                {showSettings && (
+                  <div
+                    className={`fixed z-50 rounded-t-2xl sm:rounded-xl shadow-lg p-4 pb-8 sm:pb-4 overflow-y-auto
+                      inset-x-0 bottom-0 max-h-[75vh]
+                      sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-72 sm:max-h-[80vh] ${
+                      isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
+                    }`}
+                    onClick={(e) => {
+                      // Close color picker when clicking elsewhere in the dropdown
+                      if (editingColorIndex !== null || addingNewColor) {
+                        const target = e.target as HTMLElement;
+                        if (!target.closest('[data-color-picker]')) {
+                          setEditingColorIndex(null);
+                          setAddingNewColor(false);
+                        }
+                      }
+                    }}
+                  >
+                    {/* Mobile drag handle */}
+                    <div className="sm:hidden flex justify-center mb-3">
+                      <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`} />
+                    </div>
+                    <div className="space-y-4">
+                      <div className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between ${
+                        isDark ? 'text-gray-400 border-[#333]' : 'text-gray-400 border-gray-100'
+                      }`}>
+                        <span>{currentView} Chart Settings</span>
+                        <button
+                          onClick={() => setShowSettings(false)}
+                          className={`sm:hidden p-1 rounded-md ${isDark ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      {/* Y-Axis Range - for bar, line, area */}
+                      {(currentView === 'bar' || currentView === 'line' || currentView === 'area') && (
+                        <div>
+                          <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Y-Axis Range</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Auto"
+                              value={chartSettings.yAxisMin === 'auto' ? '' : chartSettings.yAxisMin}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleSettingsChange({
+                                  ...chartSettings,
+                                  yAxisMin: val === '' ? 'auto' : Number(val) || 0,
+                                });
+                              }}
+                              className={`flex-1 sm:w-24 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 rounded-lg border outline-none ${
+                                isDark
+                                  ? 'bg-[#2a2a2a] border-[#333] text-white focus:border-gray-500'
+                                  : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-gray-400'
+                              }`}
+                            />
+                            <span className={`text-xs sm:text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>to</span>
+                            <input
+                              type="text"
+                              placeholder="Auto"
+                              value={chartSettings.yAxisMax === 'auto' ? '' : chartSettings.yAxisMax}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleSettingsChange({
+                                  ...chartSettings,
+                                  yAxisMax: val === '' ? 'auto' : Number(val) || 0,
+                                });
+                              }}
+                              className={`flex-1 sm:w-24 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 rounded-lg border outline-none ${
+                                isDark
+                                  ? 'bg-[#2a2a2a] border-[#333] text-white focus:border-gray-500'
+                                  : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-gray-400'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {/* Bar Width - only for bar chart */}
+                      {currentView === 'bar' && (
+                        <div>
+                          <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Bar Width: {chartSettings.barWidth}%
+                          </span>
+                          <input
+                            type="range"
+                            min="20"
+                            max="100"
+                            value={chartSettings.barWidth}
+                            onChange={(e) => handleSettingsChange({ ...chartSettings, barWidth: Number(e.target.value) })}
+                            className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-gray-900 dark:accent-white"
+                          />
+                        </div>
+                      )}
+                      {/* Data Labels */}
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Data Labels</span>
+                        <button
+                          onClick={() => handleSettingsChange({ ...chartSettings, showDataLabels: !chartSettings.showDataLabels })}
+                          className={`w-10 sm:w-11 h-5 sm:h-6 rounded-full transition-colors ${chartSettings.showDataLabels ? (isDark ? 'bg-white' : 'bg-gray-900') : isDark ? 'bg-[#444]' : 'bg-gray-300'}`}
+                        >
+                          <div className={`w-4 sm:w-5 h-4 sm:h-5 rounded-full shadow transform transition-transform ${chartSettings.showDataLabels ? (isDark ? 'bg-black translate-x-5' : 'bg-white translate-x-5') : 'bg-white translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                      {/* Grid Lines */}
+                      {currentView !== 'pie' && (
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Grid Lines</span>
+                          <button
+                            onClick={() => handleSettingsChange({ ...chartSettings, showGridLines: !chartSettings.showGridLines })}
+                            className={`w-10 sm:w-11 h-5 sm:h-6 rounded-full transition-colors ${chartSettings.showGridLines ? (isDark ? 'bg-white' : 'bg-gray-900') : isDark ? 'bg-[#444]' : 'bg-gray-300'}`}
+                          >
+                            <div className={`w-4 sm:w-5 h-4 sm:h-5 rounded-full shadow transform transition-transform ${chartSettings.showGridLines ? (isDark ? 'bg-black translate-x-5' : 'bg-white translate-x-5') : 'bg-white translate-x-0.5'}`} />
+                          </button>
+                        </div>
+                      )}
+                      {/* Color Theme */}
+                      <div>
+                        <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Color Theme</span>
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                          {(['colorful', 'monochrome', 'blue', 'green', 'purple', 'custom'] as const).map(theme => (
+                            <button
+                              key={theme}
+                              onClick={() => handleSettingsChange({
+                                ...chartSettings,
+                                colorTheme: theme,
+                                customColors: theme === 'custom' && !chartSettings.customColors?.length
+                                  ? defaultCustomColors
+                                  : chartSettings.customColors
+                              })}
+                              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors ${
+                                chartSettings.colorTheme === theme
+                                  ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
+                                  : isDark ? 'bg-[#2a2a2a] text-gray-400 hover:bg-[#333]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }`}
+                            >
+                              {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Custom Color Picker */}
+                        {chartSettings.colorTheme === 'custom' && (
+                          <div className="mt-3">
+                            <div className="flex flex-wrap gap-2.5">
+                              {(chartSettings.customColors || defaultCustomColors).map((color, index) => (
+                                <div key={index} className="relative group" data-color-picker>
+                                  <button
+                                    onClick={() => {
+                                      setAddingNewColor(false);
+                                      setEditingColorIndex(editingColorIndex === index ? null : index);
+                                    }}
+                                    className={`w-8 h-8 rounded-lg cursor-pointer transition-all ${
+                                      editingColorIndex === index
+                                        ? 'ring-2 ring-gray-900 dark:ring-white ring-offset-2'
+                                        : 'hover:scale-105'
+                                    }`}
+                                    style={{ backgroundColor: color }}
+                                    title="Click to change"
+                                  />
+                                  {/* Remove button */}
+                                  {(chartSettings.customColors || defaultCustomColors).length > 1 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const newColors = [...(chartSettings.customColors || defaultCustomColors)];
+                                        newColors.splice(index, 1);
+                                        handleSettingsChange({ ...chartSettings, customColors: newColors });
+                                        if (editingColorIndex === index) setEditingColorIndex(null);
+                                      }}
+                                      className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gray-800 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                  {/* Color Picker Dropdown - fixed position */}
+                                  {editingColorIndex === index && (
+                                    <div
+                                      className={`fixed z-[9999] rounded-xl shadow-2xl p-3 ${
+                                        isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
+                                      }`}
+                                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className={`text-xs font-medium mb-2 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Pick a color</div>
+                                      <div className="space-y-1.5">
+                                        {colorRows.map((row, rowIndex) => (
+                                          <div key={rowIndex} className="flex justify-center gap-1.5">
+                                            {row.map((paletteColor, pIndex) => (
+                                              <button
+                                                key={pIndex}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const newColors = [...(chartSettings.customColors || defaultCustomColors)];
+                                                  newColors[index] = paletteColor;
+                                                  handleSettingsChange({ ...chartSettings, customColors: newColors });
+                                                  setEditingColorIndex(null);
+                                                }}
+                                                className={`w-6 h-6 rounded-md cursor-pointer hover:scale-110 transition-transform ${
+                                                  color === paletteColor ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+                                                }`}
+                                                style={{ backgroundColor: paletteColor }}
+                                              />
+                                            ))}
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <button
+                                        onClick={() => setEditingColorIndex(null)}
+                                        className={`mt-2 w-full text-xs py-1 border-t ${
+                                          isDark ? 'text-gray-400 hover:text-gray-300 border-[#333]' : 'text-gray-500 hover:text-gray-700 border-gray-100'
+                                        }`}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              {(chartSettings.customColors || defaultCustomColors).length < 8 && (
+                                <div className="relative" data-color-picker>
+                                  <button
+                                    onClick={() => {
+                                      setEditingColorIndex(null);
+                                      setAddingNewColor(!addingNewColor);
+                                    }}
+                                    className={`w-8 h-8 rounded-lg border-2 border-dashed flex items-center justify-center transition-all ${
+                                      addingNewColor
+                                        ? 'ring-2 ring-gray-900 dark:ring-white ring-offset-2 border-gray-400'
+                                        : isDark ? 'border-[#444] text-gray-400 hover:border-gray-500' : 'border-gray-300 text-gray-400 hover:border-gray-400'
+                                    }`}
+                                    title="Add color"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                  </button>
+                                  {/* Add New Color Picker */}
+                                  {addingNewColor && (
+                                    <div
+                                      className={`fixed z-[9999] rounded-xl shadow-2xl p-3 ${
+                                        isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
+                                      }`}
+                                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className={`text-xs font-medium mb-2 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Add a color</div>
+                                      <div className="space-y-1.5">
+                                        {colorRows.map((row, rowIndex) => (
+                                          <div key={rowIndex} className="flex justify-center gap-1.5">
+                                            {row.map((paletteColor, pIndex) => (
+                                              <button
+                                                key={pIndex}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const newColors = [...(chartSettings.customColors || defaultCustomColors), paletteColor];
+                                                  handleSettingsChange({ ...chartSettings, customColors: newColors });
+                                                  setAddingNewColor(false);
+                                                }}
+                                                className="w-6 h-6 rounded-md cursor-pointer hover:scale-110 transition-transform"
+                                                style={{ backgroundColor: paletteColor }}
+                                              />
+                                            ))}
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <button
+                                        onClick={() => setAddingNewColor(false)}
+                                        className={`mt-2 w-full text-xs py-1 border-t ${
+                                          isDark ? 'text-gray-400 hover:text-gray-300 border-[#333]' : 'text-gray-500 hover:text-gray-700 border-gray-100'
+                                        }`}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Legend Position */}
+                      <div>
+                        <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Legend</span>
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                          {(['top', 'bottom', 'hidden'] as const).map(pos => (
+                            <button
+                              key={pos}
+                              onClick={() => handleSettingsChange({ ...chartSettings, legendPosition: pos })}
+                              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors ${
+                                chartSettings.legendPosition === pos
+                                  ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
+                                  : isDark ? 'bg-[#2a2a2a] text-gray-400 hover:bg-[#333]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }`}
+                            >
+                              {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Reset Button */}
+                      <button
+                        onClick={() => handleSettingsChange(defaultChartSettings)}
+                        className={`w-full mt-2 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-colors ${
+                          isDark
+                            ? 'border-[#333] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-300'
+                            : 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                        }`}
+                      >
+                        Reset to defaults
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* SQL Panel */}
+        {showSql && sqlQuery && (
+          <div className={`px-3 sm:px-5 py-2 border-b ${isDark ? 'bg-[#0f0f0f] border-[#222]' : 'bg-gray-50 border-gray-200'}`}>
+            <pre className={`text-xs font-mono whitespace-pre-wrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              {sqlQuery}
+            </pre>
+          </div>
+        )}
+
+        {/* Active Filters Bar */}
+        {activeFilterCount > 0 && (
+          <div className={`px-3 sm:px-5 py-1.5 border-b flex items-center gap-2 flex-wrap ${
+            isDark ? 'bg-[#0f0f0f] border-[#222]' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <span className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              Filters ({filteredRows.length} of {rows.length}):
+            </span>
+            {Object.entries(filters).map(([col, values]) =>
+              values?.map((val, idx) => (
+                <span
+                  key={`${col}-${idx}`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full ${
+                    isDark ? 'bg-[#333] text-gray-300' : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>{col}:</span>
+                  <span className="max-w-[60px] truncate">{formatCellValue(val)}</span>
+                  <button
+                    onClick={() => handleFilterChange(col, val)}
+                    className="ml-0.5 hover:opacity-70"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))
+            )}
+            <button
+              onClick={handleClearFilters}
+              className={`text-[10px] font-medium ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
+            >
+              Clear all
+            </button>
+          </div>
+        )}
 
         {/* Content Area - takes ALL remaining space */}
         <div className="flex-1 min-h-0 overflow-hidden">
           {currentView === "table" ? (
-            <FullscreenVirtualTable columns={columns} rows={rows} isDark={isDark} isMobile={isMobile} />
+            <FullscreenVirtualTable columns={columns} rows={filteredRows} isDark={isDark} isMobile={isMobile} />
           ) : (
             <div className="w-full h-full p-2 sm:p-4">
-              <LargeChart data={rows} columns={columns} chartType={currentView} isDark={isDark} isMobile={isMobile} />
+              <LargeChart data={filteredRows} columns={columns} chartType={currentView} isDark={isDark} isMobile={isMobile} settings={chartSettings} />
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <FullscreenFilterModal
+          columns={columns}
+          rows={rows}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          onClose={() => setShowFilterModal(false)}
+          isDark={isDark}
+        />
+      )}
+    </div>
+  );
+}
+
+// Fullscreen Filter Modal Component
+function FullscreenFilterModal({
+  columns,
+  rows,
+  filters,
+  onFilterChange,
+  onClearFilters,
+  onClose,
+  isDark,
+}: {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  filters: Record<string, unknown[]>;
+  onFilterChange: (column: string, value: unknown) => void;
+  onClearFilters: () => void;
+  onClose: () => void;
+  isDark: boolean;
+}) {
+  const [selectedColumn, setSelectedColumn] = useState<string | null>(columns[0] || null);
+  const [valueSearch, setValueSearch] = useState("");
+
+  const handleColumnSelect = useCallback((col: string) => {
+    setSelectedColumn(col);
+    setValueSearch("");
+  }, []);
+
+  // Get filtered rows based on current filters
+  const filteredRows = useMemo(() => {
+    if (Object.keys(filters).length === 0) return rows;
+    return rows.filter(row => {
+      for (const [col, values] of Object.entries(filters)) {
+        if (values && values.length > 0) {
+          const rowValue = String(row[col]);
+          if (!values.some(v => String(v) === rowValue)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [rows, filters]);
+
+  // Get unique values for selected column from filtered rows
+  const uniqueValues = useMemo(() => {
+    if (!selectedColumn) return [];
+    const seen = new Set<string>();
+    const values: unknown[] = [];
+    for (const row of filteredRows) {
+      const val = row[selectedColumn];
+      const key = String(val);
+      if (!seen.has(key)) {
+        seen.add(key);
+        values.push(val);
+      }
+    }
+    return values.sort((a, b) => String(a).localeCompare(String(b)));
+  }, [filteredRows, selectedColumn]);
+
+  // Filter values by search
+  const searchedValues = useMemo(() => {
+    if (!valueSearch) return uniqueValues.slice(0, 50);
+    const query = valueSearch.toLowerCase();
+    return uniqueValues.filter(v => String(v).toLowerCase().includes(query)).slice(0, 50);
+  }, [uniqueValues, valueSearch]);
+
+  const activeFilterCount = Object.values(filters).reduce((sum, v) => sum + (v?.length || 0), 0);
+  const columnFilters = selectedColumn ? (filters[selectedColumn] || []) : [];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div
+        className={`rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-2xl h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col ${
+          isDark ? 'bg-[#1a1a1a]' : 'bg-white'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center py-2">
+          <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`} />
+        </div>
+        {/* Header */}
+        <div className={`flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b ${isDark ? 'border-[#333]' : 'border-gray-200'}`}>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span className={`font-medium text-sm sm:text-base ${isDark ? 'text-white' : 'text-gray-900'}`}>Filter Data</span>
+            <span className={`text-[10px] sm:text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              ({filteredRows.length}/{rows.length})
+            </span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            {activeFilterCount > 0 && (
+              <button onClick={onClearFilters} className={`px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium rounded-lg ${isDark ? 'text-gray-400 hover:bg-[#333]' : 'text-gray-500 hover:bg-gray-100'}`}>
+                Clear
+              </button>
+            )}
+            <button onClick={onClose} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Two Column Layout - stacks on mobile */}
+        <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+          {/* Column Selector - horizontal scroll on mobile */}
+          <div className={`sm:w-48 border-b sm:border-b-0 sm:border-r flex flex-col flex-shrink-0 ${isDark ? 'border-[#333]' : 'border-gray-200'}`}>
+            <div className={`px-3 py-1.5 sm:py-2 text-[10px] font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400 bg-[#0f0f0f]' : 'text-gray-500 bg-gray-50'}`}>
+              Select Column
+            </div>
+            <div className="flex sm:flex-col overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto sm:flex-1 pb-1 sm:pb-0">
+              {columns.map(col => {
+                const colFilterCount = (filters[col] || []).length;
+                return (
+                  <button
+                    key={col}
+                    onClick={() => handleColumnSelect(col)}
+                    className={`flex-shrink-0 sm:flex-shrink text-left px-3 py-2 text-xs sm:text-sm flex items-center gap-1 sm:justify-between transition-colors whitespace-nowrap sm:whitespace-normal ${
+                      selectedColumn === col
+                        ? isDark ? 'bg-[#333] text-white sm:border-r-2 border-white' : 'bg-gray-100 text-gray-900 sm:border-r-2 border-gray-900'
+                        : isDark ? 'text-gray-300 hover:bg-[#222]' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="truncate">{col}</span>
+                    {colFilterCount > 0 && (
+                      <span className={`ml-1 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium rounded ${isDark ? 'bg-[#444] text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                        {colFilterCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Value Selector */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {selectedColumn ? (
+              <>
+                <div className={`px-3 py-2 border-b ${isDark ? 'border-[#262626]' : 'border-gray-100'}`}>
+                  <div className="relative">
+                    <svg className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder={`Search in "${selectedColumn}"...`}
+                      value={valueSearch}
+                      onChange={(e) => setValueSearch(e.target.value)}
+                      className={`w-full pl-8 sm:pl-9 pr-3 py-2 text-xs sm:text-sm rounded-lg border outline-none focus:border-gray-400 dark:focus:border-gray-500 ${
+                        isDark ? 'border-[#333] bg-[#0a0a0a] text-white' : 'border-gray-200 bg-gray-50 text-gray-900'
+                      }`}
+                      autoFocus
+                    />
+                  </div>
+                  <div className={`mt-1 sm:mt-1.5 text-[9px] sm:text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {uniqueValues.length} unique • {searchedValues.length} shown
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  {searchedValues.length === 0 ? (
+                    <div className={`flex items-center justify-center h-32 text-xs sm:text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {valueSearch ? "No matching values" : "No values"}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                      {searchedValues.map((value, idx) => {
+                        const isActive = columnFilters.some(f => String(f) === String(value));
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => onFilterChange(selectedColumn, value)}
+                            className={`text-left px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-2 ${
+                              isActive
+                                ? isDark ? 'bg-[#333] text-white ring-1 ring-[#444]' : 'bg-gray-100 text-gray-900 ring-1 ring-gray-300'
+                                : isDark ? 'text-gray-300 hover:bg-[#2a2a2a]' : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <span className={`w-3.5 sm:w-4 h-3.5 sm:h-4 rounded border flex-shrink-0 flex items-center justify-center ${
+                              isActive ? (isDark ? 'border-white bg-white' : 'border-gray-900 bg-gray-900') : isDark ? 'border-[#444]' : 'border-gray-300'
+                            }`}>
+                              {isActive && <svg className={`w-2 sm:w-2.5 h-2 sm:h-2.5 ${isDark ? 'text-black' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                            </span>
+                            <span className="truncate flex-1">{formatCellValue(value)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className={`flex items-center justify-center h-32 sm:h-full text-xs sm:text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                Select a column
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className={`px-3 sm:px-4 py-2.5 sm:py-3 border-t flex items-center justify-between flex-shrink-0 ${isDark ? 'border-[#333] bg-[#0f0f0f]' : 'border-gray-200 bg-gray-50'}`}>
+          <span className={`text-[10px] sm:text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{filteredRows.length}</span>/{rows.length} rows
+          </span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => {
+                const headers = columns.join(",");
+                const csvRows = filteredRows.map((row) =>
+                  columns.map((col) => {
+                    const val = row[col];
+                    const strVal = String(val ?? "");
+                    if (strVal.includes(",") || strVal.includes('"') || strVal.includes("\n")) {
+                      return `"${strVal.replace(/"/g, '""')}"`;
+                    }
+                    return strVal;
+                  }).join(",")
+                );
+                const csv = [headers, ...csvRows].join("\n");
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `filtered-data-${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+              }}
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-colors ${
+                isDark ? 'border-[#333] text-gray-300 hover:bg-[#222]' : 'border-gray-200 text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            <button onClick={onClose} className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-gray-900 text-white hover:bg-gray-800'}`}>
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>
