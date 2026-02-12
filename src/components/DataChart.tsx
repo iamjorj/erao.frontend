@@ -200,11 +200,18 @@ function detectColumnType(columnName: string): ColumnSemanticType {
     return 'id';
   }
 
-  // Score/Rating columns - should AVG
+  // Score/Rating/Measurement columns - should AVG
   if (name.includes('score') || name.includes('rating') || name.includes('grade') ||
       name.includes('cgpa') || name.includes('gpa') || name.includes('marks') ||
       name.includes('rank') || name.includes('level') || name.includes('tier') ||
-      name.includes('points') || name.includes('stars')) {
+      name.includes('points') || name.includes('stars') ||
+      name.includes('hour') || name.includes('duration') || name.includes('minute') ||
+      name.includes('age') || name.includes('sleep') || name.includes('activity') ||
+      name.includes('weight') || name.includes('height') || name.includes('bmi') ||
+      name.includes('temperature') || name.includes('temp') ||
+      name.includes('depression') || name.includes('anxiety') || name.includes('satisfaction') ||
+      name.includes('distance') || name.includes('speed') || name.includes('average') ||
+      name.includes('mean') || name.includes('median')) {
     return 'score';
   }
 
@@ -334,7 +341,7 @@ function smartAggregateData(
       case 'id':
       case 'junk':
         aggregation = 'COUNT';
-        displayName = `Count`;
+        displayName = `Count of ${col}`;
         break;
       case 'score':
       case 'percentage':
@@ -347,7 +354,7 @@ function smartAggregateData(
         displayName = `Total ${col}`;
         break;
       default:
-        // For unknown numeric, use AVG if values are small, COUNT if looks like IDs
+        // For unknown numeric, check uniqueness + value range to detect IDs vs metrics
         const sampleValues = data.slice(0, 100).map(row => {
           const val = row[col];
           return typeof val === 'number' ? val : Number(val) || 0;
@@ -356,12 +363,12 @@ function smartAggregateData(
         if (sampleValues.length > 0) {
           const avg = sampleValues.reduce((a, b) => a + b, 0) / sampleValues.length;
           const max = Math.max(...sampleValues);
-          // If values look like sequential IDs (high values, close to row count)
-          if (max > data.length * 0.5 && avg > data.length * 0.3) {
+          const uniqueRatio = new Set(sampleValues).size / sampleValues.length;
+          // IDs: nearly unique values + values proportional to dataset size
+          if (uniqueRatio > 0.85 && max > data.length * 0.5 && avg > data.length * 0.3) {
             aggregation = 'COUNT';
             displayName = `Count`;
           } else if (max <= 100 || avg <= 50) {
-            // Small values, probably ratings/scores
             aggregation = 'AVG';
             displayName = `Avg ${col}`;
           } else {
@@ -369,8 +376,9 @@ function smartAggregateData(
             displayName = `Total ${col}`;
           }
         } else {
-          aggregation = 'COUNT';
-          displayName = `Count`;
+          // No non-zero values (likely binary 0/1 column) — AVG gives proportion
+          aggregation = 'AVG';
+          displayName = `Avg ${col}`;
         }
     }
 
@@ -655,7 +663,7 @@ export const DataChart = memo(function DataChart({
         case 'id':
         case 'junk':
           aggregation = 'COUNT';
-          displayName = `Count`;
+          displayName = `Count of ${col}`;
           break;
         case 'score':
         case 'percentage':
@@ -668,7 +676,7 @@ export const DataChart = memo(function DataChart({
           displayName = `Total ${col}`;
           break;
         default:
-          // For unknown numeric, check if values look like IDs
+          // For unknown numeric, check uniqueness + value range to detect IDs vs metrics
           const sampleValues = data.slice(0, 100).map(row => {
             const val = row[col];
             return typeof val === 'number' ? val : Number(val) || 0;
@@ -677,7 +685,9 @@ export const DataChart = memo(function DataChart({
           if (sampleValues.length > 0) {
             const avg = sampleValues.reduce((a, b) => a + b, 0) / sampleValues.length;
             const max = Math.max(...sampleValues);
-            if (max > data.length * 0.5 && avg > data.length * 0.3) {
+            const uniqueRatio = new Set(sampleValues).size / sampleValues.length;
+            // IDs: nearly unique values + values proportional to dataset size
+            if (uniqueRatio > 0.85 && max > data.length * 0.5 && avg > data.length * 0.3) {
               aggregation = 'COUNT';
               displayName = `Count`;
             } else if (max <= 100 || avg <= 50) {
@@ -688,8 +698,9 @@ export const DataChart = memo(function DataChart({
               displayName = `Total ${col}`;
             }
           } else {
-            aggregation = 'COUNT';
-            displayName = `Count`;
+            // No non-zero values (likely binary 0/1 column) — AVG gives proportion
+            aggregation = 'AVG';
+            displayName = `Avg ${col}`;
           }
       }
 
