@@ -302,6 +302,25 @@ function findBestCategoricalColumn(
   return null;
 }
 
+// Build a display name for a column+aggregation, avoiding double prefixes
+// (e.g., if column is already "Avg Sleep Duration", don't produce "Avg Avg Sleep Duration")
+function buildDisplayName(col: string, aggregation: AggregationType): string {
+  const lower = col.toLowerCase();
+  const alreadyPrefixed = lower.startsWith('avg ') || lower.startsWith('total ') ||
+    lower.startsWith('count ') || lower.startsWith('sum ') || lower.startsWith('min ') ||
+    lower.startsWith('max ') || lower.startsWith('count of ');
+  if (alreadyPrefixed) return col;
+
+  switch (aggregation) {
+    case 'COUNT': return `Count`;
+    case 'AVG': return `Avg ${col}`;
+    case 'SUM': return `Total ${col}`;
+    case 'MIN': return `Min ${col}`;
+    case 'MAX': return `Max ${col}`;
+    default: return col;
+  }
+}
+
 // Aggregate info for tooltip/legend
 interface AggregationInfo {
   column: string;
@@ -329,29 +348,25 @@ function smartAggregateData(
       return {
         column: col,
         aggregation,
-        displayName: `${aggregation} ${col}`,
+        displayName: buildDisplayName(col, aggregation),
         detectedType,
       };
     }
 
     let aggregation: AggregationType;
-    let displayName: string;
 
     switch (detectedType) {
       case 'id':
       case 'junk':
         aggregation = 'COUNT';
-        displayName = `Count of ${col}`;
         break;
       case 'score':
       case 'percentage':
         aggregation = 'AVG';
-        displayName = `Avg ${col}`;
         break;
       case 'amount':
       case 'count':
         aggregation = 'SUM';
-        displayName = `Total ${col}`;
         break;
       default:
         // For unknown numeric, check uniqueness + value range to detect IDs vs metrics
@@ -367,22 +382,18 @@ function smartAggregateData(
           // IDs: nearly unique values + values proportional to dataset size
           if (uniqueRatio > 0.85 && max > data.length * 0.5 && avg > data.length * 0.3) {
             aggregation = 'COUNT';
-            displayName = `Count`;
           } else if (max <= 100 || avg <= 50) {
             aggregation = 'AVG';
-            displayName = `Avg ${col}`;
           } else {
             aggregation = 'SUM';
-            displayName = `Total ${col}`;
           }
         } else {
           // No non-zero values (likely binary 0/1 column) — AVG gives proportion
           aggregation = 'AVG';
-          displayName = `Avg ${col}`;
         }
     }
 
-    return { column: col, aggregation, displayName, detectedType };
+    return { column: col, aggregation, displayName: buildDisplayName(col, aggregation), detectedType };
   });
 
   // Group by label with incremental aggregation (memory-efficient for large datasets)
@@ -657,23 +668,19 @@ export const DataChart = memo(function DataChart({
     const aggregationInfo: AggregationInfo[] = finalDataColumns.map(col => {
       const type = detectColumnType(col);
       let aggregation: AggregationType;
-      let displayName: string;
 
       switch (type) {
         case 'id':
         case 'junk':
           aggregation = 'COUNT';
-          displayName = `Count of ${col}`;
           break;
         case 'score':
         case 'percentage':
           aggregation = 'AVG';
-          displayName = `Avg ${col}`;
           break;
         case 'amount':
         case 'count':
           aggregation = 'SUM';
-          displayName = `Total ${col}`;
           break;
         default:
           // For unknown numeric, check uniqueness + value range to detect IDs vs metrics
@@ -689,22 +696,18 @@ export const DataChart = memo(function DataChart({
             // IDs: nearly unique values + values proportional to dataset size
             if (uniqueRatio > 0.85 && max > data.length * 0.5 && avg > data.length * 0.3) {
               aggregation = 'COUNT';
-              displayName = `Count`;
             } else if (max <= 100 || avg <= 50) {
               aggregation = 'AVG';
-              displayName = `Avg ${col}`;
             } else {
               aggregation = 'SUM';
-              displayName = `Total ${col}`;
             }
           } else {
             // No non-zero values (likely binary 0/1 column) — AVG gives proportion
             aggregation = 'AVG';
-            displayName = `Avg ${col}`;
           }
       }
 
-      return { column: col, aggregation, displayName, detectedType: type };
+      return { column: col, aggregation, displayName: buildDisplayName(col, aggregation), detectedType: type };
     });
 
     // Check if label column is categorical (few unique values)
@@ -924,12 +927,12 @@ export const DataChart = memo(function DataChart({
             </p>
           )}
           {payload.map((entry, index) => {
-            // Look up by dataKey (raw column name) first, then by display name
-            const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey)
-              || aggregationInfo?.find(a => a.displayName === entry.name);
-            const displayLabel = aggInfo?.displayName || entry.name;
+            const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey);
+            // Use entry.name (set via Bar/Line/Area name prop) which already has the display name
+            const displayLabel = entry.name || aggInfo?.displayName || entry.dataKey || 'Value';
+            const isAvg = aggInfo?.aggregation === 'AVG' || displayLabel.toLowerCase().startsWith('avg ');
             const formattedValue = typeof entry.value === "number"
-              ? (aggInfo?.aggregation === 'AVG'
+              ? (isAvg
                 ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
                 : entry.value.toLocaleString())
               : entry.value;
