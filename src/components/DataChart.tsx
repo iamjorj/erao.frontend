@@ -924,7 +924,9 @@ export const DataChart = memo(function DataChart({
             </p>
           )}
           {payload.map((entry, index) => {
-            const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey || a.column === entry.name);
+            // Look up by dataKey (raw column name) first, then by display name
+            const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey)
+              || aggregationInfo?.find(a => a.displayName === entry.name);
             const displayLabel = aggInfo?.displayName || entry.name;
             const formattedValue = typeof entry.value === "number"
               ? (aggInfo?.aggregation === 'AVG'
@@ -1046,26 +1048,30 @@ export const DataChart = memo(function DataChart({
                   formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
                 />
               )}
-              {dataColumns.map((col, index) => (
-                <Bar
-                  key={col}
-                  dataKey={col}
-                  fill={chartColors[index % chartColors.length]}
-                  radius={[2, 2, 0, 0]}
-                  barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
-                  isAnimationActive={false}
-                >
-                  {settings.showDataLabels && (
-                    <LabelList
-                      dataKey={col}
-                      position="top"
-                      fill={tickColor}
-                      fontSize={isMobile ? 8 : 10}
-                      formatter={labelFormatter}
-                    />
-                  )}
-                </Bar>
-              ))}
+              {dataColumns.map((col, index) => {
+                const info = aggregationInfo.find(a => a.column === col);
+                return (
+                  <Bar
+                    key={col}
+                    dataKey={col}
+                    name={info?.displayName || col}
+                    fill={chartColors[index % chartColors.length]}
+                    radius={[2, 2, 0, 0]}
+                    barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
+                    isAnimationActive={false}
+                  >
+                    {settings.showDataLabels && (
+                      <LabelList
+                        dataKey={col}
+                        position="top"
+                        fill={tickColor}
+                        fontSize={isMobile ? 8 : 10}
+                        formatter={labelFormatter}
+                      />
+                    )}
+                  </Bar>
+                );
+              })}
             </BarChart>
           </ResponsiveContainer>
         );
@@ -1101,28 +1107,32 @@ export const DataChart = memo(function DataChart({
                   formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
                 />
               )}
-              {dataColumns.map((col, index) => (
-                <Line
-                  key={col}
-                  type="monotone"
-                  dataKey={col}
-                  stroke={chartColors[index % chartColors.length]}
-                  strokeWidth={isMobile ? 1.5 : 2}
-                  dot={!isMobile && dataCount <= 30 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 2 } : false}
-                  activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
-                  isAnimationActive={false}
-                >
-                  {settings.showDataLabels && !isMobile && dataCount <= 20 && (
-                    <LabelList
-                      dataKey={col}
-                      position="top"
-                      fill={tickColor}
-                      fontSize={9}
-                      formatter={labelFormatter}
-                    />
-                  )}
-                </Line>
-              ))}
+              {dataColumns.map((col, index) => {
+                const info = aggregationInfo.find(a => a.column === col);
+                return (
+                  <Line
+                    key={col}
+                    type="monotone"
+                    dataKey={col}
+                    name={info?.displayName || col}
+                    stroke={chartColors[index % chartColors.length]}
+                    strokeWidth={isMobile ? 1.5 : 2}
+                    dot={!isMobile && dataCount <= 30 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 2 } : false}
+                    activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
+                    isAnimationActive={false}
+                  >
+                    {settings.showDataLabels && !isMobile && dataCount <= 20 && (
+                      <LabelList
+                        dataKey={col}
+                        position="top"
+                        fill={tickColor}
+                        fontSize={9}
+                        formatter={labelFormatter}
+                      />
+                    )}
+                  </Line>
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         );
@@ -1158,28 +1168,32 @@ export const DataChart = memo(function DataChart({
                   formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
                 />
               )}
-              {dataColumns.map((col, index) => (
-                <Area
-                  key={col}
-                  type="monotone"
-                  dataKey={col}
-                  stroke={chartColors[index % chartColors.length]}
-                  fill={chartColors[index % chartColors.length]}
-                  fillOpacity={0.3}
-                  activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
-                  isAnimationActive={false}
-                >
-                  {settings.showDataLabels && !isMobile && dataCount <= 20 && (
-                    <LabelList
-                      dataKey={col}
-                      position="top"
-                      fill={tickColor}
-                      fontSize={9}
-                      formatter={labelFormatter}
-                    />
-                  )}
-                </Area>
-              ))}
+              {dataColumns.map((col, index) => {
+                const info = aggregationInfo.find(a => a.column === col);
+                return (
+                  <Area
+                    key={col}
+                    type="monotone"
+                    dataKey={col}
+                    name={info?.displayName || col}
+                    stroke={chartColors[index % chartColors.length]}
+                    fill={chartColors[index % chartColors.length]}
+                    fillOpacity={0.3}
+                    activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
+                    isAnimationActive={false}
+                  >
+                    {settings.showDataLabels && !isMobile && dataCount <= 20 && (
+                      <LabelList
+                        dataKey={col}
+                        position="top"
+                        fill={tickColor}
+                        fontSize={9}
+                        formatter={labelFormatter}
+                      />
+                    )}
+                  </Area>
+                );
+              })}
             </AreaChart>
           </ResponsiveContainer>
         );
