@@ -21,6 +21,7 @@ interface DataViewerModalProps {
   rows: Record<string, unknown>[];
   initialChartType?: ChartType;
   sqlQuery?: string;
+  userQuestion?: string;
   initialChartSettings?: ChartSettings;
   onSettingsChange?: (settings: ChartSettings) => void;
 }
@@ -172,6 +173,7 @@ export function DataViewerModal({
   rows,
   initialChartType = "table",
   sqlQuery,
+  userQuestion,
   initialChartSettings,
   onSettingsChange,
 }: DataViewerModalProps) {
@@ -762,8 +764,8 @@ export function DataViewerModal({
                         </div>
                       )}
 
-                      {/* Aggregation */}
-                      {dataAnalysis.isCategorical && dataAnalysis.numericColumns.length > 0 && (
+                      {/* Aggregation - show when there are numeric columns */}
+                      {dataAnalysis.numericColumns.length > 0 && (
                         <div>
                           <span className={`text-[11px] mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                             Aggregation

@@ -226,11 +226,24 @@ export interface ChatRequest {
   executeQuery?: boolean; // Default: true
 }
 
+// Visualization hint returned with chat response (single AI call)
+export interface VisualizationHint {
+  chartType: 'bar' | 'line' | 'pie' | 'area' | 'table';
+  groupByColumn: string | null;
+  valueColumns: ValueColumnHint[];
+}
+
+export interface ValueColumnHint {
+  column: string;
+  aggregation: 'SUM' | 'AVG' | 'COUNT' | 'MIN' | 'MAX' | 'NONE';
+}
+
 export interface ChatResponse {
   userMessage: Message;
   assistantMessage: Message;
   queryResult: string | null;
   tokensUsed: number;
+  visualizationHint?: VisualizationHint;
 }
 
 // Usage types
@@ -390,6 +403,60 @@ export interface DataInsight {
   query?: string;
   severity: 'info' | 'warning' | 'important';
   metadata: Record<string, unknown>;
+}
+
+// AI-Powered Visualization types
+export interface AnalyzeVisualizationRequest {
+  columns: string[];
+  sampleRows: Record<string, unknown>[];
+  totalRowCount: number;
+  sqlQuery?: string;
+  userQuestion?: string;
+}
+
+export interface ValueColumnRecommendation {
+  column: string;
+  aggregation: 'COUNT' | 'SUM' | 'AVG' | 'MIN' | 'MAX' | 'NONE';
+  reason: string;
+  displayName: string;
+  formatHint: 'number' | 'currency' | 'percentage' | 'decimal';
+}
+
+export interface AlternativeVisualization {
+  chartType: string;
+  groupByColumn: string | null;
+  description: string;
+  valueColumns: string[];
+}
+
+export interface VisualizationDataInsight {
+  type: 'distribution' | 'trend' | 'outlier' | 'correlation' | 'cardinality' | 'quality';
+  description: string;
+  importance: 'low' | 'medium' | 'high';
+  relatedColumns: string[];
+}
+
+export interface ColumnMetadata {
+  name: string;
+  semanticType: 'id' | 'name' | 'category' | 'date' | 'datetime' | 'currency' | 'percentage' | 'count' | 'measure' | 'dimension' | 'text';
+  dataType: 'string' | 'number' | 'boolean' | 'date' | 'datetime';
+  uniqueCount: number;
+  nullCount: number;
+  isCategorical: boolean;
+  isNumeric: boolean;
+  sampleValues: string[];
+}
+
+export interface VisualizationRecommendation {
+  recommendedChartType: 'bar' | 'line' | 'pie' | 'area' | 'table';
+  chartTypeReason: string;
+  groupByColumn: string | null;
+  valueColumns: ValueColumnRecommendation[];
+  alternatives: AlternativeVisualization[];
+  insights: VisualizationDataInsight[];
+  columnMetadata: ColumnMetadata[];
+  shouldAggregate: boolean;
+  suggestedTitle: string | null;
 }
 
 class ApiClient {
@@ -769,6 +836,15 @@ class ApiClient {
   async getFileInsights(fileId: string): Promise<ApiResponse<DataInsight[]>> {
     return this.request<DataInsight[]>(`/api/data-exploration/files/${fileId}/insights`, {
       method: 'POST',
+    });
+  }
+
+  // ========== AI-Powered Visualization ==========
+
+  async analyzeVisualization(request: AnalyzeVisualizationRequest): Promise<ApiResponse<VisualizationRecommendation>> {
+    return this.request<VisualizationRecommendation>('/api/data-exploration/analyze-visualization', {
+      method: 'POST',
+      body: JSON.stringify(request),
     });
   }
 }

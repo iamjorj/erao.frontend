@@ -227,6 +227,19 @@ function detectColumnType(columnName: string): ColumnSemanticType {
   return 'numeric';
 }
 
+// Helper to count unique values with early exit (optimized for large datasets)
+function countUniqueValues(data: Record<string, unknown>[], col: string, maxCheck: number = 100): number {
+  const sampleSize = Math.min(data.length, 2000); // Sample first 2000 rows
+  const uniqueValues = new Set<string>();
+
+  for (let i = 0; i < sampleSize; i++) {
+    uniqueValues.add(String(data[i][col] ?? ''));
+    if (uniqueValues.size > maxCheck) return uniqueValues.size; // Early exit
+  }
+
+  return uniqueValues.size;
+}
+
 // Find the best categorical column for grouping
 function findBestCategoricalColumn(
   data: Record<string, unknown>[],
@@ -247,8 +260,8 @@ function findBestCategoricalColumn(
   for (const pattern of categoryPatterns) {
     const match = nonNumericColumns.find(col => col.toLowerCase().includes(pattern));
     if (match) {
-      const uniqueValues = new Set(data.map(row => String(row[match] ?? ''))).size;
-      if (uniqueValues >= 2 && uniqueValues <= 50) {
+      const uniqueCount = countUniqueValues(data, match, 50);
+      if (uniqueCount >= 2 && uniqueCount <= 50) {
         return match;
       }
     }
@@ -256,8 +269,8 @@ function findBestCategoricalColumn(
 
   // Then find any non-numeric column with good cardinality (2-30 unique values)
   for (const col of nonNumericColumns) {
-    const uniqueValues = new Set(data.map(row => String(row[col] ?? ''))).size;
-    if (uniqueValues >= 2 && uniqueValues <= 30) {
+    const uniqueCount = countUniqueValues(data, col, 30);
+    if (uniqueCount >= 2 && uniqueCount <= 30) {
       return col;
     }
   }
@@ -265,8 +278,8 @@ function findBestCategoricalColumn(
   // Fall back to first non-numeric column if it has reasonable cardinality
   if (nonNumericColumns.length > 0) {
     const firstCol = nonNumericColumns[0];
-    const uniqueValues = new Set(data.map(row => String(row[firstCol] ?? ''))).size;
-    if (uniqueValues <= 100) {
+    const uniqueCount = countUniqueValues(data, firstCol, 100);
+    if (uniqueCount <= 100) {
       return firstCol;
     }
   }
@@ -355,8 +368,13 @@ function smartAggregateData(
     return { column: col, aggregation, displayName, detectedType };
   });
 
-  // Group by label
-  const grouped = new Map<string, { values: Record<string, number[]>; count: number }>();
+  // Group by label with incremental aggregation (memory-efficient for large datasets)
+  // Instead of storing all values, we compute running sum/count/min/max
+  interface GroupStats {
+    count: number;
+    stats: Record<string, { sum: number; count: number; min: number; max: number }>;
+  }
+  const grouped = new Map<string, GroupStats>();
 
   data.forEach((row) => {
     const label = String(row[labelColumn] ?? "Unknown");
@@ -365,21 +383,26 @@ function smartAggregateData(
     if (excludedCategories?.has(label)) return;
 
     if (!grouped.has(label)) {
-      grouped.set(label, { values: {}, count: 0 });
+      const stats: Record<string, { sum: number; count: number; min: number; max: number }> = {};
       valueColumns.forEach((col) => {
-        grouped.get(label)!.values[col] = [];
+        stats[col] = { sum: 0, count: 0, min: Infinity, max: -Infinity };
       });
+      grouped.set(label, { count: 0, stats });
     }
     const group = grouped.get(label)!;
     group.count++;
     valueColumns.forEach((col) => {
       const val = row[col];
       const numVal = typeof val === "number" ? val : Number(val) || 0;
-      group.values[col].push(numVal);
+      const s = group.stats[col];
+      s.sum += numVal;
+      s.count++;
+      if (numVal < s.min) s.min = numVal;
+      if (numVal > s.max) s.max = numVal;
     });
   });
 
-  // Calculate aggregated values
+  // Calculate final aggregated values
   const result: Record<string, unknown>[] = Array.from(grouped.entries()).map(([label, group]) => {
     const item: Record<string, unknown> = {
       name: truncateLabel(label),
@@ -388,26 +411,24 @@ function smartAggregateData(
     };
 
     aggregationInfo.forEach(({ column, aggregation }) => {
-      const values = group.values[column];
+      const s = group.stats[column];
       let calcResult: number;
 
       switch (aggregation) {
         case 'COUNT':
-          calcResult = values.length;
+          calcResult = s.count;
           break;
         case 'AVG':
-          calcResult = values.length > 0
-            ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) / 100
-            : 0;
+          calcResult = s.count > 0 ? Math.round((s.sum / s.count) * 100) / 100 : 0;
           break;
         case 'SUM':
-          calcResult = values.reduce((a, b) => a + b, 0);
+          calcResult = s.sum;
           break;
         case 'MIN':
-          calcResult = values.length > 0 ? Math.min(...values) : 0;
+          calcResult = s.min === Infinity ? 0 : s.min;
           break;
         case 'MAX':
-          calcResult = values.length > 0 ? Math.max(...values) : 0;
+          calcResult = s.max === -Infinity ? 0 : s.max;
           break;
       }
 
@@ -426,9 +447,18 @@ function smartAggregateData(
 
 // Check if label column is categorical (few unique values - good for aggregation)
 function isCategoricalColumn(data: Record<string, unknown>[], labelColumn: string): boolean {
-  const uniqueValues = new Set(data.map(row => String(row[labelColumn] ?? "")));
-  // Categorical if 2-30 unique values and much less than data size
-  return uniqueValues.size >= 2 && uniqueValues.size <= 30 && uniqueValues.size < data.length * 0.5;
+  // Use early exit for large datasets - sample first 1000 rows
+  const sampleSize = Math.min(data.length, 1000);
+  const uniqueValues = new Set<string>();
+
+  for (let i = 0; i < sampleSize; i++) {
+    uniqueValues.add(String(data[i][labelColumn] ?? ""));
+    // Early exit if too many unique values
+    if (uniqueValues.size > 30) return false;
+  }
+
+  // Categorical if 2-30 unique values and much less than sample size
+  return uniqueValues.size >= 2 && uniqueValues.size <= 30 && uniqueValues.size < sampleSize * 0.5;
 }
 
 // Sample data with rolling average for smooth line/area charts
@@ -436,7 +466,7 @@ function sampleDataWithRollingAvg(
   data: Record<string, unknown>[],
   labelColumn: string,
   valueColumns: string[],
-  maxPoints: number = 100,
+  maxPoints: number = 50, // Reduced from 100 for better tooltip performance
   aggregationInfo: AggregationInfo[]
 ): Record<string, unknown>[] {
   if (data.length <= maxPoints) {
@@ -445,6 +475,7 @@ function sampleDataWithRollingAvg(
       const item: Record<string, unknown> = {
         name: truncateLabel(fullName, 12),
         fullName: fullName,
+        _index: idx, // Unique key for tooltip tracking
       };
       valueColumns.forEach((col) => {
         const val = row[col];
@@ -457,22 +488,26 @@ function sampleDataWithRollingAvg(
   // For large datasets, create buckets and aggregate
   const bucketSize = Math.ceil(data.length / maxPoints);
   const sampled: Record<string, unknown>[] = [];
+  let bucketIndex = 0;
 
   for (let i = 0; i < data.length; i += bucketSize) {
     const bucket = data.slice(i, Math.min(i + bucketSize, data.length));
     const firstRow = bucket[0];
     const lastRow = bucket[bucket.length - 1];
 
-    // Use range label for bucket
+    // Use range label for bucket with unique index to avoid duplicate keys
     const startLabel = String(firstRow[labelColumn] ?? `Row ${i + 1}`);
     const endLabel = String(lastRow[labelColumn] ?? `Row ${i + bucket.length}`);
-    const label = bucket.length > 1 ? `${truncateLabel(startLabel, 8)}...` : startLabel;
+    // Add bucket index to ensure uniqueness
+    const label = bucket.length > 1 ? `${bucketIndex + 1}` : truncateLabel(startLabel, 10);
 
     const item: Record<string, unknown> = {
       name: label,
-      fullName: bucket.length > 1 ? `${startLabel} to ${endLabel}` : startLabel,
+      fullName: bucket.length > 1 ? `${startLabel} to ${endLabel} (${bucket.length} rows)` : startLabel,
       _bucketSize: bucket.length,
+      _bucketIndex: bucketIndex,
     };
+    bucketIndex++;
 
     // Aggregate each column according to its type
     valueColumns.forEach((col) => {
@@ -580,6 +615,11 @@ export function DataChart({
     // Store all columns for the manipulation UI (including hidden ones)
     const allAvailableColumns = allDataColumns;
 
+    // If no numeric columns at all, can't render a chart
+    if (finalDataColumns.length === 0) {
+      return null;
+    }
+
     const isLargeDataset = data.length > 50;
 
     // Build aggregation info for all value columns
@@ -642,12 +682,9 @@ export function DataChart({
     // Count unique values in label column
     const uniqueLabelCount = new Set(data.map(row => String(row[labelColumn] ?? ""))).size;
 
-    // For line/area charts with very few categories (like Gender: Male/Female),
-    // don't aggregate - it creates meaningless straight lines
-    const shouldAggregateForLineArea = isCategorical && uniqueLabelCount > 5;
-
-    // For ALL chart types with categorical data, aggregate first (except line/area with few categories)
-    if (isCategorical && (chartType === "bar" || chartType === "pie" || shouldAggregateForLineArea)) {
+    // For ALL chart types with categorical data, aggregate first
+    // Categorical data (like Gender: Male/Female) should always be grouped
+    if (isCategorical) {
       // Use smart aggregation for categorical data
       const maxItems = chartType === "pie" ? 10 : 50;
       const result = smartAggregateData(
@@ -661,7 +698,7 @@ export function DataChart({
       chartData = result.chartData;
       finalAggregationInfo = result.aggregationInfo;
     } else if (chartType === "line" || chartType === "area") {
-      // For line/area with non-categorical data OR few categories, sample with rolling average
+      // For line/area with non-categorical (sequential/time) data, sample with rolling average
       chartData = sampleDataWithRollingAvg(data, labelColumn, finalDataColumns, 100, aggregationInfo);
     } else {
       // For bar/pie with non-categorical data
@@ -709,8 +746,12 @@ export function DataChart({
       }
     }
 
-    // Get all unique categories for manipulation UI
-    const allCategories = Array.from(new Set(data.map(row => String(row[labelColumn] ?? "Unknown"))));
+    // Get unique categories for manipulation UI (limit to 500 for performance with large datasets)
+    const allCategoriesSet = new Set<string>();
+    for (let i = 0; i < data.length && allCategoriesSet.size < 500; i++) {
+      allCategoriesSet.add(String(data[i][labelColumn] ?? "Unknown"));
+    }
+    const allCategories = Array.from(allCategoriesSet);
 
     const hasNonZeroValues = chartData.some((item) =>
       finalDataColumns.some((col) => (item[col] as number) > 0)
@@ -773,9 +814,18 @@ export function DataChart({
     };
   }, [data, columns, chartType, currentManipulation]);
 
-  if (!chartConfig) return null;
-
-  const { chartData, dataColumns, allAvailableColumns, pieData, hasNonZeroValues, isLargeDataset, aggregationInfo, chartDescription, isCategorical, allCategories, labelColumn } = chartConfig;
+  // Extract values from chartConfig (with defaults for when it's null)
+  const chartData = chartConfig?.chartData ?? [];
+  const dataColumns = chartConfig?.dataColumns ?? [];
+  const allAvailableColumns = chartConfig?.allAvailableColumns ?? [];
+  const pieData = chartConfig?.pieData ?? [];
+  const hasNonZeroValues = chartConfig?.hasNonZeroValues ?? false;
+  const isLargeDataset = chartConfig?.isLargeDataset ?? false;
+  const aggregationInfo = chartConfig?.aggregationInfo ?? [];
+  const chartDescription = chartConfig?.chartDescription ?? '';
+  const isCategorical = chartConfig?.isCategorical ?? false;
+  const allCategories = chartConfig?.allCategories ?? [];
+  const labelColumn = chartConfig?.labelColumn ?? '';
   const dataCount = chartData.length;
 
   // Disable animations for large datasets to improve performance
@@ -906,6 +956,15 @@ export function DataChart({
     });
   }, [setManipulation]);
 
+  // Early return for no data - AFTER all hooks are called
+  if (!chartConfig) {
+    return (
+      <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm ${fillContainer ? 'h-full' : 'h-64'}`}>
+        {chartType === "table" ? null : "No numeric data to visualize"}
+      </div>
+    );
+  }
+
   if (!hasNonZeroValues) {
     return (
       <div className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-2 sm:p-4 transition-colors">
@@ -1014,6 +1073,7 @@ export function DataChart({
                   stroke={chartColors[index % chartColors.length]}
                   strokeWidth={isMobile ? 1.5 : 2}
                   dot={!isMobile && dataCount <= 30 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 2 } : false}
+                  activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
                   isAnimationActive={enableAnimations}
                 >
                   {settings.showDataLabels && !isMobile && dataCount <= 20 && (
@@ -1070,6 +1130,7 @@ export function DataChart({
                   stroke={chartColors[index % chartColors.length]}
                   fill={chartColors[index % chartColors.length]}
                   fillOpacity={0.3}
+                  activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
                   isAnimationActive={enableAnimations}
                 >
                   {settings.showDataLabels && !isMobile && dataCount <= 20 && (
