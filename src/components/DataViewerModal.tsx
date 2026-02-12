@@ -532,7 +532,7 @@ export function DataViewerModal({
         {chartOnlyMode && (
           <button
             onClick={() => setChartOnlyMode(false)}
-            className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-lg border backdrop-blur-sm transition-all duration-200 hover:scale-105 ${
+            className={`absolute top-3 right-3 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg border backdrop-blur-sm transition-all duration-200 hover:scale-105 ${
               isDark
                 ? 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20 hover:text-white'
                 : 'bg-black/5 border-black/10 text-black/50 hover:bg-black/10 hover:text-black/70'
