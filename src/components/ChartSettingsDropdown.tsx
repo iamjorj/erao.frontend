@@ -62,11 +62,13 @@ export function ChartSettingsDropdown({
   const [showCustom, setShowCustom] = useState(settings.colorTheme === 'custom');
   const [localBarWidth, setLocalBarWidth] = useState(settings.barWidth);
   const isDragging = useRef(false);
+  const prevBarWidth = useRef(settings.barWidth);
 
   // Sync local bar width when settings change externally
-  useEffect(() => {
+  if (prevBarWidth.current !== settings.barWidth) {
+    prevBarWidth.current = settings.barWidth;
     if (!isDragging.current) setLocalBarWidth(settings.barWidth);
-  }, [settings.barWidth]);
+  }
 
   // Close on click outside
   useEffect(() => {
