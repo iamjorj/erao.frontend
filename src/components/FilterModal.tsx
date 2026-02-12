@@ -310,13 +310,13 @@ export function FilterModal({
                 filterArray?.map((filter) => (
                   <span
                     key={filter.id}
-                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg"
+                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg"
                   >
-                    <span className="text-blue-500 dark:text-blue-400">{col}:</span>
+                    <span className="text-gray-500 dark:text-gray-400">{col}:</span>
                     <span className="max-w-[100px] truncate">{operators.find(o => o.value === filter.operator)?.label} &quot;{filter.value}&quot;</span>
                     <button
                       onClick={() => onAdvancedFilterChange?.(col, filter, 'remove')}
-                      className="ml-0.5 p-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                      className="ml-0.5 p-0.5 rounded hover:bg-gray-300 dark:hover:bg-[#444]"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -421,6 +421,11 @@ export function FilterModal({
                           onChange={(e) => setAdvancedValue(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && selectedColumn && advancedValue) {
+                              // Check if same operator already exists for this column - replace it
+                              const existing = advancedFilters?.[selectedColumn]?.find(f => f.operator === advancedOperator);
+                              if (existing) {
+                                onAdvancedFilterChange(selectedColumn, existing, 'remove');
+                              }
                               const newFilter: AdvancedFilter = {
                                 operator: advancedOperator,
                                 value: advancedValue,
@@ -437,6 +442,11 @@ export function FilterModal({
                     <button
                       onClick={() => {
                         if (selectedColumn && advancedValue) {
+                          // Check if same operator already exists for this column - replace it
+                          const existing = advancedFilters?.[selectedColumn]?.find(f => f.operator === advancedOperator);
+                          if (existing) {
+                            onAdvancedFilterChange(selectedColumn, existing, 'remove');
+                          }
                           const newFilter: AdvancedFilter = {
                             operator: advancedOperator,
                             value: advancedValue,

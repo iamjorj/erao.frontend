@@ -54,6 +54,47 @@ body {
   overflow-x: hidden;
 }
 
+/* Global scrollbar - clean & minimal */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox global scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
 /* Fade in animation for carousel */
 @keyframes fadeIn {
   from {
@@ -230,42 +271,45 @@ input[type="range"].chart-slider {
   appearance: none;
   width: 100%;
   height: 4px;
-  border-radius: 2px;
+  border-radius: 9999px;
   background: #e5e7eb;
   outline: none;
   cursor: pointer;
+  margin: 0;
+}
+
+input[type="range"].chart-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: #e5e7eb;
 }
 
 input[type="range"].chart-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #374151;
+  background: #1f2937;
   border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   cursor: pointer;
-  transition: transform 0.1s;
-}
-
-input[type="range"].chart-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
+  margin-top: -6px;
 }
 
 input[type="range"].chart-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #374151;
+  background: #1f2937;
   border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   cursor: pointer;
 }
 
 input[type="range"].chart-slider::-moz-range-track {
   height: 4px;
-  border-radius: 2px;
+  border-radius: 9999px;
   background: #e5e7eb;
 }
 
@@ -273,14 +317,18 @@ input[type="range"].chart-slider::-moz-range-track {
   background: #333;
 }
 
+.dark input[type="range"].chart-slider::-webkit-slider-runnable-track {
+  background: #333;
+}
+
 .dark input[type="range"].chart-slider::-webkit-slider-thumb {
   background: #e5e7eb;
-  border-color: #1f1f1f;
+  border-color: #1a1a1a;
 }
 
 .dark input[type="range"].chart-slider::-moz-range-thumb {
   background: #e5e7eb;
-  border-color: #1f1f1f;
+  border-color: #1a1a1a;
 }
 
 .dark input[type="range"].chart-slider::-moz-range-track {

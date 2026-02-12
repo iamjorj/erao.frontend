@@ -188,6 +188,7 @@ export function DataViewerModal({
   const [chartSettings, setChartSettings] = useState<ChartSettings>(initialChartSettings || defaultChartSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [showManipulation, setShowManipulation] = useState(false);
+  const [chartOnlyMode, setChartOnlyMode] = useState(false);
   const [manipulation, setManipulation] = useState<ChartManipulation>({
     excludedCategories: new Set(),
     columnAggregations: {},
@@ -214,6 +215,22 @@ export function DataViewerModal({
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  // Escape key exits chart-only mode first, then closes modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (chartOnlyMode) {
+          e.stopPropagation();
+          setChartOnlyMode(false);
+        }
+      }
+    };
+    if (chartOnlyMode) {
+      document.addEventListener('keydown', handleKeyDown, true);
+      return () => document.removeEventListener('keydown', handleKeyDown, true);
+    }
+  }, [chartOnlyMode]);
 
   // Close manipulation on click outside
   useEffect(() => {
@@ -511,8 +528,29 @@ export function DataViewerModal({
         `}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Chart-only mode floating exit */}
+        {chartOnlyMode && (
+          <button
+            onClick={() => setChartOnlyMode(false)}
+            className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-lg border backdrop-blur-sm transition-all duration-200 hover:scale-105 ${
+              isDark
+                ? 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20 hover:text-white'
+                : 'bg-black/5 border-black/10 text-black/50 hover:bg-black/10 hover:text-black/70'
+            }`}
+            title="Exit focus mode (Esc)"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+            </svg>
+            <span className="text-xs font-medium">Exit Focus</span>
+            <kbd className={`text-[10px] px-1.5 py-0.5 rounded border ${
+              isDark ? 'border-white/20 bg-white/5' : 'border-black/10 bg-black/5'
+            }`}>Esc</kbd>
+          </button>
+        )}
+
         {/* Header - compact */}
-        <div className={`flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b flex-shrink-0 ${
+        {!chartOnlyMode && <div className={`flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b flex-shrink-0 ${
           isDark ? "border-[#222]" : "border-gray-200"
         }`}>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -548,9 +586,10 @@ export function DataViewerModal({
               </svg>
             </button>
           </div>
-        </div>
+        </div>}
 
         {/* View Toggle with Toolbar */}
+        {!chartOnlyMode && <>
         <div className={`flex items-center justify-between px-2 sm:px-5 py-2 sm:py-2.5 border-b flex-shrink-0 ${
           isDark ? "border-[#1a1a1a] bg-[#111]" : "border-gray-100 bg-gray-50/50"
         }`}>
@@ -612,7 +651,7 @@ export function DataViewerModal({
             {currentView !== "table" && (
               <div className="relative" ref={manipulationRef}>
                 <button
-                  onClick={() => setShowManipulation(!showManipulation)}
+                  onClick={() => { setShowSettings(false); setShowManipulation(!showManipulation); }}
                   className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                     showManipulation || hasActiveManipulations
                       ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
@@ -627,7 +666,7 @@ export function DataViewerModal({
                 {/* Mobile backdrop for manipulation */}
                 {showManipulation && (
                   <div
-                    className="fixed inset-0 bg-black/30 z-40 sm:hidden"
+                    className="fixed inset-0 bg-black/30 sm:bg-transparent z-40"
                     onClick={() => setShowManipulation(false)}
                   />
                 )}
@@ -787,7 +826,7 @@ export function DataViewerModal({
             {currentView !== "table" && (
               <>
                 <button
-                  onClick={() => setShowSettings(!showSettings)}
+                  onClick={() => { setShowManipulation(false); setShowSettings(!showSettings); }}
                   className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                     showSettings
                       ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
@@ -810,13 +849,28 @@ export function DataViewerModal({
                 )}
               </>
             )}
+
+            {/* Focus Mode Button - chart only fullscreen */}
+            {currentView !== "table" && (
+              <button
+                onClick={() => setChartOnlyMode(true)}
+                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                  isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+                title="Focus mode (chart only)"
+              >
+                <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
         {/* SQL Panel */}
         {showSql && sqlQuery && (
-          <div className={`px-3 sm:px-5 py-2 border-b ${isDark ? 'bg-[#0f0f0f] border-[#222]' : 'bg-gray-50 border-gray-200'}`}>
-            <pre className={`text-xs font-mono whitespace-pre-wrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <div className={`px-3 sm:px-5 py-2 border-b flex-shrink-0 ${isDark ? 'bg-[#0f0f0f] border-[#222]' : 'bg-gray-50 border-gray-200'}`}>
+            <pre className={`text-xs font-mono whitespace-pre-wrap max-h-[20vh] overflow-y-auto custom-scrollbar ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {sqlQuery}
             </pre>
           </div>
@@ -859,6 +913,7 @@ export function DataViewerModal({
             </button>
           </div>
         )}
+        </>}
 
         {/* Content Area - takes ALL remaining space */}
         <div className={`flex-1 min-h-0 overflow-hidden ${
@@ -869,7 +924,7 @@ export function DataViewerModal({
           {currentView === "table" ? (
             <FullscreenVirtualTable columns={columns} rows={filteredRows} isDark={isDark} isMobile={isMobile} />
           ) : (
-            <div className="w-full h-full p-3 sm:p-5">
+            <div className={`w-full h-full ${chartOnlyMode ? 'p-0' : 'p-3 sm:p-5'}`}>
               <DataChart
                 data={filteredRows}
                 columns={columns}
@@ -878,6 +933,7 @@ export function DataViewerModal({
                 manipulation={manipulation}
                 onManipulationChange={setManipulation}
                 fillContainer={true}
+                borderless={chartOnlyMode}
               />
             </div>
           )}

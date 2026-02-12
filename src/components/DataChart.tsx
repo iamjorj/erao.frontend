@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
 import {
   BarChart,
   Bar,
@@ -59,6 +59,7 @@ interface DataChartProps {
   manipulation?: ChartManipulation;
   onManipulationChange?: (manipulation: ChartManipulation) => void;
   fillContainer?: boolean; // When true, chart fills parent container instead of using fixed height
+  borderless?: boolean; // When true, removes padding, bg, and rounded corners (for focus mode)
 }
 
 // Hook to detect screen size
@@ -541,7 +542,7 @@ function sampleDataWithRollingAvg(
   return sampled;
 }
 
-export function DataChart({
+export const DataChart = memo(function DataChart({
   data,
   columns,
   chartType,
@@ -549,14 +550,11 @@ export function DataChart({
   manipulation,
   onManipulationChange,
   fillContainer = false,
+  borderless = false,
 }: DataChartProps) {
   const isDark = useDarkMode();
   const screenSize = useScreenSize();
   const isMobile = screenSize === "mobile";
-
-  // Track if manipulation has changed (disable animation after first render)
-  const hasManipulatedRef = useRef(false);
-  const prevManipulationRef = useRef(manipulation);
 
   // Local state for manipulation if not controlled
   const [localManipulation, setLocalManipulation] = useState<ChartManipulation>({
@@ -568,14 +566,6 @@ export function DataChart({
   const currentManipulation = manipulation || localManipulation;
   const setManipulation = onManipulationChange || setLocalManipulation;
 
-  // Detect manipulation changes to disable animation (avoid re-animation on every toggle)
-  useEffect(() => {
-    if (prevManipulationRef.current !== manipulation) {
-      hasManipulatedRef.current = true;
-      prevManipulationRef.current = manipulation;
-    }
-  }, [manipulation]);
-
   // Get colors based on theme setting
   const chartColors = settings.colorTheme === 'custom' && settings.customColors?.length
     ? settings.customColors
@@ -583,7 +573,9 @@ export function DataChart({
 
   // Responsive chart dimensions - fill available space
   const chartHeight = fillContainer ? "100%" : (isMobile ? 250 : screenSize === "tablet" ? 300 : 320);
-  const pieOuterRadius = isMobile ? 70 : screenSize === "tablet" ? 85 : 100;
+  const pieOuterRadius = fillContainer
+    ? (isMobile ? "70%" : "75%")
+    : (isMobile ? 70 : screenSize === "tablet" ? 85 : 100);
   const fontSize = isMobile ? 8 : screenSize === "tablet" ? 9 : 10;
   const legendFontSize = isMobile ? "10px" : "12px";
   const margins = isMobile
@@ -731,7 +723,7 @@ export function DataChart({
       finalAggregationInfo = result.aggregationInfo;
     } else if (chartType === "line" || chartType === "area") {
       // For line/area with non-categorical (sequential/time) data, sample with rolling average
-      chartData = sampleDataWithRollingAvg(data, labelColumn, finalDataColumns, 100, aggregationInfo);
+      chartData = sampleDataWithRollingAvg(data, labelColumn, finalDataColumns, 60, aggregationInfo);
     } else {
       // For bar/pie with non-categorical data
       if (isLargeDataset) {
@@ -860,9 +852,6 @@ export function DataChart({
   const labelColumn = chartConfig?.labelColumn ?? '';
   const dataCount = chartData.length;
 
-  // Disable animations for large datasets or after manipulation changes
-  const enableAnimations = dataCount <= 50 && !hasManipulatedRef.current;
-
   // Theme colors - pure black theme for dark mode
   const gridColor = isDark ? "#333333" : "#e5e7eb";
   const tickColor = isDark ? "#9ca3af" : "#6b7280";
@@ -883,6 +872,10 @@ export function DataChart({
   }, [dataCount]);
 
   const bottomMargin = dataCount > 10 ? 60 : 20;
+
+  // Memoized formatters to avoid re-creating on every render
+  const yAxisFormatter = useCallback((v: number) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)) : v.toLocaleString(), [isMobile]);
+  const labelFormatter = useCallback((v: unknown) => typeof v === 'number' && v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v), []);
 
   // Memoized tooltip content renderer to prevent re-renders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1027,7 +1020,7 @@ export function DataChart({
               />
               <YAxis
                 tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
-                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                tickFormatter={yAxisFormatter}
                 width={isMobile ? 35 : 60}
                 domain={[
                   settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
@@ -1049,7 +1042,7 @@ export function DataChart({
                   fill={chartColors[index % chartColors.length]}
                   radius={[2, 2, 0, 0]}
                   barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
-                  isAnimationActive={enableAnimations}
+                  isAnimationActive={false}
                 >
                   {settings.showDataLabels && (
                     <LabelList
@@ -1057,7 +1050,7 @@ export function DataChart({
                       position="top"
                       fill={tickColor}
                       fontSize={isMobile ? 8 : 10}
-                      formatter={(v) => typeof v === 'number' && v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)}
+                      formatter={labelFormatter}
                     />
                   )}
                 </Bar>
@@ -1082,7 +1075,7 @@ export function DataChart({
               />
               <YAxis
                 tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
-                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                tickFormatter={yAxisFormatter}
                 width={isMobile ? 35 : 60}
                 domain={[
                   settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
@@ -1106,7 +1099,7 @@ export function DataChart({
                   strokeWidth={isMobile ? 1.5 : 2}
                   dot={!isMobile && dataCount <= 30 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 2 } : false}
                   activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
-                  isAnimationActive={enableAnimations}
+                  isAnimationActive={false}
                 >
                   {settings.showDataLabels && !isMobile && dataCount <= 20 && (
                     <LabelList
@@ -1114,7 +1107,7 @@ export function DataChart({
                       position="top"
                       fill={tickColor}
                       fontSize={9}
-                      formatter={(v) => typeof v === 'number' && v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)}
+                      formatter={labelFormatter}
                     />
                   )}
                 </Line>
@@ -1139,7 +1132,7 @@ export function DataChart({
               />
               <YAxis
                 tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
-                tickFormatter={(v) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : v) : v.toLocaleString()}
+                tickFormatter={yAxisFormatter}
                 width={isMobile ? 35 : 60}
                 domain={[
                   settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
@@ -1163,7 +1156,7 @@ export function DataChart({
                   fill={chartColors[index % chartColors.length]}
                   fillOpacity={0.3}
                   activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
-                  isAnimationActive={enableAnimations}
+                  isAnimationActive={false}
                 >
                   {settings.showDataLabels && !isMobile && dataCount <= 20 && (
                     <LabelList
@@ -1171,7 +1164,7 @@ export function DataChart({
                       position="top"
                       fill={tickColor}
                       fontSize={9}
-                      formatter={(v) => typeof v === 'number' && v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)}
+                      formatter={labelFormatter}
                     />
                   )}
                 </Area>
@@ -1210,7 +1203,7 @@ export function DataChart({
                 label={!isMobile && pieData.length <= 8 && settings.showDataLabels ? renderLabel : false}
                 outerRadius={pieOuterRadius}
                 dataKey="value"
-                isAnimationActive={enableAnimations}
+                isAnimationActive={false}
               >
                 {pieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
@@ -1289,40 +1282,25 @@ export function DataChart({
 
   const infoText = getChartInfoText();
 
-  // Check if any manipulations are active
-  const hasActiveManipulations = currentManipulation.excludedCategories.size > 0 ||
-    Object.keys(currentManipulation.columnAggregations).length > 0 ||
-    currentManipulation.hiddenColumns.size > 0;
-
   return (
-    <div className="w-full h-full bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors overflow-hidden relative flex flex-col">
+    <div className={`w-full h-full overflow-hidden relative flex flex-col ${
+      borderless
+        ? 'p-0'
+        : 'bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors'
+    }`}>
       {/* Header */}
-      <div className="mb-2 sm:mb-3 text-center">
-        {chartDescription && (
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 font-medium">
-            {chartDescription}
-          </div>
-        )}
-        {infoText && (
-          <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
-            {infoText}
-          </div>
-        )}
-      </div>
-
-      {/* Active manipulations indicator */}
-      {hasActiveManipulations && (
-        <div className={`flex items-center gap-1.5 mb-2 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
-          </svg>
-          <span>
-            {currentManipulation.hiddenColumns.size > 0 && `${currentManipulation.hiddenColumns.size} hidden`}
-            {currentManipulation.hiddenColumns.size > 0 && currentManipulation.excludedCategories.size > 0 && ' · '}
-            {currentManipulation.excludedCategories.size > 0 && `${currentManipulation.excludedCategories.size} excluded`}
-            {(currentManipulation.hiddenColumns.size > 0 || currentManipulation.excludedCategories.size > 0) && Object.keys(currentManipulation.columnAggregations).length > 0 && ' · '}
-            {Object.keys(currentManipulation.columnAggregations).length > 0 && 'custom agg'}
-          </span>
+      {!borderless && (
+        <div className="mb-2 sm:mb-3 text-center">
+          {chartDescription && (
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 font-medium">
+              {chartDescription}
+            </div>
+          )}
+          {infoText && (
+            <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
+              {infoText}
+            </div>
+          )}
         </div>
       )}
 
@@ -1332,7 +1310,7 @@ export function DataChart({
       </div>
     </div>
   );
-}
+});
 
 // Helper function to detect best chart type based on data
 export function detectChartType(columns: string[], rowCount: number, data?: Record<string, unknown>[]): ChartType {

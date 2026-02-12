@@ -1997,7 +1997,7 @@ export default function AIPage() {
                                       {/* Settings Gear - only show when viewing charts */}
                                       {currentView !== "table" && (
                                         <button
-                                          onClick={() => setShowChartSettings(showChartSettings === viewKey ? null : viewKey)}
+                                          onClick={() => { setShowChartManipulation(null); setShowChartSettings(showChartSettings === viewKey ? null : viewKey); }}
                                           className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
                                           title="Chart settings"
                                         >
@@ -2020,7 +2020,7 @@ export default function AIPage() {
                                       {currentView !== "table" && (
                                         <>
                                           <button
-                                            onClick={() => setShowChartManipulation(showChartManipulation === viewKey ? null : viewKey)}
+                                            onClick={() => { setShowChartSettings(null); setShowChartManipulation(showChartManipulation === viewKey ? null : viewKey); }}
                                             className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                               hasActiveManipulation(viewKey) || showChartManipulation === viewKey
                                                 ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
@@ -2037,7 +2037,7 @@ export default function AIPage() {
                                             const manipulation = getManipulation(viewKey);
                                             return (
                                               <>
-                                                <div className="fixed inset-0 bg-black/20 z-40 sm:hidden" onClick={() => setShowChartManipulation(null)} />
+                                                <div className="fixed inset-0 bg-black/20 sm:bg-transparent z-40" onClick={() => setShowChartManipulation(null)} />
                                                 <div className="fixed z-50 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] shadow-xl overflow-y-auto overflow-x-hidden custom-scrollbar
                                                   inset-x-0 bottom-0 rounded-t-2xl p-5 pb-8 max-h-[75vh]
                                                   sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-5 sm:pb-5 sm:w-[280px] sm:max-h-[80vh]">
@@ -2416,7 +2416,7 @@ export default function AIPage() {
                                 {/* Settings Gear - only show when viewing charts */}
                                 {currentView !== "table" && (
                                   <button
-                                    onClick={() => setShowChartSettings(showChartSettings === message.id ? null : message.id)}
+                                    onClick={() => { setShowChartManipulation(null); setShowChartSettings(showChartSettings === message.id ? null : message.id); }}
                                     className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
                                     title="Chart settings"
                                   >
@@ -2439,7 +2439,7 @@ export default function AIPage() {
                                 {currentView !== "table" && (
                                   <>
                                     <button
-                                      onClick={() => setShowChartManipulation(showChartManipulation === message.id ? null : message.id)}
+                                      onClick={() => { setShowChartSettings(null); setShowChartManipulation(showChartManipulation === message.id ? null : message.id); }}
                                       className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                         hasActiveManipulation(message.id) || showChartManipulation === message.id
                                           ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
@@ -2456,7 +2456,7 @@ export default function AIPage() {
                                       const manipulation = getManipulation(message.id);
                                       return (
                                         <>
-                                          <div className="fixed inset-0 bg-black/20 z-40 sm:hidden" onClick={() => setShowChartManipulation(null)} />
+                                          <div className="fixed inset-0 bg-black/20 sm:bg-transparent z-40" onClick={() => setShowChartManipulation(null)} />
                                           <div className="fixed z-50 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] shadow-xl overflow-y-auto overflow-x-hidden custom-scrollbar
                                             inset-x-0 bottom-0 rounded-t-2xl p-5 pb-8 max-h-[75vh]
                                             sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-5 sm:pb-5 sm:w-[280px] sm:max-h-[80vh]">

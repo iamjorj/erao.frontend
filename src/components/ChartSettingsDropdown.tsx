@@ -60,6 +60,13 @@ export function ChartSettingsDropdown({
   const [editingColorIndex, setEditingColorIndex] = useState<number | null>(null);
   const [addingNewColor, setAddingNewColor] = useState(false);
   const [showCustom, setShowCustom] = useState(settings.colorTheme === 'custom');
+  const [localBarWidth, setLocalBarWidth] = useState(settings.barWidth);
+  const isDragging = useRef(false);
+
+  // Sync local bar width when settings change externally
+  useEffect(() => {
+    if (!isDragging.current) setLocalBarWidth(settings.barWidth);
+  }, [settings.barWidth]);
 
   // Close on click outside
   useEffect(() => {
@@ -167,14 +174,16 @@ export function ChartSettingsDropdown({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bar Width</label>
-                <span className="text-[11px] tabular-nums text-gray-400 dark:text-gray-500">{settings.barWidth}%</span>
+                <span className="text-[11px] tabular-nums text-gray-400 dark:text-gray-500">{localBarWidth}%</span>
               </div>
               <input
                 type="range"
                 min="20"
                 max="100"
-                value={settings.barWidth}
-                onChange={(e) => onSettingsChange({ ...settings, barWidth: Number(e.target.value) })}
+                value={localBarWidth}
+                onChange={(e) => { isDragging.current = true; setLocalBarWidth(Number(e.target.value)); }}
+                onPointerUp={() => { isDragging.current = false; onSettingsChange({ ...settings, barWidth: localBarWidth }); }}
+                onMouseUp={() => { isDragging.current = false; onSettingsChange({ ...settings, barWidth: localBarWidth }); }}
                 className="chart-slider"
               />
             </div>
