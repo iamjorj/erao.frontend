@@ -3,6 +3,7 @@
 import { useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { FilterModal, AdvancedFilter } from "./FilterModal";
+import { ChartSettingsDropdown } from "./ChartSettingsDropdown";
 import {
   DataChart,
   ChartType,
@@ -192,21 +193,7 @@ export function DataViewerModal({
     columnAggregations: {},
     hiddenColumns: new Set(),
   });
-  const [editingColorIndex, setEditingColorIndex] = useState<number | null>(null);
-  const [addingNewColor, setAddingNewColor] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
   const manipulationRef = useRef<HTMLDivElement>(null);
-
-  // Color picker constants - organized by rows (6 colors per row)
-  const defaultCustomColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-  const colorRows = [
-    ['#000000', '#1f2937', '#374151', '#6b7280', '#9ca3af', '#d1d5db'],
-    ['#1e3a8a', '#1d4ed8', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'],
-    ['#14532d', '#047857', '#10b981', '#34d399', '#6ee7b7', '#d1fae5'],
-    ['#7f1d1d', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fecaca'],
-    ['#78350f', '#b45309', '#d97706', '#f59e0b', '#fbbf24', '#fef3c7'],
-    ['#4c1d95', '#6d28d9', '#7c3aed', '#8b5cf6', '#a78bfa', '#ddd6fe'],
-  ];
 
   // Sync settings when initialChartSettings changes
   useEffect(() => {
@@ -227,19 +214,6 @@ export function DataViewerModal({
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  // Close settings on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
-        setShowSettings(false);
-      }
-    };
-    if (showSettings) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [showSettings]);
 
   // Close manipulation on click outside
   useEffect(() => {
@@ -700,9 +674,9 @@ export function DataViewerModal({
                       {/* Columns - Show/Hide */}
                       {dataAnalysis.numericColumns.length > 1 && (
                         <div>
-                          <span className={`text-[11px] mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            Columns
-                          </span>
+                          <label className={`text-[11px] font-medium uppercase tracking-wider block mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Visible Columns
+                          </label>
                           <div className="flex flex-wrap gap-1.5">
                             {dataAnalysis.numericColumns.map((col) => {
                               const isHidden = manipulation.hiddenColumns.has(col);
@@ -710,17 +684,17 @@ export function DataViewerModal({
                                 <button
                                   key={col}
                                   onClick={() => toggleColumn(col)}
-                                  className={`px-3 py-1.5 text-xs rounded-md transition-all ${
+                                  className={`px-2.5 py-1 text-[11px] rounded-lg transition-all ${
                                     isHidden
                                       ? isDark
-                                        ? 'text-gray-500 bg-transparent border border-[#444]'
-                                        : 'text-gray-400 bg-transparent border border-gray-300'
+                                        ? 'text-gray-600 bg-transparent border border-dashed border-[#333]'
+                                        : 'text-gray-400 bg-transparent border border-dashed border-gray-200'
                                       : isDark
-                                        ? 'text-white bg-[#333] border border-[#444]'
-                                        : 'text-gray-700 bg-white border border-gray-300 shadow-sm'
+                                        ? 'text-gray-200 bg-[#222] border border-[#333]'
+                                        : 'text-gray-700 bg-gray-50 border border-gray-200'
                                   }`}
                                 >
-                                  {col.length > 12 ? col.substring(0, 12) + '...' : col}
+                                  {col.length > 14 ? col.substring(0, 14) + '...' : col}
                                 </button>
                               );
                             })}
@@ -731,9 +705,9 @@ export function DataViewerModal({
                       {/* Categories - Include/Exclude */}
                       {dataAnalysis.isCategorical && dataAnalysis.categories.length > 0 && (
                         <div>
-                          <span className={`text-[11px] mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            Categories
-                          </span>
+                          <label className={`text-[11px] font-medium uppercase tracking-wider block mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Filter Categories
+                          </label>
                           <div className="flex flex-wrap gap-1.5">
                             {dataAnalysis.categories.slice(0, 15).map((cat) => {
                               const isExcluded = manipulation.excludedCategories.has(cat);
@@ -741,14 +715,14 @@ export function DataViewerModal({
                                 <button
                                   key={cat}
                                   onClick={() => toggleCategory(cat)}
-                                  className={`px-3 py-1.5 text-xs rounded-md transition-all ${
+                                  className={`px-2.5 py-1 text-[11px] rounded-lg transition-all ${
                                     isExcluded
                                       ? isDark
-                                        ? 'text-gray-500 bg-transparent border border-[#444] line-through'
-                                        : 'text-gray-400 bg-transparent border border-gray-300 line-through'
+                                        ? 'text-gray-600 bg-transparent border border-dashed border-[#333] line-through'
+                                        : 'text-gray-400 bg-transparent border border-dashed border-gray-200 line-through'
                                       : isDark
-                                        ? 'text-white bg-[#333] border border-[#444]'
-                                        : 'text-gray-700 bg-white border border-gray-300 shadow-sm'
+                                        ? 'text-gray-200 bg-[#222] border border-[#333]'
+                                        : 'text-gray-700 bg-gray-50 border border-gray-200'
                                   }`}
                                 >
                                   {cat.length > 12 ? cat.substring(0, 12) + '...' : cat}
@@ -756,8 +730,8 @@ export function DataViewerModal({
                               );
                             })}
                             {dataAnalysis.categories.length > 15 && (
-                              <span className={`px-3 py-1.5 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                +{dataAnalysis.categories.length - 15}
+                              <span className={`px-2 py-1 text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                                +{dataAnalysis.categories.length - 15} more
                               </span>
                             )}
                           </div>
@@ -767,24 +741,22 @@ export function DataViewerModal({
                       {/* Aggregation - show when there are numeric columns */}
                       {dataAnalysis.numericColumns.length > 0 && (
                         <div>
-                          <span className={`text-[11px] mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <label className={`text-[11px] font-medium uppercase tracking-wider block mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                             Aggregation
-                          </span>
-                          <div className="space-y-2">
+                          </label>
+                          <div className="space-y-1.5">
                             {dataAnalysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).map((col) => (
-                              <div key={col} className="flex items-center gap-3">
-                                <span className={`text-xs min-w-[80px] truncate flex-shrink-0 ${
-                                  isDark ? 'text-gray-300' : 'text-gray-600'
-                                }`}>
+                              <div key={col} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${isDark ? 'bg-[#222]' : 'bg-gray-50'}`}>
+                                <span className={`text-[11px] min-w-0 truncate flex-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                                   {col}
                                 </span>
                                 <select
                                   value={manipulation.columnAggregations[col] || 'COUNT'}
                                   onChange={(e) => changeAggregation(col, e.target.value as AggregationType)}
-                                  className={`flex-1 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 ${
+                                  className={`text-[11px] rounded-md px-1.5 py-1 outline-none ${
                                     isDark
-                                      ? 'bg-[#333] border border-[#444] text-gray-200 focus:ring-gray-500'
-                                      : 'bg-white border border-gray-300 text-gray-700 focus:ring-gray-400'
+                                      ? 'bg-[#1a1a1a] border border-[#333] text-gray-200 focus:border-[#444]'
+                                      : 'bg-white border border-gray-200 text-gray-700 focus:border-gray-300'
                                   }`}
                                 >
                                   <option value="COUNT">Count</option>
@@ -801,8 +773,8 @@ export function DataViewerModal({
 
                       {/* Empty state */}
                       {!dataAnalysis.isCategorical && dataAnalysis.numericColumns.length <= 1 && (
-                        <div className={`text-xs text-center py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          No adjustable data options for this chart
+                        <div className={`text-[11px] text-center py-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                          No adjustable options for this data
                         </div>
                       )}
                     </div>
@@ -813,7 +785,7 @@ export function DataViewerModal({
 
             {/* Settings Button - only for charts */}
             {currentView !== "table" && (
-              <div className="relative" ref={settingsRef}>
+              <>
                 <button
                   onClick={() => setShowSettings(!showSettings)}
                   className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
@@ -828,334 +800,15 @@ export function DataViewerModal({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </button>
-                {/* Mobile backdrop for settings */}
                 {showSettings && (
-                  <div
-                    className={`fixed inset-0 bg-black/30 z-40 sm:hidden`}
-                    onClick={() => setShowSettings(false)}
+                  <ChartSettingsDropdown
+                    settings={chartSettings}
+                    onSettingsChange={handleSettingsChange}
+                    onClose={() => setShowSettings(false)}
+                    chartType={currentView}
                   />
                 )}
-                {/* Settings Dropdown */}
-                {showSettings && (
-                  <div
-                    className={`fixed z-50 rounded-t-2xl sm:rounded-xl shadow-lg p-4 pb-8 sm:pb-4 overflow-y-auto
-                      inset-x-0 bottom-0 max-h-[75vh]
-                      sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-72 sm:max-h-[80vh] ${
-                      isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
-                    }`}
-                    onClick={(e) => {
-                      // Close color picker when clicking elsewhere in the dropdown
-                      if (editingColorIndex !== null || addingNewColor) {
-                        const target = e.target as HTMLElement;
-                        if (!target.closest('[data-color-picker]')) {
-                          setEditingColorIndex(null);
-                          setAddingNewColor(false);
-                        }
-                      }
-                    }}
-                  >
-                    {/* Mobile drag handle */}
-                    <div className="sm:hidden flex justify-center mb-3">
-                      <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`} />
-                    </div>
-                    <div className="space-y-4">
-                      <div className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between ${
-                        isDark ? 'text-gray-400 border-[#333]' : 'text-gray-400 border-gray-100'
-                      }`}>
-                        <span>{currentView} Chart Settings</span>
-                        <button
-                          onClick={() => setShowSettings(false)}
-                          className={`sm:hidden p-1 rounded-md ${isDark ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                      {/* Y-Axis Range - for bar, line, area */}
-                      {(currentView === 'bar' || currentView === 'line' || currentView === 'area') && (
-                        <div>
-                          <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Y-Axis Range</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              placeholder="Auto"
-                              value={chartSettings.yAxisMin === 'auto' ? '' : chartSettings.yAxisMin}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                handleSettingsChange({
-                                  ...chartSettings,
-                                  yAxisMin: val === '' ? 'auto' : Number(val) || 0,
-                                });
-                              }}
-                              className={`flex-1 sm:w-24 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 rounded-lg border outline-none ${
-                                isDark
-                                  ? 'bg-[#2a2a2a] border-[#333] text-white focus:border-gray-500'
-                                  : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-gray-400'
-                              }`}
-                            />
-                            <span className={`text-xs sm:text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>to</span>
-                            <input
-                              type="text"
-                              placeholder="Auto"
-                              value={chartSettings.yAxisMax === 'auto' ? '' : chartSettings.yAxisMax}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                handleSettingsChange({
-                                  ...chartSettings,
-                                  yAxisMax: val === '' ? 'auto' : Number(val) || 0,
-                                });
-                              }}
-                              className={`flex-1 sm:w-24 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 rounded-lg border outline-none ${
-                                isDark
-                                  ? 'bg-[#2a2a2a] border-[#333] text-white focus:border-gray-500'
-                                  : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-gray-400'
-                              }`}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {/* Bar Width - only for bar chart */}
-                      {currentView === 'bar' && (
-                        <div>
-                          <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Bar Width: {chartSettings.barWidth}%
-                          </span>
-                          <input
-                            type="range"
-                            min="20"
-                            max="100"
-                            value={chartSettings.barWidth}
-                            onChange={(e) => handleSettingsChange({ ...chartSettings, barWidth: Number(e.target.value) })}
-                            className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-gray-900 dark:accent-white"
-                          />
-                        </div>
-                      )}
-                      {/* Data Labels */}
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Data Labels</span>
-                        <button
-                          onClick={() => handleSettingsChange({ ...chartSettings, showDataLabels: !chartSettings.showDataLabels })}
-                          className={`w-10 sm:w-11 h-5 sm:h-6 rounded-full transition-colors ${chartSettings.showDataLabels ? (isDark ? 'bg-white' : 'bg-gray-900') : isDark ? 'bg-[#444]' : 'bg-gray-300'}`}
-                        >
-                          <div className={`w-4 sm:w-5 h-4 sm:h-5 rounded-full shadow transform transition-transform ${chartSettings.showDataLabels ? (isDark ? 'bg-black translate-x-5' : 'bg-white translate-x-5') : 'bg-white translate-x-0.5'}`} />
-                        </button>
-                      </div>
-                      {/* Grid Lines */}
-                      {currentView !== 'pie' && (
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Grid Lines</span>
-                          <button
-                            onClick={() => handleSettingsChange({ ...chartSettings, showGridLines: !chartSettings.showGridLines })}
-                            className={`w-10 sm:w-11 h-5 sm:h-6 rounded-full transition-colors ${chartSettings.showGridLines ? (isDark ? 'bg-white' : 'bg-gray-900') : isDark ? 'bg-[#444]' : 'bg-gray-300'}`}
-                          >
-                            <div className={`w-4 sm:w-5 h-4 sm:h-5 rounded-full shadow transform transition-transform ${chartSettings.showGridLines ? (isDark ? 'bg-black translate-x-5' : 'bg-white translate-x-5') : 'bg-white translate-x-0.5'}`} />
-                          </button>
-                        </div>
-                      )}
-                      {/* Color Theme */}
-                      <div>
-                        <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Color Theme</span>
-                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                          {(['colorful', 'monochrome', 'blue', 'green', 'purple', 'custom'] as const).map(theme => (
-                            <button
-                              key={theme}
-                              onClick={() => handleSettingsChange({
-                                ...chartSettings,
-                                colorTheme: theme,
-                                customColors: theme === 'custom' && !chartSettings.customColors?.length
-                                  ? defaultCustomColors
-                                  : chartSettings.customColors
-                              })}
-                              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors ${
-                                chartSettings.colorTheme === theme
-                                  ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
-                                  : isDark ? 'bg-[#2a2a2a] text-gray-400 hover:bg-[#333]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              }`}
-                            >
-                              {theme.charAt(0).toUpperCase() + theme.slice(1)}
-                            </button>
-                          ))}
-                        </div>
-                        {/* Custom Color Picker */}
-                        {chartSettings.colorTheme === 'custom' && (
-                          <div className="mt-3">
-                            <div className="flex flex-wrap gap-2.5">
-                              {(chartSettings.customColors || defaultCustomColors).map((color, index) => (
-                                <div key={index} className="relative group" data-color-picker>
-                                  <button
-                                    onClick={() => {
-                                      setAddingNewColor(false);
-                                      setEditingColorIndex(editingColorIndex === index ? null : index);
-                                    }}
-                                    className={`w-8 h-8 rounded-lg cursor-pointer transition-all ${
-                                      editingColorIndex === index
-                                        ? 'ring-2 ring-gray-900 dark:ring-white ring-offset-2'
-                                        : 'hover:scale-105'
-                                    }`}
-                                    style={{ backgroundColor: color }}
-                                    title="Click to change"
-                                  />
-                                  {/* Remove button */}
-                                  {(chartSettings.customColors || defaultCustomColors).length > 1 && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const newColors = [...(chartSettings.customColors || defaultCustomColors)];
-                                        newColors.splice(index, 1);
-                                        handleSettingsChange({ ...chartSettings, customColors: newColors });
-                                        if (editingColorIndex === index) setEditingColorIndex(null);
-                                      }}
-                                      className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gray-800 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  )}
-                                  {/* Color Picker Dropdown - fixed position */}
-                                  {editingColorIndex === index && (
-                                    <div
-                                      className={`fixed z-[9999] rounded-xl shadow-2xl p-3 ${
-                                        isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
-                                      }`}
-                                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <div className={`text-xs font-medium mb-2 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Pick a color</div>
-                                      <div className="space-y-1.5">
-                                        {colorRows.map((row, rowIndex) => (
-                                          <div key={rowIndex} className="flex justify-center gap-1.5">
-                                            {row.map((paletteColor, pIndex) => (
-                                              <button
-                                                key={pIndex}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const newColors = [...(chartSettings.customColors || defaultCustomColors)];
-                                                  newColors[index] = paletteColor;
-                                                  handleSettingsChange({ ...chartSettings, customColors: newColors });
-                                                  setEditingColorIndex(null);
-                                                }}
-                                                className={`w-6 h-6 rounded-md cursor-pointer hover:scale-110 transition-transform ${
-                                                  color === paletteColor ? 'ring-2 ring-blue-500 ring-offset-1' : ''
-                                                }`}
-                                                style={{ backgroundColor: paletteColor }}
-                                              />
-                                            ))}
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <button
-                                        onClick={() => setEditingColorIndex(null)}
-                                        className={`mt-2 w-full text-xs py-1 border-t ${
-                                          isDark ? 'text-gray-400 hover:text-gray-300 border-[#333]' : 'text-gray-500 hover:text-gray-700 border-gray-100'
-                                        }`}
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                              {(chartSettings.customColors || defaultCustomColors).length < 8 && (
-                                <div className="relative" data-color-picker>
-                                  <button
-                                    onClick={() => {
-                                      setEditingColorIndex(null);
-                                      setAddingNewColor(!addingNewColor);
-                                    }}
-                                    className={`w-8 h-8 rounded-lg border-2 border-dashed flex items-center justify-center transition-all ${
-                                      addingNewColor
-                                        ? 'ring-2 ring-gray-900 dark:ring-white ring-offset-2 border-gray-400'
-                                        : isDark ? 'border-[#444] text-gray-400 hover:border-gray-500' : 'border-gray-300 text-gray-400 hover:border-gray-400'
-                                    }`}
-                                    title="Add color"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                  </button>
-                                  {/* Add New Color Picker */}
-                                  {addingNewColor && (
-                                    <div
-                                      className={`fixed z-[9999] rounded-xl shadow-2xl p-3 ${
-                                        isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
-                                      }`}
-                                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <div className={`text-xs font-medium mb-2 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Add a color</div>
-                                      <div className="space-y-1.5">
-                                        {colorRows.map((row, rowIndex) => (
-                                          <div key={rowIndex} className="flex justify-center gap-1.5">
-                                            {row.map((paletteColor, pIndex) => (
-                                              <button
-                                                key={pIndex}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const newColors = [...(chartSettings.customColors || defaultCustomColors), paletteColor];
-                                                  handleSettingsChange({ ...chartSettings, customColors: newColors });
-                                                  setAddingNewColor(false);
-                                                }}
-                                                className="w-6 h-6 rounded-md cursor-pointer hover:scale-110 transition-transform"
-                                                style={{ backgroundColor: paletteColor }}
-                                              />
-                                            ))}
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <button
-                                        onClick={() => setAddingNewColor(false)}
-                                        className={`mt-2 w-full text-xs py-1 border-t ${
-                                          isDark ? 'text-gray-400 hover:text-gray-300 border-[#333]' : 'text-gray-500 hover:text-gray-700 border-gray-100'
-                                        }`}
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Legend Position */}
-                      <div>
-                        <span className={`text-xs sm:text-sm font-medium block mb-1.5 sm:mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Legend</span>
-                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                          {(['top', 'bottom', 'hidden'] as const).map(pos => (
-                            <button
-                              key={pos}
-                              onClick={() => handleSettingsChange({ ...chartSettings, legendPosition: pos })}
-                              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors ${
-                                chartSettings.legendPosition === pos
-                                  ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
-                                  : isDark ? 'bg-[#2a2a2a] text-gray-400 hover:bg-[#333]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              }`}
-                            >
-                              {pos.charAt(0).toUpperCase() + pos.slice(1)}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Reset Button */}
-                      <button
-                        onClick={() => handleSettingsChange(defaultChartSettings)}
-                        className={`w-full mt-2 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-colors ${
-                          isDark
-                            ? 'border-[#333] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-300'
-                            : 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-                        }`}
-                      >
-                        Reset to defaults
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              </>
             )}
           </div>
         </div>

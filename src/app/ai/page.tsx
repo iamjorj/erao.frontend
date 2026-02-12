@@ -1240,23 +1240,54 @@ export default function AIPage() {
             }));
           }
 
-          // Apply aggregation settings
+          // Apply aggregation settings AND column filtering from viz hint
           if (hint.valueColumns && hint.valueColumns.length > 0) {
             const newAggregations: Record<string, AggregationType> = {};
+            const hintColumnNames = new Set(hint.valueColumns.map(vc => vc.column));
+
             hint.valueColumns.forEach(vc => {
               if (vc.aggregation && vc.aggregation !== 'NONE') {
                 newAggregations[vc.column] = vc.aggregation as AggregationType;
               }
             });
-            if (Object.keys(newAggregations).length > 0) {
-              setChartManipulations(prev => ({
-                ...prev,
-                [response.data.assistantMessage.id]: {
-                  ...getManipulation(response.data.assistantMessage.id),
-                  columnAggregations: newAggregations,
-                },
-              }));
+
+            // Compute columns to hide: all numeric columns NOT recommended by the AI
+            const queryResult = response.data.assistantMessage.queryResult;
+            const parsedResults = parseQueryResult(queryResult);
+            const hiddenColumns = new Set<string>();
+
+            if (parsedResults && parsedResults.length > 0) {
+              const result = parsedResults[0];
+              const groupCol = hint.groupByColumn || '';
+
+              // Find numeric columns in the result that aren't in the hint
+              result.columns.forEach(col => {
+                // Skip the group/label column
+                if (col === groupCol) return;
+                // Skip columns that the AI recommends
+                if (hintColumnNames.has(col)) return;
+                // Check if this column is numeric by sampling rows
+                const isNumeric = result.rows.slice(0, 10).some(row => {
+                  const val = row[col];
+                  if (val === null || val === undefined || val === '') return false;
+                  if (typeof val === 'number') return true;
+                  return !isNaN(Number(val)) && isFinite(Number(val));
+                });
+                // Hide numeric columns not in the hint (they're supporting detail, not chart-worthy)
+                if (isNumeric) {
+                  hiddenColumns.add(col);
+                }
+              });
             }
+
+            setChartManipulations(prev => ({
+              ...prev,
+              [response.data.assistantMessage.id]: {
+                ...getManipulation(response.data.assistantMessage.id),
+                columnAggregations: Object.keys(newAggregations).length > 0 ? newAggregations : {},
+                hiddenColumns,
+              },
+            }));
           }
         }
       }
@@ -1987,7 +2018,7 @@ export default function AIPage() {
                                       )}
                                       {/* Data Adjust Button + Modal - only for charts */}
                                       {currentView !== "table" && (
-                                        <div className="relative">
+                                        <>
                                           <button
                                             onClick={() => setShowChartManipulation(showChartManipulation === viewKey ? null : viewKey)}
                                             className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
@@ -2005,91 +2036,91 @@ export default function AIPage() {
                                             const analysis = analyzeDataForManipulation(result.columns, result.rows);
                                             const manipulation = getManipulation(viewKey);
                                             return (
-                                              <div className="absolute right-0 top-full mt-1 z-50 w-72 max-h-[70vh] overflow-y-auto rounded-xl shadow-lg p-4 bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#333]">
-                                                <div className="space-y-4">
-                                                  <div className="text-[10px] font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between text-gray-400 dark:text-gray-400 border-gray-100 dark:border-[#333]">
-                                                    <span>Data Settings</span>
-                                                    <div className="flex items-center gap-2">
+                                              <>
+                                                <div className="fixed inset-0 bg-black/20 z-40 sm:hidden" onClick={() => setShowChartManipulation(null)} />
+                                                <div className="fixed z-50 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] shadow-xl overflow-y-auto overflow-x-hidden custom-scrollbar
+                                                  inset-x-0 bottom-0 rounded-t-2xl p-5 pb-8 max-h-[75vh]
+                                                  sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-5 sm:pb-5 sm:w-[280px] sm:max-h-[80vh]">
+                                                  {/* Mobile drag handle */}
+                                                  <div className="sm:hidden flex justify-center mb-4">
+                                                    <div className="w-8 h-1 bg-gray-200 dark:bg-[#333] rounded-full" />
+                                                  </div>
+                                                  {/* Header */}
+                                                  <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Data Settings</h3>
+                                                    <div className="flex items-center gap-1.5">
                                                       {hasActiveManipulation(viewKey) && (
-                                                        <button
-                                                          onClick={() => resetManipulation(viewKey)}
-                                                          className="text-[10px] transition-colors text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-white"
-                                                        >
-                                                          Reset
-                                                        </button>
+                                                        <button onClick={() => resetManipulation(viewKey)} className="text-[10px] px-2 py-0.5 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors">Reset</button>
                                                       )}
-                                                      <button
-                                                        onClick={() => setShowChartManipulation(null)}
-                                                        className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-gray-400"
-                                                      >
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
+                                                      <button onClick={() => setShowChartManipulation(null)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 transition-colors">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                                       </button>
                                                     </div>
                                                   </div>
-                                                  {analysis.numericColumns.length > 1 && (
-                                                    <div>
-                                                      <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Columns</span>
-                                                      <div className="flex flex-wrap gap-1.5">
-                                                        {analysis.numericColumns.map((col) => {
-                                                          const isHidden = manipulation.hiddenColumns.has(col);
-                                                          return (
-                                                            <button key={col} onClick={() => { const newHidden = new Set(manipulation.hiddenColumns); if (isHidden) newHidden.delete(col); else newHidden.add(col); setManipulation(viewKey, { ...manipulation, hiddenColumns: newHidden }); }}
-                                                              className={`px-2.5 py-1 text-xs rounded-md transition-all ${isHidden ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444]' : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'}`}
-                                                            >{col.length > 12 ? col.substring(0, 12) + '...' : col}</button>
-                                                          );
-                                                        })}
+                                                  <div className="space-y-5">
+                                                    {analysis.numericColumns.length > 1 && (
+                                                      <div>
+                                                        <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Visible Columns</label>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                          {analysis.numericColumns.map((col) => {
+                                                            const isHidden = manipulation.hiddenColumns.has(col);
+                                                            return (
+                                                              <button key={col} onClick={() => { const newHidden = new Set(manipulation.hiddenColumns); if (isHidden) newHidden.delete(col); else newHidden.add(col); setManipulation(viewKey, { ...manipulation, hiddenColumns: newHidden }); }}
+                                                                className={`px-2 py-1 text-[11px] rounded-lg transition-all ${isHidden ? 'text-gray-400 dark:text-gray-600 bg-transparent border border-dashed border-gray-200 dark:border-[#333]' : 'text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333]'}`}
+                                                              >{col.length > 14 ? col.substring(0, 14) + '...' : col}</button>
+                                                            );
+                                                          })}
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  )}
-                                                  {analysis.isCategorical && analysis.categories.length > 0 && (
-                                                    <div>
-                                                      <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Categories</span>
-                                                      <div className="flex flex-wrap gap-1.5">
-                                                        {analysis.categories.slice(0, 12).map((cat) => {
-                                                          const isExcluded = manipulation.excludedCategories.has(cat);
-                                                          return (
-                                                            <button key={cat} onClick={() => { const newExcluded = new Set(manipulation.excludedCategories); if (isExcluded) newExcluded.delete(cat); else newExcluded.add(cat); setManipulation(viewKey, { ...manipulation, excludedCategories: newExcluded }); }}
-                                                              className={`px-2.5 py-1 text-xs rounded-md transition-all ${isExcluded ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444] line-through' : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'}`}
-                                                            >{cat.length > 10 ? cat.substring(0, 10) + '...' : cat}</button>
-                                                          );
-                                                        })}
-                                                        {analysis.categories.length > 12 && (
-                                                          <span className="px-2.5 py-1 text-xs text-gray-400 dark:text-gray-500">+{analysis.categories.length - 12}</span>
-                                                        )}
+                                                    )}
+                                                    {analysis.isCategorical && analysis.categories.length > 0 && (
+                                                      <div>
+                                                        <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Filter Categories</label>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                          {analysis.categories.slice(0, 15).map((cat) => {
+                                                            const isExcluded = manipulation.excludedCategories.has(cat);
+                                                            return (
+                                                              <button key={cat} onClick={() => { const newExcluded = new Set(manipulation.excludedCategories); if (isExcluded) newExcluded.delete(cat); else newExcluded.add(cat); setManipulation(viewKey, { ...manipulation, excludedCategories: newExcluded }); }}
+                                                                className={`px-2 py-1 text-[11px] rounded-lg transition-all ${isExcluded ? 'text-gray-400 dark:text-gray-600 bg-transparent border border-dashed border-gray-200 dark:border-[#333] line-through' : 'text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333]'}`}
+                                                              >{cat.length > 12 ? cat.substring(0, 12) + '...' : cat}</button>
+                                                            );
+                                                          })}
+                                                          {analysis.categories.length > 15 && (
+                                                            <span className="px-2 py-1 text-[10px] text-gray-400 dark:text-gray-600">+{analysis.categories.length - 15} more</span>
+                                                          )}
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  )}
-                                                  {analysis.numericColumns.length > 0 && (
-                                                    <div>
-                                                      <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Aggregation</span>
-                                                      <div className="space-y-2">
-                                                        {analysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).slice(0, 4).map((col) => (
-                                                          <div key={col} className="flex items-center gap-2">
-                                                            <span className="text-xs min-w-[60px] truncate flex-shrink-0 text-gray-600 dark:text-gray-300">{col}</span>
-                                                            <select value={manipulation.columnAggregations[col] || 'COUNT'} onChange={(e) => setManipulation(viewKey, { ...manipulation, columnAggregations: { ...manipulation.columnAggregations, [col]: e.target.value as AggregationType } })}
-                                                              className="flex-1 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] text-gray-700 dark:text-gray-200 focus:ring-gray-400 dark:focus:ring-gray-500"
-                                                            >
-                                                              <option value="COUNT">Count</option>
-                                                              <option value="SUM">Sum</option>
-                                                              <option value="AVG">Average</option>
-                                                              <option value="MIN">Min</option>
-                                                              <option value="MAX">Max</option>
-                                                            </select>
-                                                          </div>
-                                                        ))}
+                                                    )}
+                                                    {analysis.numericColumns.length > 0 && (
+                                                      <div>
+                                                        <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Aggregation</label>
+                                                        <div className="space-y-1.5">
+                                                          {analysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).slice(0, 4).map((col) => (
+                                                            <div key={col} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-[#222]">
+                                                              <span className="text-[11px] min-w-0 truncate flex-1 text-gray-600 dark:text-gray-300">{col}</span>
+                                                              <select value={manipulation.columnAggregations[col] || 'COUNT'} onChange={(e) => setManipulation(viewKey, { ...manipulation, columnAggregations: { ...manipulation.columnAggregations, [col]: e.target.value as AggregationType } })}
+                                                                className="text-[11px] rounded-md px-1.5 py-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] text-gray-700 dark:text-gray-200 outline-none focus:border-gray-300 dark:focus:border-[#444]"
+                                                              >
+                                                                <option value="COUNT">Count</option>
+                                                                <option value="SUM">Sum</option>
+                                                                <option value="AVG">Average</option>
+                                                                <option value="MIN">Min</option>
+                                                                <option value="MAX">Max</option>
+                                                              </select>
+                                                            </div>
+                                                          ))}
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  )}
-                                                  {!analysis.isCategorical && analysis.numericColumns.length <= 1 && (
-                                                    <div className="text-xs text-center py-3 text-gray-400 dark:text-gray-500">No adjustable data options</div>
-                                                  )}
+                                                    )}
+                                                    {!analysis.isCategorical && analysis.numericColumns.length <= 1 && (
+                                                      <div className="text-[11px] text-center py-4 text-gray-400 dark:text-gray-600">No adjustable options for this data</div>
+                                                    )}
+                                                  </div>
                                                 </div>
-                                              </div>
+                                              </>
                                             );
                                           })()}
-                                        </div>
+                                        </>
                                       )}
                                       {/* Expand Button */}
                                       <button
@@ -2406,7 +2437,7 @@ export default function AIPage() {
                                 )}
                                 {/* Data Adjust Button + Modal - only for charts */}
                                 {currentView !== "table" && (
-                                  <div className="relative">
+                                  <>
                                     <button
                                       onClick={() => setShowChartManipulation(showChartManipulation === message.id ? null : message.id)}
                                       className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
@@ -2424,81 +2455,91 @@ export default function AIPage() {
                                       const analysis = analyzeDataForManipulation(parsedResult.columns, parsedResult.rows);
                                       const manipulation = getManipulation(message.id);
                                       return (
-                                        <div className="absolute right-0 top-full mt-1 z-50 w-72 max-h-[70vh] overflow-y-auto rounded-xl shadow-lg p-4 bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#333]">
-                                          <div className="space-y-4">
-                                            <div className="text-[10px] font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between text-gray-400 dark:text-gray-400 border-gray-100 dark:border-[#333]">
-                                              <span>Data Settings</span>
-                                              <div className="flex items-center gap-2">
+                                        <>
+                                          <div className="fixed inset-0 bg-black/20 z-40 sm:hidden" onClick={() => setShowChartManipulation(null)} />
+                                          <div className="fixed z-50 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] shadow-xl overflow-y-auto overflow-x-hidden custom-scrollbar
+                                            inset-x-0 bottom-0 rounded-t-2xl p-5 pb-8 max-h-[75vh]
+                                            sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-5 sm:pb-5 sm:w-[280px] sm:max-h-[80vh]">
+                                            {/* Mobile drag handle */}
+                                            <div className="sm:hidden flex justify-center mb-4">
+                                              <div className="w-8 h-1 bg-gray-200 dark:bg-[#333] rounded-full" />
+                                            </div>
+                                            {/* Header */}
+                                            <div className="flex items-center justify-between mb-4">
+                                              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Data Settings</h3>
+                                              <div className="flex items-center gap-1.5">
                                                 {hasActiveManipulation(message.id) && (
-                                                  <button onClick={() => resetManipulation(message.id)} className="text-[10px] transition-colors text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-white">Reset</button>
+                                                  <button onClick={() => resetManipulation(message.id)} className="text-[10px] px-2 py-0.5 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors">Reset</button>
                                                 )}
-                                                <button onClick={() => setShowChartManipulation(null)} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-gray-400">
+                                                <button onClick={() => setShowChartManipulation(null)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 transition-colors">
                                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                                 </button>
                                               </div>
                                             </div>
-                                            {analysis.numericColumns.length > 1 && (
-                                              <div>
-                                                <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Columns</span>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                  {analysis.numericColumns.map((col) => {
-                                                    const isHidden = manipulation.hiddenColumns.has(col);
-                                                    return (
-                                                      <button key={col} onClick={() => { const newHidden = new Set(manipulation.hiddenColumns); if (isHidden) newHidden.delete(col); else newHidden.add(col); setManipulation(message.id, { ...manipulation, hiddenColumns: newHidden }); }}
-                                                        className={`px-2.5 py-1 text-xs rounded-md transition-all ${isHidden ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444]' : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'}`}
-                                                      >{col.length > 12 ? col.substring(0, 12) + '...' : col}</button>
-                                                    );
-                                                  })}
+                                            <div className="space-y-5">
+                                              {analysis.numericColumns.length > 1 && (
+                                                <div>
+                                                  <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Visible Columns</label>
+                                                  <div className="flex flex-wrap gap-1.5">
+                                                    {analysis.numericColumns.map((col) => {
+                                                      const isHidden = manipulation.hiddenColumns.has(col);
+                                                      return (
+                                                        <button key={col} onClick={() => { const newHidden = new Set(manipulation.hiddenColumns); if (isHidden) newHidden.delete(col); else newHidden.add(col); setManipulation(message.id, { ...manipulation, hiddenColumns: newHidden }); }}
+                                                          className={`px-2 py-1 text-[11px] rounded-lg transition-all ${isHidden ? 'text-gray-400 dark:text-gray-600 bg-transparent border border-dashed border-gray-200 dark:border-[#333]' : 'text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333]'}`}
+                                                        >{col.length > 14 ? col.substring(0, 14) + '...' : col}</button>
+                                                      );
+                                                    })}
+                                                  </div>
                                                 </div>
-                                              </div>
-                                            )}
-                                            {analysis.isCategorical && analysis.categories.length > 0 && (
-                                              <div>
-                                                <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Categories</span>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                  {analysis.categories.slice(0, 12).map((cat) => {
-                                                    const isExcluded = manipulation.excludedCategories.has(cat);
-                                                    return (
-                                                      <button key={cat} onClick={() => { const newExcluded = new Set(manipulation.excludedCategories); if (isExcluded) newExcluded.delete(cat); else newExcluded.add(cat); setManipulation(message.id, { ...manipulation, excludedCategories: newExcluded }); }}
-                                                        className={`px-2.5 py-1 text-xs rounded-md transition-all ${isExcluded ? 'text-gray-400 dark:text-gray-500 bg-transparent border border-gray-300 dark:border-[#444] line-through' : 'text-gray-700 dark:text-white bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] shadow-sm'}`}
-                                                      >{cat.length > 10 ? cat.substring(0, 10) + '...' : cat}</button>
-                                                    );
-                                                  })}
-                                                  {analysis.categories.length > 12 && (
-                                                    <span className="px-2.5 py-1 text-xs text-gray-400 dark:text-gray-500">+{analysis.categories.length - 12}</span>
-                                                  )}
+                                              )}
+                                              {analysis.isCategorical && analysis.categories.length > 0 && (
+                                                <div>
+                                                  <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Filter Categories</label>
+                                                  <div className="flex flex-wrap gap-1.5">
+                                                    {analysis.categories.slice(0, 15).map((cat) => {
+                                                      const isExcluded = manipulation.excludedCategories.has(cat);
+                                                      return (
+                                                        <button key={cat} onClick={() => { const newExcluded = new Set(manipulation.excludedCategories); if (isExcluded) newExcluded.delete(cat); else newExcluded.add(cat); setManipulation(message.id, { ...manipulation, excludedCategories: newExcluded }); }}
+                                                          className={`px-2 py-1 text-[11px] rounded-lg transition-all ${isExcluded ? 'text-gray-400 dark:text-gray-600 bg-transparent border border-dashed border-gray-200 dark:border-[#333] line-through' : 'text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-[#222] border border-gray-200 dark:border-[#333]'}`}
+                                                        >{cat.length > 12 ? cat.substring(0, 12) + '...' : cat}</button>
+                                                      );
+                                                    })}
+                                                    {analysis.categories.length > 15 && (
+                                                      <span className="px-2 py-1 text-[10px] text-gray-400 dark:text-gray-600">+{analysis.categories.length - 15} more</span>
+                                                    )}
+                                                  </div>
                                                 </div>
-                                              </div>
-                                            )}
-                                            {analysis.numericColumns.length > 0 && (
-                                              <div>
-                                                <span className="text-[11px] mb-2 block text-gray-500 dark:text-gray-400">Aggregation</span>
-                                                <div className="space-y-2">
-                                                  {analysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).slice(0, 4).map((col) => (
-                                                    <div key={col} className="flex items-center gap-2">
-                                                      <span className="text-xs min-w-[60px] truncate flex-shrink-0 text-gray-600 dark:text-gray-300">{col}</span>
-                                                      <select value={manipulation.columnAggregations[col] || 'COUNT'} onChange={(e) => setManipulation(message.id, { ...manipulation, columnAggregations: { ...manipulation.columnAggregations, [col]: e.target.value as AggregationType } })}
-                                                        className="flex-1 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 bg-white dark:bg-[#333] border border-gray-300 dark:border-[#444] text-gray-700 dark:text-gray-200 focus:ring-gray-400 dark:focus:ring-gray-500"
-                                                      >
-                                                        <option value="COUNT">Count</option>
-                                                        <option value="SUM">Sum</option>
-                                                        <option value="AVG">Average</option>
-                                                        <option value="MIN">Min</option>
-                                                        <option value="MAX">Max</option>
-                                                      </select>
-                                                    </div>
-                                                  ))}
+                                              )}
+                                              {analysis.numericColumns.length > 0 && (
+                                                <div>
+                                                  <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Aggregation</label>
+                                                  <div className="space-y-1.5">
+                                                    {analysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).slice(0, 4).map((col) => (
+                                                      <div key={col} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-[#222]">
+                                                        <span className="text-[11px] min-w-0 truncate flex-1 text-gray-600 dark:text-gray-300">{col}</span>
+                                                        <select value={manipulation.columnAggregations[col] || 'COUNT'} onChange={(e) => setManipulation(message.id, { ...manipulation, columnAggregations: { ...manipulation.columnAggregations, [col]: e.target.value as AggregationType } })}
+                                                          className="text-[11px] rounded-md px-1.5 py-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] text-gray-700 dark:text-gray-200 outline-none focus:border-gray-300 dark:focus:border-[#444]"
+                                                        >
+                                                          <option value="COUNT">Count</option>
+                                                          <option value="SUM">Sum</option>
+                                                          <option value="AVG">Average</option>
+                                                          <option value="MIN">Min</option>
+                                                          <option value="MAX">Max</option>
+                                                        </select>
+                                                      </div>
+                                                    ))}
+                                                  </div>
                                                 </div>
-                                              </div>
-                                            )}
-                                            {!analysis.isCategorical && analysis.numericColumns.length === 0 && (
-                                              <div className="text-xs text-center py-3 text-gray-400 dark:text-gray-500">No adjustable data options</div>
-                                            )}
+                                              )}
+                                              {!analysis.isCategorical && analysis.numericColumns.length === 0 && (
+                                                <div className="text-[11px] text-center py-4 text-gray-400 dark:text-gray-600">No adjustable options for this data</div>
+                                              )}
+                                            </div>
                                           </div>
-                                        </div>
+                                        </>
                                       );
                                     })()}
-                                  </div>
+                                  </>
                                 )}
                                 {/* Expand Button */}
                                 <button

@@ -223,3 +223,66 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+/* Range slider styling */
+input[type="range"].chart-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e7eb;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].chart-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #374151;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+input[type="range"].chart-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"].chart-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #374151;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+input[type="range"].chart-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e7eb;
+}
+
+.dark input[type="range"].chart-slider {
+  background: #333;
+}
+
+.dark input[type="range"].chart-slider::-webkit-slider-thumb {
+  background: #e5e7eb;
+  border-color: #1f1f1f;
+}
+
+.dark input[type="range"].chart-slider::-moz-range-thumb {
+  background: #e5e7eb;
+  border-color: #1f1f1f;
+}
+
+.dark input[type="range"].chart-slider::-moz-range-track {
+  background: #333;
+}

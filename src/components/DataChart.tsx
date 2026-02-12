@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import {
   BarChart,
   Bar,
@@ -178,17 +178,24 @@ function truncateLabel(label: string, maxLength: number = 15): string {
 }
 
 // Column semantic type detection
-type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric';
+type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric' | 'junk';
 
 function detectColumnType(columnName: string): ColumnSemanticType {
   const name = columnName.toLowerCase();
+
+  // Junk columns — should be hidden from charts entirely (row numbers, intermediate calculations)
+  if (name === 'rownum' || name === 'row_number' || name === 'rn' || name === 'row_num' ||
+      name === 'sno' || name === 's_no' || name === 'sr_no' || name === 'serial' ||
+      name === 'row' || name === '#') {
+    return 'junk';
+  }
 
   // ID columns - should COUNT, not SUM
   if (name.includes('_id') || name.endsWith('id') || name === 'id' ||
       name.includes('_key') || name.endsWith('key') ||
       name.includes('_no') || name.endsWith('no') || name === 'no' ||
       name.includes('_code') || name.endsWith('code') ||
-      name.includes('index') || name === 'row' || name === 'rownum') {
+      name.includes('index')) {
     return 'id';
   }
 
@@ -324,6 +331,7 @@ function smartAggregateData(
 
     switch (detectedType) {
       case 'id':
+      case 'junk':
         aggregation = 'COUNT';
         displayName = `Count`;
         break;
@@ -546,6 +554,10 @@ export function DataChart({
   const screenSize = useScreenSize();
   const isMobile = screenSize === "mobile";
 
+  // Track if manipulation has changed (disable animation after first render)
+  const hasManipulatedRef = useRef(false);
+  const prevManipulationRef = useRef(manipulation);
+
   // Local state for manipulation if not controlled
   const [localManipulation, setLocalManipulation] = useState<ChartManipulation>({
     excludedCategories: new Set(),
@@ -555,6 +567,14 @@ export function DataChart({
 
   const currentManipulation = manipulation || localManipulation;
   const setManipulation = onManipulationChange || setLocalManipulation;
+
+  // Detect manipulation changes to disable animation (avoid re-animation on every toggle)
+  useEffect(() => {
+    if (prevManipulationRef.current !== manipulation) {
+      hasManipulatedRef.current = true;
+      prevManipulationRef.current = manipulation;
+    }
+  }, [manipulation]);
 
   // Get colors based on theme setting
   const chartColors = settings.colorTheme === 'custom' && settings.customColors?.length
@@ -603,17 +623,28 @@ export function DataChart({
 
     // If no data columns found but we have numeric columns, use all except first as data
     // and first as label (fallback for all-numeric data)
-    const allDataColumns = dataColumns.length > 0
+    const rawDataColumns = dataColumns.length > 0
       ? dataColumns
       : numericColumns.length > 1
         ? numericColumns.slice(1)
         : numericColumns;
 
-    // Filter out hidden columns
+    // Auto-hide junk columns (row numbers, IDs) when better columns exist
+    const allDataColumns = (() => {
+      // Remove pure junk (row numbers, serial numbers)
+      const noJunk = rawDataColumns.filter(col => detectColumnType(col) !== 'junk');
+      if (noJunk.length === 0) return rawDataColumns; // Fallback: keep everything
+
+      // Remove ID columns if there are non-ID columns left
+      const noIds = noJunk.filter(col => detectColumnType(col) !== 'id');
+      return noIds.length > 0 ? noIds : noJunk;
+    })();
+
+    // Filter out hidden columns (from manipulation UI or viz hint)
     const finalDataColumns = allDataColumns.filter(col => !currentManipulation.hiddenColumns.has(col));
 
-    // Store all columns for the manipulation UI (including hidden ones)
-    const allAvailableColumns = allDataColumns;
+    // Store all columns for the manipulation UI (including auto-filtered and hidden ones)
+    const allAvailableColumns = rawDataColumns;
 
     // If no numeric columns at all, can't render a chart
     if (finalDataColumns.length === 0) {
@@ -630,6 +661,7 @@ export function DataChart({
 
       switch (type) {
         case 'id':
+        case 'junk':
           aggregation = 'COUNT';
           displayName = `Count`;
           break;
@@ -828,8 +860,8 @@ export function DataChart({
   const labelColumn = chartConfig?.labelColumn ?? '';
   const dataCount = chartData.length;
 
-  // Disable animations for large datasets to improve performance
-  const enableAnimations = dataCount <= 50;
+  // Disable animations for large datasets or after manipulation changes
+  const enableAnimations = dataCount <= 50 && !hasManipulatedRef.current;
 
   // Theme colors - pure black theme for dark mode
   const gridColor = isDark ? "#333333" : "#e5e7eb";
@@ -1303,15 +1335,39 @@ export function DataChart({
 }
 
 // Helper function to detect best chart type based on data
-export function detectChartType(columns: string[], rowCount: number): ChartType {
-  if (rowCount <= 5 && rowCount > 1) {
-    return "pie";
+export function detectChartType(columns: string[], rowCount: number, data?: Record<string, unknown>[]): ChartType {
+  const colNames = columns.map(c => c.toLowerCase());
+
+  // Check if there's a time/date column → line chart
+  const hasTimeColumn = colNames.some(c =>
+    c.includes('date') || c.includes('time') || c.includes('year') || c.includes('month') ||
+    c.includes('quarter') || c.includes('period') || c.includes('week') || c.includes('day')
+  );
+  if (hasTimeColumn && rowCount > 3) return "line";
+
+  // If many columns (4+), table is better for readability
+  const numericCols = columns.filter(c => {
+    const type = detectColumnType(c);
+    return type !== 'id' && type !== 'junk';
+  });
+  if (numericCols.length >= 4 && rowCount > 10) return "table";
+
+  // Small category sets → pie for distribution
+  if (rowCount >= 2 && rowCount <= 6) {
+    // Check if it looks like a distribution (single numeric column)
+    const meaningfulNumeric = columns.filter(c => {
+      const type = detectColumnType(c);
+      return type !== 'id' && type !== 'junk';
+    });
+    if (meaningfulNumeric.length <= 2) return "pie";
   }
-  if (rowCount > 5 && rowCount <= 15) {
-    return "bar";
-  }
-  if (rowCount > 15) {
-    return "line";
-  }
-  return "bar";
+
+  // Rankings, scores, comparisons → bar
+  if (rowCount <= 20) return "bar";
+
+  // Large datasets without time → bar (aggregated)
+  if (rowCount > 20 && rowCount <= 50) return "bar";
+
+  // Very large → line (sampled)
+  return "line";
 }

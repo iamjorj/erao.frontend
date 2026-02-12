@@ -62,6 +62,7 @@ export function FilterModal({
   const [valueSearch, setValueSearch] = useState("");
   const modalRef = useRef<HTMLDivElement>(null);
   const operatorButtonRef = useRef<HTMLDivElement>(null);
+  const operatorDropdownRef = useRef<HTMLDivElement>(null);
 
   // Calculate dropdown position when opening
   const openOperatorDropdown = useCallback(() => {
@@ -90,11 +91,16 @@ export function FilterModal({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose, operatorDropdownOpen]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (check both button and dropdown refs)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (operatorDropdownOpen && operatorButtonRef.current && !operatorButtonRef.current.contains(event.target as Node)) {
-        setOperatorDropdownOpen(false);
+      if (operatorDropdownOpen) {
+        const target = event.target as Node;
+        const isInsideButton = operatorButtonRef.current?.contains(target);
+        const isInsideDropdown = operatorDropdownRef.current?.contains(target);
+        if (!isInsideButton && !isInsideDropdown) {
+          setOperatorDropdownOpen(false);
+        }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -379,6 +385,7 @@ export function FilterModal({
                       {/* Fixed position dropdown portal */}
                       {operatorDropdownOpen && dropdownPosition && (
                         <div
+                          ref={operatorDropdownRef}
                           className="fixed py-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg shadow-lg z-[200]"
                           style={{
                             top: dropdownPosition.top,
