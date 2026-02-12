@@ -62,13 +62,12 @@ export function ChartSettingsDropdown({
   const [showCustom, setShowCustom] = useState(settings.colorTheme === 'custom');
   const [localBarWidth, setLocalBarWidth] = useState(settings.barWidth);
   const isDragging = useRef(false);
-  const prevBarWidth = useRef(settings.barWidth);
 
   // Sync local bar width when settings change externally
-  if (prevBarWidth.current !== settings.barWidth) {
-    prevBarWidth.current = settings.barWidth;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional prop-to-state sync during idle
     if (!isDragging.current) setLocalBarWidth(settings.barWidth);
-  }
+  }, [settings.barWidth]);
 
   // Close on click outside
   useEffect(() => {
