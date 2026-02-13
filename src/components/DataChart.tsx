@@ -312,7 +312,7 @@ function buildDisplayName(col: string, aggregation: AggregationType): string {
   if (alreadyPrefixed) return col;
 
   switch (aggregation) {
-    case 'COUNT': return `Count`;
+    case 'COUNT': return `Count ${col}`;
     case 'AVG': return `Avg ${col}`;
     case 'SUM': return `Total ${col}`;
     case 'MIN': return `Min ${col}`;
@@ -713,20 +713,29 @@ export const DataChart = memo(function DataChart({
     // Check if label column is categorical (few unique values)
     const isCategorical = isCategoricalColumn(data, labelColumn);
 
+    // Pre-filter data by excluded categories (applies to ALL code paths)
+    const hasExclusions = currentManipulation.excludedCategories.size > 0;
+    const filteredData = hasExclusions
+      ? data.filter(row => !currentManipulation.excludedCategories.has(String(row[labelColumn] ?? "Unknown")))
+      : data;
+
+    // Check if user has set custom aggregations
+    const hasUserAggregations = Object.keys(currentManipulation.columnAggregations).length > 0;
+
     // Process data based on chart type and size
     let chartData: Record<string, unknown>[];
     let finalAggregationInfo = aggregationInfo;
 
-    // Count unique values in label column
-    const uniqueLabelCount = new Set(data.map(row => String(row[labelColumn] ?? ""))).size;
+    const effectiveIsLargeDataset = filteredData.length > 50;
 
     // For ALL chart types with categorical data, aggregate first
     // Categorical data (like Gender: Male/Female) should always be grouped
-    if (isCategorical) {
+    // Also force aggregation when user has set custom aggregations
+    if (isCategorical || hasUserAggregations) {
       // Use smart aggregation for categorical data
       const maxItems = chartType === "pie" ? 10 : 50;
       const result = smartAggregateData(
-        data,
+        filteredData,
         labelColumn,
         finalDataColumns,
         maxItems,
@@ -737,12 +746,12 @@ export const DataChart = memo(function DataChart({
       finalAggregationInfo = result.aggregationInfo;
     } else if (chartType === "line" || chartType === "area") {
       // For line/area with non-categorical (sequential/time) data, sample with rolling average
-      chartData = sampleDataWithRollingAvg(data, labelColumn, finalDataColumns, 60, aggregationInfo);
+      chartData = sampleDataWithRollingAvg(filteredData, labelColumn, finalDataColumns, 60, aggregationInfo);
     } else {
       // For bar/pie with non-categorical data
-      if (isLargeDataset) {
+      if (effectiveIsLargeDataset) {
         const result = smartAggregateData(
-          data,
+          filteredData,
           labelColumn,
           finalDataColumns,
           chartType === "pie" ? 10 : 30,
@@ -753,11 +762,11 @@ export const DataChart = memo(function DataChart({
         finalAggregationInfo = result.aggregationInfo;
       } else {
         // Small dataset - still use smart aggregation for consistency
-        const uniqueLabels = new Set(data.map(row => String(row[labelColumn] ?? "")));
-        if (uniqueLabels.size < data.length * 0.8) {
+        const uniqueLabels = new Set(filteredData.map(row => String(row[labelColumn] ?? "")));
+        if (uniqueLabels.size < filteredData.length * 0.8) {
           // Has grouping potential
           const result = smartAggregateData(
-            data,
+            filteredData,
             labelColumn,
             finalDataColumns,
             chartType === "pie" ? 10 : 30,
@@ -768,7 +777,7 @@ export const DataChart = memo(function DataChart({
           finalAggregationInfo = result.aggregationInfo;
         } else {
           // Mostly unique values - just format for display
-          chartData = data.slice(0, 50).map((row) => {
+          chartData = filteredData.slice(0, 50).map((row) => {
             const fullName = String(row[labelColumn] ?? "");
             const item: Record<string, unknown> = {
               name: truncateLabel(fullName),

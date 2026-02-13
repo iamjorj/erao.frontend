@@ -179,6 +179,14 @@ function VirtualTable({
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Column resize state
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const resizeRef = useRef<{ col: string; startX: number; startWidth: number } | null>(null);
+
+  // Sort state
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
   // Apply advanced filter logic
   const applyAdvancedFilter = useCallback((value: unknown, filter: AdvancedFilter): boolean => {
     const strValue = String(value ?? '').toLowerCase();
@@ -206,86 +214,141 @@ function VirtualTable({
     }
   }, []);
 
-  // Apply filters to rows (both simple and advanced)
-  const filteredRows = useMemo(() => {
+  // Apply filters then sort
+  const processedRows = useMemo(() => {
     const hasSimpleFilters = filters && Object.keys(filters).length > 0;
     const hasAdvancedFilters = advancedFilters && Object.keys(advancedFilters).some(col => advancedFilters[col]?.length > 0);
 
-    if (!hasSimpleFilters && !hasAdvancedFilters) return rows;
-
-    return rows.filter(row => {
-      // Apply simple filters (exact value match)
-      if (hasSimpleFilters) {
-        for (const [col, values] of Object.entries(filters)) {
-          if (values && values.length > 0) {
-            const rowValue = String(row[col]);
-            if (!values.some(v => String(v) === rowValue)) {
-              return false;
+    let result = rows;
+    if (hasSimpleFilters || hasAdvancedFilters) {
+      result = rows.filter(row => {
+        if (hasSimpleFilters) {
+          for (const [col, values] of Object.entries(filters)) {
+            if (values && values.length > 0) {
+              const rowValue = String(row[col]);
+              if (!values.some(v => String(v) === rowValue)) return false;
             }
           }
         }
-      }
-
-      // Apply advanced filters (all filters for each column must match - AND logic)
-      if (hasAdvancedFilters && advancedFilters) {
-        for (const [col, filterArray] of Object.entries(advancedFilters)) {
-          if (filterArray && filterArray.length > 0) {
-            // All filters for this column must pass
-            for (const filter of filterArray) {
-              if (filter && filter.value) {
-                if (!applyAdvancedFilter(row[col], filter)) {
-                  return false;
+        if (hasAdvancedFilters && advancedFilters) {
+          for (const [col, filterArray] of Object.entries(advancedFilters)) {
+            if (filterArray && filterArray.length > 0) {
+              for (const filter of filterArray) {
+                if (filter && filter.value) {
+                  if (!applyAdvancedFilter(row[col], filter)) return false;
                 }
               }
             }
           }
         }
-      }
+        return true;
+      });
+    }
 
-      return true;
-    });
-  }, [rows, filters, advancedFilters, applyAdvancedFilter]);
+    // Sort
+    if (sortCol) {
+      result = [...result].sort((a, b) => {
+        const aVal = a[sortCol];
+        const bVal = b[sortCol];
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        const aNum = Number(aVal);
+        const bNum = Number(bVal);
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return sortDir === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+        const cmp = String(aVal).localeCompare(String(bVal));
+        return sortDir === 'asc' ? cmp : -cmp;
+      });
+    }
+
+    return result;
+  }, [rows, filters, advancedFilters, applyAdvancedFilter, sortCol, sortDir]);
+
+  const ROW_HEIGHT = 36;
 
   const rowVirtualizer = useVirtualizer({
-    count: filteredRows.length,
+    count: processedRows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 40,
-    overscan: 20, // Increased for smoother scrolling with large datasets
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 20,
   });
 
-  // Calculate column width based on number of columns
-  // For few columns, let them expand. For many columns, use fixed width with scroll
+  // Container width measurement
   const [containerWidth, setContainerWidth] = useState(0);
-
   useEffect(() => {
-    const updateWidth = () => {
-      if (parentRef.current) {
-        setContainerWidth(parentRef.current.clientWidth);
-      }
-    };
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    const el = parentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
-  const rowNumWidth = 40; // w-10
-  const gap = 8; // gap-2
-  const padding = 16; // px-2 both sides
+  // Smart default column widths based on content
+  const defaultColWidth = useMemo(() => {
+    const MIN_COL = 80;
+    const MAX_COL = 280;
+    const widths: Record<string, number> = {};
+    for (const col of columns) {
+      // Sample first 20 rows to estimate width
+      let maxLen = col.length;
+      for (let i = 0; i < Math.min(20, rows.length); i++) {
+        const len = formatCellValue(rows[i][col]).length;
+        if (len > maxLen) maxLen = len;
+      }
+      widths[col] = Math.min(MAX_COL, Math.max(MIN_COL, maxLen * 8 + 24));
+    }
+    return widths;
+  }, [columns, rows]);
 
-  // Calculate if we need horizontal scroll
-  const availableWidth = containerWidth - rowNumWidth - padding - (columns.length * gap);
-  const minColWidth = 100; // Minimum column width before scrolling
-  const needsScroll = columns.length > 0 && (availableWidth / columns.length) < minColWidth;
+  const getColWidth = (col: string) => columnWidths[col] || defaultColWidth[col] || 120;
 
-  // Dynamic column width: expand to fill space when few columns, fixed when many
-  const colWidth = needsScroll ? 120 : Math.max(minColWidth, Math.floor(availableWidth / columns.length));
+  const ROW_NUM_WIDTH = 48;
+  const totalTableWidth = ROW_NUM_WIDTH + columns.reduce((sum, col) => sum + getColWidth(col), 0);
+  const needsScroll = totalTableWidth > containerWidth;
 
-  // Only set minWidth when horizontal scroll is needed
-  const minTableWidth = needsScroll
-    ? rowNumWidth + columns.length * colWidth + columns.length * gap + padding
-    : undefined;
+  // Column resize handlers
+  const handleResizeStart = useCallback((col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = getColWidth(col);
+    resizeRef.current = { col, startX, startWidth };
 
-  // Check if any filters are active (simple + advanced)
+    const onMove = (ev: MouseEvent) => {
+      const ref = resizeRef.current;
+      if (!ref) return;
+      const diff = ev.clientX - ref.startX;
+      const newWidth = Math.max(50, ref.startWidth + diff);
+      setColumnWidths(prev => ({ ...prev, [col]: newWidth }));
+    };
+    const onUp = () => {
+      resizeRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [columnWidths, defaultColWidth]);
+
+  // Sort handler
+  const handleSort = useCallback((col: string) => {
+    if (sortCol === col) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+  }, [sortCol]);
+
+  // Filter counts
   const simpleFilterCount = Object.values(filters).reduce((sum, v) => sum + (v?.length || 0), 0);
   const advancedFilterCount = advancedFilters
     ? Object.values(advancedFilters).reduce((sum, arr) => sum + (arr?.length || 0), 0)
@@ -294,32 +357,61 @@ function VirtualTable({
   const activeFilterCount = simpleFilterCount + advancedFilterCount;
 
   return (
-    <div className="p-1 overflow-hidden">
-      {/* Scroll container - handles both horizontal and vertical scroll */}
+    <div className="overflow-hidden">
+      {/* Scroll container */}
       <div
         ref={parentRef}
-        className="max-h-[400px] overflow-auto custom-scrollbar"
+        className="max-h-[420px] overflow-auto custom-scrollbar"
       >
-        {/* Inner container - only has minWidth when horizontal scroll is needed */}
-        <div style={minTableWidth ? { minWidth: `${minTableWidth}px` } : undefined}>
-          {/* Table Header - sticky top, scrolls horizontally with data */}
-          <div
-            className="flex items-center gap-2 px-2 py-2.5 bg-[#fafafc] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#262626] sticky top-0 z-10"
-          >
-            <span className="w-10 text-xs font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">#</span>
+        <div style={{ minWidth: needsScroll ? `${totalTableWidth}px` : undefined }}>
+          {/* Header */}
+          <div className="flex items-stretch sticky top-0 z-10 bg-white dark:bg-[#141414] border-b border-gray-200/80 dark:border-[#2a2a2a]">
+            {/* Row number header */}
+            <div
+              className="flex items-center justify-center text-[10px] font-medium text-gray-400 dark:text-gray-500 flex-shrink-0 border-r border-gray-100 dark:border-[#2a2a2a]"
+              style={{ width: ROW_NUM_WIDTH }}
+            >
+              #
+            </div>
             {columns.map((col) => (
-              <span
+              <div
                 key={col}
-                className={`text-xs font-semibold text-gray-700 dark:text-gray-300 truncate ${needsScroll ? 'flex-shrink-0' : 'flex-1 min-w-0'}`}
-                style={needsScroll ? { width: colWidth } : { minWidth: minColWidth }}
-                title={col}
+                className="relative flex items-center group flex-shrink-0"
+                style={{ width: getColWidth(col) }}
               >
-                {col}
-              </span>
+                <button
+                  onClick={() => handleSort(col)}
+                  className="flex items-center gap-1 w-full h-full px-3 py-2 text-left cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
+                >
+                  <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">
+                    {col}
+                  </span>
+                  {sortCol === col && (
+                    <svg className="w-3 h-3 flex-shrink-0 text-gray-900 dark:text-gray-200" viewBox="0 0 12 12" fill="currentColor">
+                      {sortDir === 'asc' ? (
+                        <path d="M6 2L10 8H2L6 2Z" />
+                      ) : (
+                        <path d="M6 10L2 4H10L6 10Z" />
+                      )}
+                    </svg>
+                  )}
+                  {sortCol !== col && (
+                    <svg className="w-3 h-3 flex-shrink-0 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M6 2L9 5.5H3L6 2Z" />
+                      <path d="M6 10L3 6.5H9L6 10Z" />
+                    </svg>
+                  )}
+                </button>
+                {/* Resize handle */}
+                <div
+                  onMouseDown={(e) => handleResizeStart(col, e)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full cursor-col-resize bg-gray-200 dark:bg-[#333] opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:!bg-blue-400 dark:hover:!bg-blue-500 active:!bg-blue-500 transition-all z-20"
+                />
+              </div>
             ))}
           </div>
 
-          {/* Virtual rows container */}
+          {/* Rows */}
           <div
             style={{
               height: `${rowVirtualizer.getTotalSize()}px`,
@@ -327,30 +419,46 @@ function VirtualTable({
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const row = filteredRows[virtualRow.index];
+              const row = processedRows[virtualRow.index];
               return (
                 <div
                   key={virtualRow.index}
-                  className={`flex items-center gap-2 px-2 py-2.5 absolute w-full ${
-                    virtualRow.index % 2 === 0 ? "bg-white dark:bg-[#111111]" : "bg-gray-50/50 dark:bg-[#1a1a1a]"
-                  }`}
+                  className={`flex items-stretch absolute w-full border-b border-gray-50 dark:border-[#1e1e1e] transition-colors ${
+                    virtualRow.index % 2 === 0
+                      ? "bg-white dark:bg-[#141414]"
+                      : "bg-gray-50/40 dark:bg-[#181818]"
+                  } hover:bg-blue-50/40 dark:hover:bg-[#1a1f2e]`}
                   style={{
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <span className="w-10 text-xs text-gray-400 flex-shrink-0">
+                  {/* Row number */}
+                  <div
+                    className="flex items-center justify-center text-[10px] tabular-nums text-gray-300 dark:text-gray-600 flex-shrink-0 border-r border-gray-100/60 dark:border-[#1e1e1e]"
+                    style={{ width: ROW_NUM_WIDTH }}
+                  >
                     {virtualRow.index + 1}
-                  </span>
+                  </div>
                   {columns.map((col) => (
-                    <span
+                    <div
                       key={col}
-                      className={`text-sm truncate ${needsScroll ? 'flex-shrink-0' : 'flex-1 min-w-0'} ${row[col] === null || row[col] === undefined ? "text-gray-400 dark:text-gray-500" : "text-gray-700 dark:text-gray-300"}`}
-                      style={needsScroll ? { width: colWidth } : { minWidth: minColWidth }}
-                      title={formatCellValue(row[col])}
+                      className="flex items-center px-3 flex-shrink-0 min-w-0"
+                      style={{ width: getColWidth(col) }}
                     >
-                      {formatCellValue(row[col])}
-                    </span>
+                      <span
+                        className={`text-[13px] truncate ${
+                          row[col] === null || row[col] === undefined
+                            ? "text-gray-300 dark:text-gray-600 italic"
+                            : typeof row[col] === 'number' || (!isNaN(Number(row[col])) && row[col] !== '' && row[col] !== null)
+                              ? "text-gray-800 dark:text-gray-200 tabular-nums"
+                              : "text-gray-700 dark:text-gray-300"
+                        }`}
+                        title={formatCellValue(row[col])}
+                      >
+                        {row[col] === null || row[col] === undefined ? "null" : formatCellValue(row[col])}
+                      </span>
+                    </div>
                   ))}
                 </div>
               );
@@ -359,21 +467,28 @@ function VirtualTable({
         </div>
       </div>
 
-      {/* Row count indicator */}
-      <div className="text-xs text-center py-2 border-t border-gray-100 dark:border-[#262626]">
-        {truncated && (
-          <div className="text-amber-600 dark:text-amber-400 mb-1">
-            ⚠ Results limited to {maxRows?.toLocaleString() || '100,000'} rows
-          </div>
-        )}
-        <span className="text-gray-400">
+      {/* Footer */}
+      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-[#2a2a2a] bg-white dark:bg-[#141414]">
+        <span className="text-[11px] text-gray-400 dark:text-gray-500">
+          {truncated && (
+            <span className="text-amber-500 dark:text-amber-400 mr-2">
+              Limited to {maxRows?.toLocaleString() || '100,000'} rows
+            </span>
+          )}
+        </span>
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums">
           {hasActiveFilters ? (
             <>
-              Showing {filteredRows.length.toLocaleString()} of {rows.length.toLocaleString()} rows
-              <span className="text-gray-500 dark:text-gray-400 ml-1">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active)</span>
+              {processedRows.length.toLocaleString()} of {rows.length.toLocaleString()} rows
+              <span className="ml-1 text-blue-500 dark:text-blue-400">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''})</span>
             </>
           ) : (
             `${rows.length.toLocaleString()} rows`
+          )}
+          {sortCol && (
+            <span className="ml-2 text-gray-400 dark:text-gray-500">
+              sorted by {sortCol} {sortDir === 'asc' ? '\u2191' : '\u2193'}
+            </span>
           )}
         </span>
       </div>
@@ -1081,6 +1196,14 @@ export default function AIPage() {
       return;
     }
 
+    // Reset sending state from any in-flight request (same as selectConversation)
+    setIsSending(false);
+    setCurrentPhase(null);
+    if (phaseTimeoutsRef.current.writing) clearTimeout(phaseTimeoutsRef.current.writing);
+    if (phaseTimeoutsRef.current.executing) clearTimeout(phaseTimeoutsRef.current.executing);
+    phaseTimeoutsRef.current = {};
+    setError(null);
+
     try {
       const response = await api.createConversation({
         databaseConnectionId: selectedDatabaseId || undefined,
@@ -1164,17 +1287,22 @@ export default function AIPage() {
 
     try {
       // Fake phases - show "writing" after 500ms, "executing" after 2s
+      // Only update currentPhase if user is still viewing this conversation
       phaseTimeoutsRef.current.writing = setTimeout(() => {
-        setCurrentPhase("writing");
-        // Update phase in pending messages ref
+        // Update phase in pending messages ref (always, for background indicator)
         const pending = pendingMessagesRef.current.get(requestConversationId);
         if (pending) pendingMessagesRef.current.set(requestConversationId, { ...pending, phase: "writing" });
+        // Only update visible phase if still on same conversation
+        if (selectedConversationIdRef.current === requestConversationId) {
+          setCurrentPhase("writing");
+        }
       }, 500);
       phaseTimeoutsRef.current.executing = setTimeout(() => {
-        setCurrentPhase("executing");
-        // Update phase in pending messages ref
         const pending = pendingMessagesRef.current.get(requestConversationId);
         if (pending) pendingMessagesRef.current.set(requestConversationId, { ...pending, phase: "executing" });
+        if (selectedConversationIdRef.current === requestConversationId) {
+          setCurrentPhase("executing");
+        }
       }, 2000);
 
       // Use REST API - this completes even if user switches away
@@ -1414,6 +1542,12 @@ export default function AIPage() {
   );
   const selectedDatabase = databases.find((d) => d.id === selectedDatabaseId);
   const selectedFile = files.find((f) => f.id === selectedFileId);
+
+  // True when the chat area should show the centered welcome/empty state.
+  // False when messages exist, when we're loading messages, when actively sending,
+  // or when this conversation has a pending background request (messages not yet saved to DB).
+  const hasPendingRequest = !!(selectedConversationId && pendingConversations.has(selectedConversationId));
+  const isEmptyChat = messages.length === 0 && !loadingMessages && !isSending && !hasPendingRequest;
 
   // Show loading only for auth check
   if (isLoading) {
@@ -2830,9 +2964,9 @@ export default function AIPage() {
         )}
 
         {/* Input Area */}
-        <div className={`${messages.length === 0 ? 'absolute inset-0 flex items-center justify-center px-3 sm:px-5' : 'absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 flex justify-center backdrop-blur-xl bg-white/5 dark:bg-[#0a0a0a]/60'}`}>
-          <div className={`w-full max-w-[680px] ${messages.length === 0 ? 'flex flex-col items-center gap-4 sm:gap-6' : ''}`}>
-            {messages.length === 0 && (
+        <div className={`${isEmptyChat ? 'absolute inset-0 flex items-center justify-center px-3 sm:px-5' : 'absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 flex justify-center backdrop-blur-xl bg-white/5 dark:bg-[#0a0a0a]/60'}`}>
+          <div className={`w-full max-w-[680px] ${isEmptyChat ? 'flex flex-col items-center gap-4 sm:gap-6' : ''}`}>
+            {isEmptyChat && (
               <div className="text-center px-2">
                 <h2 className="text-xl sm:text-2xl font-medium text-gray-900 dark:text-white mb-2">
                   {selectedDatabase

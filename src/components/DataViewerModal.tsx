@@ -71,21 +71,95 @@ function FullscreenVirtualTable({
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Column resize state
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const resizeRef = useRef<{ col: string; startX: number; startWidth: number } | null>(null);
+
+  // Sort state
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  // Sorted rows
+  const sortedRows = useMemo(() => {
+    if (!sortCol) return rows;
+    return [...rows].sort((a, b) => {
+      const aVal = a[sortCol];
+      const bVal = b[sortCol];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      const aNum = Number(aVal);
+      const bNum = Number(bVal);
+      if (!isNaN(aNum) && !isNaN(bNum)) return sortDir === 'asc' ? aNum - bNum : bNum - aNum;
+      const cmp = String(aVal).localeCompare(String(bVal));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [rows, sortCol, sortDir]);
+
+  const ROW_HEIGHT = isMobile ? 36 : 40;
+  const ROW_NUM_WIDTH = isMobile ? 44 : 56;
+
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: sortedRows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => isMobile ? 40 : 48,
+    estimateSize: () => ROW_HEIGHT,
     overscan: 15,
   });
 
-  const colWidth = isMobile ? 110 : 140;
-  const rowNumWidth = isMobile ? 40 : 64;
-  const gap = isMobile ? 8 : 12; // gap-2 vs gap-3
-  const padding = isMobile ? 16 : 32; // px-2 vs px-4 (both sides)
-  const minTableWidth = Math.max(
-    columns.length * colWidth + rowNumWidth + columns.length * gap + padding,
-    isMobile ? 300 : 600
-  );
+  // Smart default widths
+  const defaultColWidth = useMemo(() => {
+    const MIN_COL = isMobile ? 90 : 100;
+    const MAX_COL = isMobile ? 200 : 300;
+    const widths: Record<string, number> = {};
+    for (const col of columns) {
+      let maxLen = col.length;
+      for (let i = 0; i < Math.min(20, rows.length); i++) {
+        const len = formatCellValue(rows[i][col]).length;
+        if (len > maxLen) maxLen = len;
+      }
+      widths[col] = Math.min(MAX_COL, Math.max(MIN_COL, maxLen * 8 + 24));
+    }
+    return widths;
+  }, [columns, rows, isMobile]);
+
+  const getColWidth = (col: string) => columnWidths[col] || defaultColWidth[col] || (isMobile ? 110 : 140);
+  const totalTableWidth = ROW_NUM_WIDTH + columns.reduce((sum, col) => sum + getColWidth(col), 0);
+
+  // Column resize handlers
+  const handleResizeStart = useCallback((col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = getColWidth(col);
+    resizeRef.current = { col, startX, startWidth };
+    const onMove = (ev: MouseEvent) => {
+      const ref = resizeRef.current;
+      if (!ref) return;
+      const diff = ev.clientX - ref.startX;
+      const newWidth = Math.max(50, ref.startWidth + diff);
+      setColumnWidths(prev => ({ ...prev, [col]: newWidth }));
+    };
+    const onUp = () => {
+      resizeRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [columnWidths, defaultColWidth]);
+
+  const handleSort = useCallback((col: string) => {
+    if (sortCol === col) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+  }, [sortCol]);
 
   return (
     <div className="h-full flex flex-col">
@@ -93,31 +167,59 @@ function FullscreenVirtualTable({
         ref={parentRef}
         className="flex-1 overflow-auto custom-scrollbar"
       >
-        <div style={{ minWidth: `${minTableWidth}px` }}>
-          {/* Table Header */}
-          <div className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b sticky top-0 z-10 ${
-            isDark
-              ? "bg-[#1a1a1a] border-[#333333]"
-              : "bg-gray-50 border-gray-200"
+        <div style={{ minWidth: `${totalTableWidth}px` }}>
+          {/* Header */}
+          <div className={`flex items-stretch sticky top-0 z-10 border-b ${
+            isDark ? "bg-[#141414] border-[#2a2a2a]" : "bg-white border-gray-200/80"
           }`}>
-            <span className={`text-xs sm:text-sm font-semibold flex-shrink-0 ${
-              isDark ? "text-gray-400" : "text-gray-500"
-            }`} style={{ width: rowNumWidth }}>#</span>
+            <div
+              className={`flex items-center justify-center text-[10px] font-medium flex-shrink-0 border-r ${
+                isDark ? "text-gray-500 border-[#2a2a2a]" : "text-gray-400 border-gray-100"
+              }`}
+              style={{ width: ROW_NUM_WIDTH }}
+            >
+              #
+            </div>
             {columns.map((col) => (
-              <span
+              <div
                 key={col}
-                className={`text-xs sm:text-sm font-semibold truncate ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-                style={{ minWidth: colWidth, width: colWidth }}
-                title={col}
+                className="relative flex items-center group flex-shrink-0"
+                style={{ width: getColWidth(col) }}
               >
-                {col}
-              </span>
+                <button
+                  onClick={() => handleSort(col)}
+                  className={`flex items-center gap-1 w-full h-full px-3 py-2.5 text-left cursor-pointer transition-colors ${
+                    isDark ? "hover:bg-[#1e1e1e]" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <span className={`text-[11px] font-semibold uppercase tracking-wider truncate ${
+                    isDark ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    {col}
+                  </span>
+                  {sortCol === col && (
+                    <svg className={`w-3 h-3 flex-shrink-0 ${isDark ? "text-gray-200" : "text-gray-900"}`} viewBox="0 0 12 12" fill="currentColor">
+                      {sortDir === 'asc' ? <path d="M6 2L10 8H2L6 2Z" /> : <path d="M6 10L2 4H10L6 10Z" />}
+                    </svg>
+                  )}
+                  {sortCol !== col && (
+                    <svg className={`w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+                      isDark ? "text-gray-600" : "text-gray-300"
+                    }`} viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M6 2L9 5.5H3L6 2Z" />
+                      <path d="M6 10L3 6.5H9L6 10Z" />
+                    </svg>
+                  )}
+                </button>
+                <div
+                  onMouseDown={(e) => handleResizeStart(col, e)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full cursor-col-resize bg-gray-200 dark:bg-[#333] opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:!bg-blue-400 dark:hover:!bg-blue-500 active:!bg-blue-500 transition-all z-20"
+                />
+              </div>
             ))}
           </div>
 
-          {/* Virtual rows */}
+          {/* Rows */}
           <div
             style={{
               height: `${rowVirtualizer.getTotalSize()}px`,
@@ -125,42 +227,67 @@ function FullscreenVirtualTable({
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const row = rows[virtualRow.index];
+              const row = sortedRows[virtualRow.index];
               return (
                 <div
                   key={virtualRow.index}
-                  className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 absolute w-full ${
+                  className={`flex items-stretch absolute w-full border-b transition-colors ${
                     virtualRow.index % 2 === 0
-                      ? isDark ? "bg-[#0a0a0a]" : "bg-white"
-                      : isDark ? "bg-[#1a1a1a]" : "bg-gray-50/50"
-                  }`}
+                      ? isDark ? "bg-[#141414] border-[#1e1e1e]" : "bg-white border-gray-50"
+                      : isDark ? "bg-[#181818] border-[#1e1e1e]" : "bg-gray-50/40 border-gray-50"
+                  } ${isDark ? "hover:bg-[#1a1f2e]" : "hover:bg-blue-50/40"}`}
                   style={{
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <span className={`text-xs sm:text-sm flex-shrink-0 ${
-                    isDark ? "text-gray-500" : "text-gray-400"
-                  }`} style={{ width: rowNumWidth }}>
+                  <div
+                    className={`flex items-center justify-center text-[10px] tabular-nums flex-shrink-0 border-r ${
+                      isDark ? "text-gray-600 border-[#1e1e1e]" : "text-gray-300 border-gray-100/60"
+                    }`}
+                    style={{ width: ROW_NUM_WIDTH }}
+                  >
                     {virtualRow.index + 1}
-                  </span>
+                  </div>
                   {columns.map((col) => (
-                    <span
+                    <div
                       key={col}
-                      className={`text-xs sm:text-sm truncate ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                      style={{ minWidth: colWidth, width: colWidth }}
-                      title={String(row[col] ?? "")}
+                      className="flex items-center px-3 flex-shrink-0 min-w-0"
+                      style={{ width: getColWidth(col) }}
                     >
-                      {String(row[col] ?? "")}
-                    </span>
+                      <span
+                        className={`text-[13px] truncate ${
+                          row[col] === null || row[col] === undefined
+                            ? isDark ? "text-gray-600 italic" : "text-gray-300 italic"
+                            : typeof row[col] === 'number' || (!isNaN(Number(row[col])) && row[col] !== '' && row[col] !== null)
+                              ? isDark ? "text-gray-200 tabular-nums" : "text-gray-800 tabular-nums"
+                              : isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                        title={formatCellValue(row[col])}
+                      >
+                        {row[col] === null || row[col] === undefined ? "null" : formatCellValue(row[col])}
+                      </span>
+                    </div>
                   ))}
                 </div>
               );
             })}
           </div>
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className={`flex items-center justify-end px-3 py-2 border-t ${
+        isDark ? "border-[#2a2a2a] bg-[#141414]" : "border-gray-100 bg-white"
+      }`}>
+        <span className={`text-[11px] tabular-nums ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+          {rows.length.toLocaleString()} rows
+          {sortCol && (
+            <span className="ml-2">
+              sorted by {sortCol} {sortDir === 'asc' ? '\u2191' : '\u2193'}
+            </span>
+          )}
+        </span>
       </div>
     </div>
   );
