@@ -18,8 +18,10 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const [googleBtnWidth, setGoogleBtnWidth] = useState(400);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const measure = () => {
       if (googleBtnRef.current) {
         setGoogleBtnWidth(googleBtnRef.current.offsetWidth);
@@ -208,7 +210,7 @@ export default function LoginPage() {
               <div className="h-11 bg-[#f5f5f5] rounded-[10px] flex items-center justify-center text-sm text-gray-500">
                 Signing in...
               </div>
-            ) : (
+            ) : mounted ? (
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => setError("Google sign-in failed. Please try again.")}
@@ -216,6 +218,8 @@ export default function LoginPage() {
                 shape="pill"
                 text="signin_with"
               />
+            ) : (
+              <div className="h-11 bg-[#f5f5f5] rounded-[10px]" />
             )}
           </div>
 

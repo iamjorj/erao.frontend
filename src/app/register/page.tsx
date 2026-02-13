@@ -17,8 +17,10 @@ export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const [googleBtnWidth, setGoogleBtnWidth] = useState(400);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const measure = () => {
       if (googleBtnRef.current) {
         setGoogleBtnWidth(googleBtnRef.current.offsetWidth);
@@ -229,7 +231,7 @@ export default function RegisterPage() {
               <div className="h-11 bg-[#f5f5f5] rounded-[10px] flex items-center justify-center text-sm text-gray-500">
                 Creating account...
               </div>
-            ) : (
+            ) : mounted ? (
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => setError("Google sign-up failed. Please try again.")}
@@ -237,6 +239,8 @@ export default function RegisterPage() {
                 shape="pill"
                 text="signup_with"
               />
+            ) : (
+              <div className="h-11 bg-[#f5f5f5] rounded-[10px]" />
             )}
           </div>
 
