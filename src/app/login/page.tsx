@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 import { api, auth, ApiError } from "@/lib/api";
 import { LogoIcon } from "@/components/shared";
 
@@ -14,6 +15,47 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [resending, setResending] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(400);
+
+  useEffect(() => {
+    const measure = () => {
+      if (googleBtnRef.current) {
+        setGoogleBtnWidth(googleBtnRef.current.offsetWidth);
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    const idToken = credentialResponse.credential;
+    if (!idToken) {
+      setError("Google sign-in failed. Please try again.");
+      return;
+    }
+
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const response = await api.googleLogin(idToken);
+      if (response.success && response.data) {
+        auth.saveTokens(response.data.accessToken, response.data.refreshToken);
+        auth.saveUser(response.data.user);
+        router.push("/ai");
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Google sign-in failed. Please try again.");
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +194,30 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-sm text-gray-400">or</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Google Sign In */}
+          <div ref={googleBtnRef} className="w-full [&>div]:w-full">
+            {googleLoading ? (
+              <div className="h-11 bg-[#f5f5f5] rounded-[10px] flex items-center justify-center text-sm text-gray-500">
+                Signing in...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google sign-in failed. Please try again.")}
+                width={googleBtnWidth}
+                shape="pill"
+                text="signin_with"
+              />
+            )}
+          </div>
 
           {/* Footer */}
           <div className="flex items-center justify-center gap-1 text-base">

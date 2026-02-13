@@ -623,6 +623,13 @@ class ApiClient {
     }, true); // Skip auth refresh for public endpoint
   }
 
+  async googleLogin(idToken: string): Promise<ApiResponse<AuthResponse>> {
+    return this.request<AuthResponse>('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
+    }, true); // Skip auth refresh for public endpoint
+  }
+
   async resendOtp(email: string): Promise<ApiResponse<null>> {
     return this.request<null>('/api/auth/resend-otp', {
       method: 'POST',
