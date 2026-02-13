@@ -875,6 +875,7 @@ export default function AIPage() {
     sqlQuery?: string;
     userQuestion?: string;
     viewKey: string;
+    initialManipulation?: { excludedCategories: string[]; columnAggregations: Record<string, string>; hiddenColumns: string[] };
   } | null>(null);
 
   // Scroll to bottom of messages
@@ -1987,7 +1988,7 @@ export default function AIPage() {
             messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message) => (
               <div key={message.id}>
                 {isAssistantMessage(message.role) ? (
-                  <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
+                  <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#262626] rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
                     <MarkdownResponse content={stripCodeBlocks(message.content)} />
                     {(() => {
@@ -2031,55 +2032,60 @@ export default function AIPage() {
                                     <div className="flex items-center gap-0.5 flex-shrink min-w-0">
                                       <button
                                         onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "table" }))}
-                                        className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                        className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                           currentView === "table"
                                             ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                            : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                         }`}
                                       >
-                                        Table
+                                        <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                        <span className="hidden sm:inline">Table</span>
                                       </button>
                                       {hasNumericData && result.rows.length > 1 && (
                                         <>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "bar" }))}
-                                            className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "bar"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            Bar
+                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                            <span className="hidden sm:inline">Bar</span>
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "line" }))}
-                                            className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "line"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            Line
+                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                                            <span className="hidden sm:inline">Line</span>
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "pie" }))}
-                                            className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "pie"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            Pie
+                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8l5.66 5.66C14.38 19.19 13.23 20 12 20z" /></svg>
+                                            <span className="hidden sm:inline">Pie</span>
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "area" }))}
-                                            className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "area"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                                : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            Area
+                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M4 15l4-8 4 4 4-6 4 10" /></svg>
+                                            <span className="hidden sm:inline">Area</span>
                                           </button>
                                         </>
                                       )}
@@ -2262,6 +2268,7 @@ export default function AIPage() {
                                           // Find the user question for this assistant message
                                           const messageIndex = messages.findIndex(m => m.id === message.id);
                                           const previousUserMessage = messageIndex > 0 ? messages.slice(0, messageIndex).reverse().find(m => isUserMessage(m.role)) : null;
+                                          const m = getManipulation(viewKey);
                                           setDataViewerData({
                                             columns: result.columns,
                                             rows: result.rows,
@@ -2269,6 +2276,11 @@ export default function AIPage() {
                                             sqlQuery: message.sqlQuery || undefined,
                                             userQuestion: previousUserMessage?.content,
                                             viewKey,
+                                            initialManipulation: {
+                                              excludedCategories: Array.from(m.excludedCategories),
+                                              columnAggregations: m.columnAggregations,
+                                              hiddenColumns: Array.from(m.hiddenColumns),
+                                            },
                                           });
                                           setDataViewerOpen(message.id);
                                       }}
@@ -2450,55 +2462,60 @@ export default function AIPage() {
                             <div className="flex items-center gap-0.5 flex-shrink min-w-0">
                               <button
                                 onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "table" }))}
-                                className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                   currentView === "table"
                                     ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                    : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                 }`}
                               >
-                                Table
+                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                <span className="hidden sm:inline">Table</span>
                               </button>
                               {hasNumericData && parsedResult.rows.length > 1 && (
                                 <>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "bar" }))}
-                                    className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "bar"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    Bar
+                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                    <span className="hidden sm:inline">Bar</span>
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "line" }))}
-                                    className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "line"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    Line
+                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                                    <span className="hidden sm:inline">Line</span>
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "pie" }))}
-                                    className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "pie"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    Pie
+                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8l5.66 5.66C14.38 19.19 13.23 20 12 20z" /></svg>
+                                    <span className="hidden sm:inline">Pie</span>
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "area" }))}
-                                    className={`px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "area"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
-                                        : "bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    Area
+                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M4 15l4-8 4 4 4-6 4 10" /></svg>
+                                    <span className="hidden sm:inline">Area</span>
                                   </button>
                                 </>
                               )}
@@ -2681,6 +2698,7 @@ export default function AIPage() {
                                     // Find the user question for this assistant message
                                     const messageIndex = messages.findIndex(m => m.id === message.id);
                                     const previousUserMessage = messageIndex > 0 ? messages.slice(0, messageIndex).reverse().find(m => isUserMessage(m.role)) : null;
+                                    const m = getManipulation(message.id);
                                     setDataViewerData({
                                       columns: parsedResult.columns,
                                       rows: parsedResult.rows,
@@ -2688,6 +2706,11 @@ export default function AIPage() {
                                       sqlQuery: message.sqlQuery || undefined,
                                       userQuestion: previousUserMessage?.content,
                                       viewKey: message.id,
+                                      initialManipulation: {
+                                        excludedCategories: Array.from(m.excludedCategories),
+                                        columnAggregations: m.columnAggregations,
+                                        hiddenColumns: Array.from(m.hiddenColumns),
+                                      },
                                     });
                                     setDataViewerOpen(message.id);
                                   }}
@@ -2780,7 +2803,7 @@ export default function AIPage() {
                     </div>
                   </div>
                 )}
-                <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-3 sm:p-4">
+                <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#262626] rounded-xl p-3 sm:p-4">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Erao</p>
                   <div className="flex items-center gap-3 sm:gap-5">
                     {/* Robot Animation Container */}
@@ -3131,6 +3154,7 @@ export default function AIPage() {
           userQuestion={dataViewerData.userQuestion}
           initialChartSettings={chartSettings}
           onSettingsChange={setChartSettings}
+          initialManipulation={dataViewerData.initialManipulation}
         />
       )}
 
@@ -3461,6 +3485,17 @@ function AddDatabaseModal({
     { value: 1, label: "MySQL", port: 3306 },
     { value: 2, label: "SQL Server", port: 1433 },
     { value: 3, label: "MongoDB", port: 27017 },
+    { value: 4, label: "Oracle", port: 1521 },
+    { value: 5, label: "SQLite", port: 0 },
+    { value: 6, label: "MariaDB", port: 3306 },
+    { value: 7, label: "CockroachDB", port: 26257 },
+    { value: 8, label: "Redshift", port: 5439 },
+    { value: 9, label: "ClickHouse", port: 8123 },
+    { value: 10, label: "Firebird", port: 3050 },
+    { value: 11, label: "DuckDB", port: 0 },
+    { value: 12, label: "TimescaleDB", port: 5432 },
+    { value: 13, label: "YugabyteDB", port: 5433 },
+    { value: 14, label: "Snowflake", port: 443 },
   ];
 
   // Database logo paths
@@ -3469,6 +3504,17 @@ function AddDatabaseModal({
     1: "/db-logos/mysql.png",
     2: "/db-logos/sql-server.png",
     3: "/db-logos/mongodb.png",
+    4: "/db-logos/oracle.png",
+    5: "/db-logos/sqlite.webp",
+    6: "/db-logos/mariadb.png",
+    7: "/db-logos/cockroachdb.png",
+    8: "/db-logos/redshift.png",
+    9: "/db-logos/clickhouse.png",
+    10: "/db-logos/firebird.png",
+    11: "/db-logos/duckdb.png",
+    12: "/db-logos/timescaledb.png",
+    13: "/db-logos/yugabytedb.png",
+    14: "/db-logos/snowflake.png",
   };
 
   const [formData, setFormData] = useState<CreateDatabaseConnectionPayload>({
@@ -3486,8 +3532,27 @@ function AddDatabaseModal({
   const [error, setError] = useState("");
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
   const [testPassed, setTestPassed] = useState(false);
+  const [dbDropdownOpen, setDbDropdownOpen] = useState(false);
+  const [dbSearchQuery, setDbSearchQuery] = useState("");
+  const dbDropdownRef = useRef<HTMLDivElement>(null);
 
   const currentDbType = databaseTypes.find(t => t.value === formData.databaseType);
+
+  const filteredDbTypes = dbSearchQuery
+    ? databaseTypes.filter(t => t.label.toLowerCase().includes(dbSearchQuery.toLowerCase()))
+    : databaseTypes;
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dbDropdownRef.current && !dbDropdownRef.current.contains(e.target as Node)) {
+        setDbDropdownOpen(false);
+        setDbSearchQuery("");
+      }
+    };
+    if (dbDropdownOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dbDropdownOpen]);
 
   const handlePortChange = (value: string) => {
     setPortInput(value);
@@ -3575,61 +3640,116 @@ function AddDatabaseModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
-      <div className="bg-white dark:bg-[#111111] rounded-t-2xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-hidden shadow-2xl">
+      <div className="bg-white dark:bg-[#111111] rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="px-4 sm:px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a]">
-          <h2 className="text-base font-medium text-gray-900 dark:text-white">New Connection</h2>
+        <div className="px-5 sm:px-6 py-4 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a]">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Connection</h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="px-4 sm:px-5 py-4 overflow-y-auto max-h-[calc(90vh-130px)] custom-scrollbar">
-          {/* Database Type Selection */}
-          <div className="mb-5">
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-              {databaseTypes.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => handleDatabaseTypeSelect(type.value)}
-                  className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2.5 sm:py-3 rounded-lg border transition-all ${
-                    formData.databaseType === type.value
-                      ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-[#1a1a1a]"
-                      : "border-gray-200 dark:border-[#262626] hover:border-gray-300 dark:hover:border-[#404040]"
-                  }`}
-                >
-                  <img src={databaseLogos[type.value]} alt={type.label} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
-                  <span className="text-[9px] sm:text-[10px] font-medium text-gray-600 dark:text-gray-400 truncate max-w-full px-1">{type.label}</span>
-                </button>
-              ))}
-            </div>
+        <div className="px-5 sm:px-6 py-5 overflow-y-auto max-h-[calc(90vh-130px)] custom-scrollbar">
+          {/* Database Type Selection — Dropdown */}
+          <div className="mb-6" ref={dbDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setDbDropdownOpen(!dbDropdownOpen)}
+              className={`w-full h-13 flex items-center gap-3.5 px-4 rounded-xl border transition-all ${
+                dbDropdownOpen
+                  ? "border-gray-400 dark:border-[#505050]"
+                  : "border-gray-200 dark:border-[#262626] hover:border-gray-300 dark:hover:border-[#404040]"
+              }`}
+            >
+              <img src={databaseLogos[formData.databaseType]} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
+              <span className="text-[15px] text-gray-900 dark:text-white flex-1 text-left font-medium">{currentDbType?.label || "Select database"}</span>
+              <svg className={`w-4.5 h-4.5 text-gray-400 transition-transform ${dbDropdownOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {dbDropdownOpen && (
+              <div className="mt-2 bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#262626] rounded-xl overflow-hidden">
+                {/* Search */}
+                <div className="p-2.5 border-b border-gray-100 dark:border-[#222]">
+                  <div className="relative">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={dbSearchQuery}
+                      onChange={(e) => setDbSearchQuery(e.target.value)}
+                      placeholder="Search databases..."
+                      autoFocus
+                      className="w-full h-10 pl-9 pr-3 bg-gray-50 dark:bg-[#111] border border-gray-100 dark:border-[#262626] rounded-lg text-sm outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Options list */}
+                <div className="max-h-[280px] overflow-y-auto custom-scrollbar p-2">
+                  {filteredDbTypes.length === 0 ? (
+                    <div className="px-3 py-5 text-sm text-gray-400 text-center">No databases found</div>
+                  ) : (
+                    filteredDbTypes.map((type) => (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => {
+                          handleDatabaseTypeSelect(type.value);
+                          setDbDropdownOpen(false);
+                          setDbSearchQuery("");
+                        }}
+                        className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-lg transition-colors ${
+                          formData.databaseType === type.value
+                            ? "bg-gray-100 dark:bg-[#222]"
+                            : "hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
+                        }`}
+                      >
+                        <img src={databaseLogos[type.value]} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
+                        <span className={`text-[15px] ${
+                          formData.databaseType === type.value
+                            ? "text-gray-900 dark:text-white font-medium"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}>{type.label}</span>
+                        {formData.databaseType === type.value && (
+                          <svg className="w-4.5 h-4.5 text-gray-900 dark:text-white ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Form Fields */}
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             <div>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleFieldChange("name", e.target.value)}
                 placeholder="Connection name"
-                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full h-12 bg-transparent border border-gray-200 dark:border-[#262626] rounded-xl px-4 text-[15px] outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <input
                 type="text"
                 value={formData.host}
                 onChange={(e) => handleFieldChange("host", e.target.value)}
                 placeholder="Host"
-                className="flex-1 min-w-0 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="flex-1 min-w-0 h-12 bg-transparent border border-gray-200 dark:border-[#262626] rounded-xl px-4 text-[15px] outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
               <input
                 type="text"
@@ -3637,7 +3757,7 @@ function AddDatabaseModal({
                 value={portInput}
                 onChange={(e) => handlePortChange(e.target.value)}
                 placeholder="Port"
-                className="w-16 sm:w-20 h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-2 sm:px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-center"
+                className="w-20 sm:w-24 h-12 bg-transparent border border-gray-200 dark:border-[#262626] rounded-xl px-3 text-[15px] outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-center"
               />
             </div>
 
@@ -3647,7 +3767,7 @@ function AddDatabaseModal({
                 value={formData.databaseName}
                 onChange={(e) => handleFieldChange("databaseName", e.target.value)}
                 placeholder="Database name"
-                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full h-12 bg-transparent border border-gray-200 dark:border-[#262626] rounded-xl px-4 text-[15px] outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
 
@@ -3660,7 +3780,7 @@ function AddDatabaseModal({
                 autoComplete="off"
                 data-lpignore="true"
                 data-form-type="other"
-                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full h-12 bg-transparent border border-gray-200 dark:border-[#262626] rounded-xl px-4 text-[15px] outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
             <div>
@@ -3672,28 +3792,28 @@ function AddDatabaseModal({
                 autoComplete="new-password"
                 data-lpignore="true"
                 data-form-type="other"
-                className="w-full h-10 bg-transparent border border-gray-200 dark:border-[#262626] rounded-lg px-3 text-sm outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full h-12 bg-transparent border border-gray-200 dark:border-[#262626] rounded-xl px-4 text-[15px] outline-none transition-colors focus:border-gray-400 dark:focus:border-[#404040] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
           </div>
 
           {/* Status Message */}
           {testResult && (
-            <div className={`mt-4 px-3 py-2.5 rounded-lg text-xs flex items-center gap-2 ${
+            <div className={`mt-5 px-4 py-3 rounded-xl text-sm flex items-center gap-2.5 ${
               testResult === "success"
                 ? "bg-green-500/10 text-green-600 dark:text-green-400"
                 : "bg-red-500/10 text-red-600 dark:text-red-400"
             }`}>
               {testResult === "success" ? (
                 <>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   Connected to {currentDbType?.label}
                 </>
               ) : (
                 <>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   {error || "Connection failed"}
@@ -3704,11 +3824,11 @@ function AddDatabaseModal({
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-[#1a1a1a] flex justify-end gap-2">
+        <div className="px-5 sm:px-6 py-4 border-t border-gray-100 dark:border-[#1a1a1a] flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 h-9 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            className="px-4 h-10 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
           >
             Cancel
           </button>
@@ -3717,11 +3837,11 @@ function AddDatabaseModal({
               type="button"
               onClick={handleTest}
               disabled={isTesting || !isFormValid}
-              className="px-3 sm:px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-5 h-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isTesting ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
                   Testing
                 </>
               ) : (
@@ -3733,11 +3853,11 @@ function AddDatabaseModal({
               type="button"
               onClick={handleSave}
               disabled={isLoading}
-              className="px-3 sm:px-4 h-9 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 flex items-center gap-2"
+              className="px-5 h-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 flex items-center gap-2"
             >
               {isLoading ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
                   Saving
                 </>
               ) : (
@@ -4073,18 +4193,35 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
     const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     const parts = text.split(regex);
     return parts.map((part, i) =>
-      regex.test(part) ? <mark key={i} className="bg-yellow-300 dark:bg-yellow-500/50 text-yellow-900 dark:text-yellow-100 rounded px-0.5">{part}</mark> : part
+      regex.test(part) ? <mark key={i} className="bg-gray-200 dark:bg-white/15 text-gray-900 dark:text-white rounded px-0.5">{part}</mark> : part
     );
   };
   const initialPositions = useMemo(() => {
     const cols = Math.ceil(Math.sqrt(tables.length));
+    const headerH = 36;
+    const colH = 28;
+    const gap = 40;
+
+    // Calculate the max table height per row for proper spacing
+    const rowHeights: number[] = [];
+    tables.forEach((table, index) => {
+      const row = Math.floor(index / cols);
+      const tableHeight = headerH + table.columns.length * colH;
+      rowHeights[row] = Math.max(rowHeights[row] || 0, tableHeight);
+    });
+
     const pos: Record<string, { x: number; y: number }> = {};
     tables.forEach((table, index) => {
       const col = index % cols;
       const row = Math.floor(index / cols);
+      // Sum up heights of all previous rows
+      let yOffset = 80;
+      for (let r = 0; r < row; r++) {
+        yOffset += (rowHeights[r] || 0) + gap;
+      }
       pos[table.name] = {
         x: 80 + col * 300,
-        y: 80 + row * 280,
+        y: yOffset,
       };
     });
     return pos;
@@ -4338,7 +4475,7 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
               refY="3.5"
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#6366f1" />
+              <polygon points="0 0, 10 3.5, 0 7" fill={isDark ? '#555' : '#9ca3af'} />
             </marker>
           </defs>
           {relationships.map((rel, idx) => {
@@ -4349,11 +4486,44 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
 
             if (!fromPos || !toPos || !fromTable || !toTable) return null;
 
+            const strokeColor = isDark ? '#555' : '#9ca3af';
+
             // SVG offset compensation
             const svgOffset = 1000;
             const tableWidth = 240;
             const fromY = fromPos.y + getColumnYOffset(fromTable, rel.fromColumn) + svgOffset;
             const toY = toPos.y + getColumnYOffset(toTable, rel.toColumn) + svgOffset;
+
+            // Self-referencing FK (same table) — loop out to the right and back
+            if (rel.fromTable === rel.toTable) {
+              const rightEdge = fromPos.x + tableWidth + svgOffset;
+              const loopOffset = 40 + idx * 8; // stagger multiple self-refs
+              let path: string;
+
+              if (rel.fromColumn === rel.toColumn) {
+                // Same column self-ref: small bump loop (out right, up, and back)
+                const bumpHeight = 20;
+                path = `M ${rightEdge} ${fromY} C ${rightEdge + loopOffset} ${fromY - bumpHeight}, ${rightEdge + loopOffset} ${fromY + bumpHeight}, ${rightEdge} ${fromY}`;
+              } else {
+                // Different columns same table: curve out to the right between the two rows
+                path = `M ${rightEdge} ${fromY} C ${rightEdge + loopOffset} ${fromY}, ${rightEdge + loopOffset} ${toY}, ${rightEdge} ${toY}`;
+              }
+
+              return (
+                <g key={idx}>
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke={strokeColor}
+                    strokeWidth="1.5"
+                    markerEnd="url(#arrowhead)"
+                    strokeDasharray="4 3"
+                    className="opacity-60"
+                  />
+                  <circle cx={rightEdge} cy={fromY} r="3" fill={strokeColor} className="opacity-60" />
+                </g>
+              );
+            }
 
             // Determine which side to connect from
             const fromRight = fromPos.x + tableWidth + svgOffset;
@@ -4384,13 +4554,13 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
                 <path
                   d={path}
                   fill="none"
-                  stroke="#6366f1"
-                  strokeWidth="2"
+                  stroke={strokeColor}
+                  strokeWidth="1.5"
                   markerEnd="url(#arrowhead)"
                   className="opacity-60"
                 />
                 {/* FK indicator dot */}
-                <circle cx={startX} cy={fromY} r="4" fill="#6366f1" />
+                <circle cx={startX} cy={fromY} r="3" fill={strokeColor} className="opacity-60" />
               </g>
             );
           })}
@@ -4426,8 +4596,7 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
               </div>
               {/* Columns */}
               <div
-                className="divide-y divide-gray-100 dark:divide-gray-700 max-h-48 overflow-y-auto erd-scrollbar bg-white dark:bg-[#111111]"
-                onWheel={(e) => e.stopPropagation()}
+                className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-[#111111]"
               >
                 {table.columns.map(column => (
                   <div
@@ -4502,7 +4671,7 @@ function TableCard({
     const regex = new RegExp(`(${searchQuery})`, 'gi');
     const parts = text.split(regex);
     return parts.map((part, i) =>
-      regex.test(part) ? <mark key={i} className="bg-yellow-200 dark:bg-yellow-500/30 dark:text-yellow-200 rounded px-0.5">{part}</mark> : part
+      regex.test(part) ? <mark key={i} className="bg-gray-200 dark:bg-white/15 text-gray-900 dark:text-white rounded px-0.5">{part}</mark> : part
     );
   };
 

@@ -25,6 +25,7 @@ interface DataViewerModalProps {
   userQuestion?: string;
   initialChartSettings?: ChartSettings;
   onSettingsChange?: (settings: ChartSettings) => void;
+  initialManipulation?: { excludedCategories: string[]; columnAggregations: Record<string, string>; hiddenColumns: string[] };
 }
 
 function formatCellValue(value: unknown): string {
@@ -304,6 +305,7 @@ export function DataViewerModal({
   userQuestion,
   initialChartSettings,
   onSettingsChange,
+  initialManipulation,
 }: DataViewerModalProps) {
   const [currentView, setCurrentView] = useState<ChartType>(initialChartType);
   const isDark = useDarkMode();
@@ -316,11 +318,11 @@ export function DataViewerModal({
   const [showSettings, setShowSettings] = useState(false);
   const [showManipulation, setShowManipulation] = useState(false);
   const [chartOnlyMode, setChartOnlyMode] = useState(false);
-  const [manipulation, setManipulation] = useState<ChartManipulation>({
-    excludedCategories: new Set(),
-    columnAggregations: {},
-    hiddenColumns: new Set(),
-  });
+  const [manipulation, setManipulation] = useState<ChartManipulation>(() => ({
+    excludedCategories: new Set(initialManipulation?.excludedCategories ?? []),
+    columnAggregations: (initialManipulation?.columnAggregations ?? {}) as Record<string, AggregationType>,
+    hiddenColumns: new Set(initialManipulation?.hiddenColumns ?? []),
+  }));
   const manipulationRef = useRef<HTMLDivElement>(null);
 
   // Sync settings when initialChartSettings changes
@@ -329,6 +331,15 @@ export function DataViewerModal({
       setChartSettings(initialChartSettings);
     }
   }, [initialChartSettings]);
+
+  // Sync manipulation when initialManipulation changes (new modal open)
+  useEffect(() => {
+    setManipulation({
+      excludedCategories: new Set(initialManipulation?.excludedCategories ?? []),
+      columnAggregations: (initialManipulation?.columnAggregations ?? {}) as Record<string, AggregationType>,
+      hiddenColumns: new Set(initialManipulation?.hiddenColumns ?? []),
+    });
+  }, [initialManipulation]);
 
   // Notify parent of settings changes
   const handleSettingsChange = useCallback((newSettings: ChartSettings) => {

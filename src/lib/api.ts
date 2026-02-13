@@ -67,10 +67,15 @@ interface LoginPayload {
 }
 
 // Database connection types
-export type DatabaseType = 'PostgreSQL' | 'MySQL' | 'SQLServer' | 'MongoDB' | 0 | 1 | 2 | 3;
+export type DatabaseType = 'PostgreSQL' | 'MySQL' | 'SQLServer' | 'MongoDB' | 'Oracle' | 'SQLite' | 'MariaDB' | 'CockroachDB' | 'Redshift' | 'ClickHouse' | 'Firebird' | 'DuckDB' | 'TimescaleDB' | 'YugabyteDB' | 'Snowflake' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
 
 // DatabaseType helpers
-const DB_TYPE_MAP: Record<number, string> = { 0: 'PostgreSQL', 1: 'MySQL', 2: 'SQLServer', 3: 'MongoDB' };
+const DB_TYPE_MAP: Record<number, string> = {
+  0: 'PostgreSQL', 1: 'MySQL', 2: 'SQLServer', 3: 'MongoDB',
+  4: 'Oracle', 5: 'SQLite', 6: 'MariaDB', 7: 'CockroachDB',
+  8: 'Redshift', 9: 'ClickHouse', 10: 'Firebird', 11: 'DuckDB',
+  12: 'TimescaleDB', 13: 'YugabyteDB', 14: 'Snowflake'
+};
 export function getDatabaseTypeName(type: DatabaseType): string {
   if (typeof type === 'number') return DB_TYPE_MAP[type] || 'Unknown';
   return type;
@@ -79,6 +84,17 @@ export function isPostgreSQL(type: DatabaseType): boolean { return type === 'Pos
 export function isMySQL(type: DatabaseType): boolean { return type === 'MySQL' || type === 1; }
 export function isSQLServer(type: DatabaseType): boolean { return type === 'SQLServer' || type === 2; }
 export function isMongoDB(type: DatabaseType): boolean { return type === 'MongoDB' || type === 3; }
+export function isOracle(type: DatabaseType): boolean { return type === 'Oracle' || type === 4; }
+export function isSQLite(type: DatabaseType): boolean { return type === 'SQLite' || type === 5; }
+export function isMariaDB(type: DatabaseType): boolean { return type === 'MariaDB' || type === 6; }
+export function isCockroachDB(type: DatabaseType): boolean { return type === 'CockroachDB' || type === 7; }
+export function isRedshift(type: DatabaseType): boolean { return type === 'Redshift' || type === 8; }
+export function isClickHouse(type: DatabaseType): boolean { return type === 'ClickHouse' || type === 9; }
+export function isFirebird(type: DatabaseType): boolean { return type === 'Firebird' || type === 10; }
+export function isDuckDB(type: DatabaseType): boolean { return type === 'DuckDB' || type === 11; }
+export function isTimescaleDB(type: DatabaseType): boolean { return type === 'TimescaleDB' || type === 12; }
+export function isYugabyteDB(type: DatabaseType): boolean { return type === 'YugabyteDB' || type === 13; }
+export function isSnowflake(type: DatabaseType): boolean { return type === 'Snowflake' || type === 14; }
 
 export interface DatabaseConnection {
   id: string;
