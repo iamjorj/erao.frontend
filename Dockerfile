@@ -11,6 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_PUBLIC_API_URL=https://api.erao.digital
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=741872074687-1b71d48jke8irb6haf0dccc48cgsvsv1.apps.googleusercontent.com
 
 RUN npm run build
 
