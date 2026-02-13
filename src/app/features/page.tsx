@@ -24,7 +24,7 @@ const features = [
   },
   {
     title: "Multi-Database Support",
-    description: "Connect PostgreSQL, MySQL, or MongoDB. Add your connection string and start querying in seconds. More databases coming soon.",
+    description: "Connect 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, Snowflake, ClickHouse, MariaDB, CockroachDB, and more. Add your connection details and start querying in seconds.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
@@ -123,7 +123,7 @@ export default function FeaturesPage() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Connect</h3>
               <p className="text-sm text-gray-600">
-                Add your database connection string. We support PostgreSQL, MySQL, and MongoDB.
+                Add your database connection details. We support 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, and more.
               </p>
             </div>
             <div className="text-center">

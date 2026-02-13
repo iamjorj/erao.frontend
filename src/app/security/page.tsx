@@ -32,7 +32,7 @@ const securityFeatures = [
   },
   {
     title: "Read-Only Queries",
-    description: "By default, Erao only executes read-only (SELECT) queries. We prevent any data modification unless explicitly enabled.",
+    description: "Erao only executes read-only (SELECT) queries. We prevent any data modification to keep your database safe.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -60,7 +60,7 @@ export default function SecurityPage() {
 
       {/* Security Features */}
       <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-12 sm:pb-16">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
           {securityFeatures.map((feature) => (
             <div key={feature.title} className="border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4">

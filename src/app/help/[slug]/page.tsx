@@ -12,7 +12,7 @@ const articles: Record<string, { title: string; category: string; content: strin
       "Welcome to Erao. This guide will help you get started with querying your database using natural language.",
       "Step 1: Create an account by clicking 'Start Free' on the homepage.",
       "Step 2: Once logged in, navigate to your dashboard and click 'Add Database' to connect your first database.",
-      "Step 3: Enter your database connection details. We support PostgreSQL, MySQL, and MongoDB.",
+      "Step 3: Enter your database connection details. We support 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, Snowflake, ClickHouse, and more.",
       "Step 4: After connecting, go to the chat interface and start asking questions about your data.",
       "That's it. You're ready to query your database using natural language.",
     ],
@@ -21,7 +21,7 @@ const articles: Record<string, { title: string; category: string; content: strin
     title: "Connecting Your First Database",
     category: "Getting Started",
     content: [
-      "Erao supports PostgreSQL, MySQL, and MongoDB. Here's how to connect your database.",
+      "Erao supports 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, Snowflake, ClickHouse, MariaDB, SQLite, and more. Here's how to connect your database.",
       "1. From your dashboard, click 'Add Database' or the '+' button.",
       "2. Select your database type from the dropdown menu.",
       "3. Enter your connection details: host, port, database name, username, and password.",
