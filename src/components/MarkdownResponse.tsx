@@ -157,7 +157,7 @@ export function MarkdownResponse({ content }: MarkdownResponseProps) {
   };
 
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-0.5 text-[13px] leading-relaxed">
       {parseContent(content)}
     </div>
   );

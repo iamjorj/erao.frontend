@@ -365,7 +365,7 @@ function VirtualTable({
       >
         <div style={{ minWidth: needsScroll ? `${totalTableWidth}px` : undefined }}>
           {/* Header */}
-          <div className="flex items-stretch sticky top-0 z-10 bg-white dark:bg-[#141414] border-b border-gray-200/80 dark:border-[#2a2a2a]">
+          <div className="flex items-stretch sticky top-0 z-10 bg-white dark:bg-[#1a1a1a] border-b border-gray-200/80 dark:border-[#2a2a2a]">
             {/* Row number header */}
             <div
               className="flex items-center justify-center text-[10px] font-medium text-gray-400 dark:text-gray-500 flex-shrink-0 border-r border-gray-100 dark:border-[#2a2a2a]"
@@ -425,8 +425,8 @@ function VirtualTable({
                   key={virtualRow.index}
                   className={`flex items-stretch absolute w-full border-b border-gray-50 dark:border-[#1e1e1e] transition-colors ${
                     virtualRow.index % 2 === 0
-                      ? "bg-white dark:bg-[#141414]"
-                      : "bg-gray-50/40 dark:bg-[#181818]"
+                      ? "bg-white dark:bg-[#1a1a1a]"
+                      : "bg-gray-50/50 dark:bg-[#161616]"
                   } hover:bg-blue-50/40 dark:hover:bg-[#1a1f2e]`}
                   style={{
                     height: `${virtualRow.size}px`,
@@ -468,7 +468,7 @@ function VirtualTable({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-[#2a2a2a] bg-white dark:bg-[#141414]">
+      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a]">
         <span className="text-[11px] text-gray-400 dark:text-gray-500">
           {truncated && (
             <span className="text-amber-500 dark:text-amber-400 mr-2">
@@ -1988,8 +1988,16 @@ export default function AIPage() {
             messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message) => (
               <div key={message.id}>
                 {isAssistantMessage(message.role) ? (
-                  <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#262626] rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
+                  <div className="w-full sm:w-[85%] md:w-[75%] sm:max-w-[85%] md:max-w-[75%] flex flex-col gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center flex-shrink-0">
+                        <img src="/logo-dark.png" alt="Erao" className="w-5 h-5 object-contain dark:hidden" />
+                        <img src="/logo.png" alt="Erao" className="w-5 h-5 object-contain hidden dark:block" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
+                    </div>
+                    <div className="pl-[42px]">
+                    <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl px-4 py-3 shadow-sm dark:shadow-none">
                     <MarkdownResponse content={stripCodeBlocks(message.content)} />
                     {(() => {
                       const parsedResults = parseQueryResult(message.queryResult);
@@ -2022,13 +2030,13 @@ export default function AIPage() {
                               );
 
                               return (
-                                <div key={idx} className="bg-[#fafafc] dark:bg-[#1a1a1a] rounded-xl overflow-visible relative">
+                                <div key={idx} className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#262626] rounded-xl overflow-visible relative shadow-sm dark:shadow-none">
                                   {/* Title */}
                                   <div className="px-3 pt-2 pb-1">
                                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{capitalizedTitle}</span>
                                   </div>
                                   {/* View Toggle Buttons */}
-                                  <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-200 dark:border-[#262626] gap-0.5 sm:gap-1 overflow-x-auto">
+                                  <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-100 dark:border-[#1f1f1f] gap-0.5 sm:gap-1 overflow-x-auto">
                                     <div className="flex items-center gap-0.5 flex-shrink min-w-0">
                                       <button
                                         onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "table" }))}
@@ -2456,9 +2464,9 @@ export default function AIPage() {
                       );
 
                       return (
-                        <div className="bg-[#fafafc] dark:bg-[#1a1a1a] rounded-xl overflow-visible relative mt-2">
+                        <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#262626] rounded-xl overflow-visible relative mt-2 shadow-sm dark:shadow-none">
                           {/* View Toggle Buttons - always show for tables */}
-                          <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-200 dark:border-[#262626] gap-0.5 sm:gap-1 overflow-x-auto">
+                          <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-100 dark:border-[#1f1f1f] gap-0.5 sm:gap-1 overflow-x-auto">
                             <div className="flex items-center gap-0.5 flex-shrink min-w-0">
                               <button
                                 onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "table" }))}
@@ -2771,11 +2779,13 @@ export default function AIPage() {
                         </div>
                       );
                     })()}
+                    </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex justify-end">
-                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] bg-gray-900 dark:bg-[#1a1a1a] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
-                      <p className="text-[13px] text-white leading-relaxed">
+                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] bg-white dark:bg-[#1a1a1a] rounded-2xl px-4 py-3 shadow-sm dark:shadow-none">
+                      <p className="text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed">
                         {message.content}
                       </p>
                     </div>
@@ -2796,16 +2806,22 @@ export default function AIPage() {
                 {/* Show user's pending message when returning to conversation */}
                 {pendingMessage && (
                   <div className="flex justify-end mb-4">
-                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] bg-gray-900 dark:bg-[#1a1a1a] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
-                      <p className="text-[13px] text-white leading-relaxed">
+                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] bg-white dark:bg-[#1a1a1a] rounded-2xl px-4 py-3 shadow-sm dark:shadow-none">
+                      <p className="text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed">
                         {pendingMessage}
                       </p>
                     </div>
                   </div>
                 )}
-                <div className="w-full sm:w-[85%] md:w-[70%] sm:max-w-[85%] md:max-w-[70%] bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#262626] rounded-xl p-3 sm:p-4">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Erao</p>
-                  <div className="flex items-center gap-3 sm:gap-5">
+                <div className="w-full sm:w-[85%] md:w-[75%] sm:max-w-[85%] md:max-w-[75%] flex flex-col gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center flex-shrink-0">
+                      <img src="/logo-dark.png" alt="Erao" className="w-5 h-5 object-contain dark:hidden" />
+                      <img src="/logo.png" alt="Erao" className="w-5 h-5 object-contain hidden dark:block" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
+                  </div>
+                  <div className="pl-[42px] flex items-center gap-3 sm:gap-5">
                     {/* Robot Animation Container */}
                     <div className="relative w-14 h-14 sm:w-20 sm:h-20 flex-shrink-0">
                   <svg viewBox="0 0 300 300" className="w-full h-full overflow-visible">

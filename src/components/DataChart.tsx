@@ -81,67 +81,67 @@ function useScreenSize(): "mobile" | "tablet" | "desktop" {
   return size;
 }
 
-// Color palettes for charts (works well on both light and dark)
+// Color palettes for charts — modern muted SaaS palette (Stripe/Notion style)
 const COLOR_THEMES: Record<ChartSettings['colorTheme'], string[]> = {
   colorful: [
-    "#3b82f6", // blue
-    "#10b981", // green
-    "#f59e0b", // amber
-    "#ef4444", // red
-    "#8b5cf6", // purple
-    "#ec4899", // pink
-    "#06b6d4", // cyan
-    "#84cc16", // lime
-    "#14b8a6", // teal
-    "#f97316", // orange
+    "#6366f1", // indigo
+    "#22d3ee", // cyan
+    "#f472b6", // pink
+    "#a78bfa", // violet
+    "#34d399", // emerald
+    "#fbbf24", // amber
+    "#f87171", // rose
+    "#38bdf8", // sky
+    "#4ade80", // green
+    "#fb923c", // orange
   ],
   monochrome: [
-    "#1f2937", // gray-800
-    "#374151", // gray-700
-    "#4b5563", // gray-600
-    "#6b7280", // gray-500
-    "#9ca3af", // gray-400
-    "#d1d5db", // gray-300
-    "#e5e7eb", // gray-200
-    "#f3f4f6", // gray-100
-    "#f9fafb", // gray-50
-    "#111827", // gray-900
+    "#e2e8f0", // slate-200
+    "#cbd5e1", // slate-300
+    "#94a3b8", // slate-400
+    "#64748b", // slate-500
+    "#475569", // slate-600
+    "#334155", // slate-700
+    "#1e293b", // slate-800
+    "#0f172a", // slate-900
+    "#f1f5f9", // slate-100
+    "#f8fafc", // slate-50
   ],
   blue: [
-    "#1e40af", // blue-800
-    "#1d4ed8", // blue-700
-    "#2563eb", // blue-600
-    "#3b82f6", // blue-500
-    "#60a5fa", // blue-400
-    "#93c5fd", // blue-300
-    "#bfdbfe", // blue-200
-    "#dbeafe", // blue-100
-    "#0c4a6e", // sky-900
-    "#075985", // sky-800
+    "#818cf8", // indigo-400
+    "#6366f1", // indigo-500
+    "#4f46e5", // indigo-600
+    "#4338ca", // indigo-700
+    "#a5b4fc", // indigo-300
+    "#c7d2fe", // indigo-200
+    "#3730a3", // indigo-800
+    "#312e81", // indigo-900
+    "#e0e7ff", // indigo-100
+    "#eef2ff", // indigo-50
   ],
   green: [
-    "#065f46", // emerald-800
-    "#047857", // emerald-700
-    "#059669", // emerald-600
-    "#10b981", // emerald-500
     "#34d399", // emerald-400
+    "#10b981", // emerald-500
+    "#059669", // emerald-600
+    "#047857", // emerald-700
     "#6ee7b7", // emerald-300
     "#a7f3d0", // emerald-200
+    "#065f46", // emerald-800
+    "#064e3b", // emerald-900
     "#d1fae5", // emerald-100
-    "#14532d", // green-900
-    "#166534", // green-800
+    "#ecfdf5", // emerald-50
   ],
   purple: [
-    "#5b21b6", // violet-800
-    "#6d28d9", // violet-700
-    "#7c3aed", // violet-600
-    "#8b5cf6", // violet-500
     "#a78bfa", // violet-400
+    "#8b5cf6", // violet-500
+    "#7c3aed", // violet-600
+    "#6d28d9", // violet-700
     "#c4b5fd", // violet-300
     "#ddd6fe", // violet-200
+    "#5b21b6", // violet-800
+    "#4c1d95", // violet-900
     "#ede9fe", // violet-100
-    "#581c87", // purple-900
-    "#6b21a8", // purple-800
+    "#f5f3ff", // violet-50
   ],
   custom: [], // Custom colors provided via settings.customColors
 };
@@ -595,7 +595,7 @@ export const DataChart = memo(function DataChart({
   const pieOuterRadius = fillContainer
     ? (isMobile ? "70%" : "75%")
     : (isMobile ? 70 : screenSize === "tablet" ? 85 : 100);
-  const fontSize = isMobile ? 8 : screenSize === "tablet" ? 9 : 10;
+  const fontSize = isMobile ? 9 : screenSize === "tablet" ? 10 : 11;
   const legendFontSize = isMobile ? "10px" : "12px";
   const margins = isMobile
     ? { top: 5, right: 5, left: 0, bottom: 35 }
@@ -875,30 +875,45 @@ export const DataChart = memo(function DataChart({
   const labelColumn = chartConfig?.labelColumn ?? '';
   const dataCount = chartData.length;
 
-  // Theme colors - pure black theme for dark mode
-  const gridColor = isDark ? "#333333" : "#e5e7eb";
-  const tickColor = isDark ? "#9ca3af" : "#6b7280";
-  const tooltipBg = isDark ? "#1a1a1a" : "white";
-  const tooltipBorder = isDark ? "#333333" : "#e5e7eb";
-  const tooltipText = isDark ? "#f9fafb" : "#111827";
+  // Theme colors - clean minimal styling
+  const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+  const tickColor = isDark ? "#9ca3af" : "#64748b";
+  const tooltipBg = isDark ? "#18181b" : "white";
+  const tooltipBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const tooltipText = isDark ? "#f1f5f9" : "#1e293b";
+  const axisLineColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
 
   // X-axis config - memoized to prevent recalculation
   const xAxisConfig = useMemo(() => {
     if (dataCount <= 10) {
-      return { interval: 0, angle: 0, textAnchor: "middle" as const, dy: 10 };
+      return { interval: 0, angle: 0, textAnchor: "middle" as const, dy: 8 };
     } else if (dataCount <= 20) {
-      return { interval: 0, angle: -45, textAnchor: "end" as const, dy: 5 };
+      return { interval: 0, angle: -45, textAnchor: "end" as const, dy: 4 };
     } else {
       const skipInterval = Math.ceil(dataCount / 15);
-      return { interval: skipInterval - 1, angle: -45, textAnchor: "end" as const, dy: 5 };
+      return { interval: skipInterval - 1, angle: -45, textAnchor: "end" as const, dy: 4 };
     }
   }, [dataCount]);
 
   const bottomMargin = dataCount > 10 ? 60 : 20;
 
-  // Memoized formatters to avoid re-creating on every render
-  const yAxisFormatter = useCallback((v: number) => isMobile ? (v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)) : v.toLocaleString(), [isMobile]);
-  const labelFormatter = useCallback((v: unknown) => typeof v === 'number' && v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v), []);
+  // Memoized formatters — always abbreviate large numbers for clean axes
+  const yAxisFormatter = useCallback((v: number) => {
+    if (v === 0) return '0';
+    const abs = Math.abs(v);
+    if (abs >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B`;
+    if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${(v / 1_000).toFixed(abs >= 10_000 ? 0 : 1)}K`;
+    if (Number.isInteger(v)) return String(v);
+    return v.toFixed(1);
+  }, []);
+  const labelFormatter = useCallback((v: unknown) => {
+    if (typeof v !== 'number') return String(v);
+    const abs = Math.abs(v);
+    if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+    return v.toLocaleString();
+  }, []);
 
   // Memoized tooltip content renderer to prevent re-renders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -916,42 +931,46 @@ export const DataChart = memo(function DataChart({
 
       return (
         <div
-          className="rounded-lg p-2 shadow-lg max-w-xs"
+          className="rounded-xl px-3 py-2.5 max-w-xs"
           style={{
             backgroundColor: tooltipBg,
             border: `1px solid ${tooltipBorder}`,
+            boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)',
           }}
         >
-          <p className="text-sm font-medium mb-1 truncate" style={{ color: tooltipText }}>
+          <p className="text-xs font-medium mb-1.5 truncate" style={{ color: tooltipText }}>
             {fullName}
           </p>
           {recordCount && recordCount > 1 && (
             <p className="text-[10px] mb-1" style={{ color: tickColor }}>
-              ({recordCount.toLocaleString()} records)
+              {recordCount.toLocaleString()} records
             </p>
           )}
           {bucketSize && bucketSize > 1 && (
             <p className="text-[10px] mb-1" style={{ color: tickColor }}>
-              ({bucketSize.toLocaleString()} rows averaged)
+              {bucketSize.toLocaleString()} rows averaged
             </p>
           )}
-          {payload.map((entry, index) => {
-            const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey);
-            // Use entry.name (set via Bar/Line/Area name prop) which already has the display name
-            const displayLabel = entry.name || aggInfo?.displayName || entry.dataKey || 'Value';
-            const isAvg = aggInfo?.aggregation === 'AVG' || displayLabel.toLowerCase().startsWith('avg ');
-            const formattedValue = typeof entry.value === "number"
-              ? (isAvg
-                ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                : entry.value.toLocaleString())
-              : entry.value;
+          <div className="space-y-1">
+            {payload.map((entry, index) => {
+              const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey);
+              const displayLabel = entry.name || aggInfo?.displayName || entry.dataKey || 'Value';
+              const isAvg = aggInfo?.aggregation === 'AVG' || displayLabel.toLowerCase().startsWith('avg ');
+              const formattedValue = typeof entry.value === "number"
+                ? (isAvg
+                  ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                  : entry.value.toLocaleString())
+                : entry.value;
 
-            return (
-              <p key={index} className="text-xs" style={{ color: entry.color }}>
-                {displayLabel}: {formattedValue}
-              </p>
-            );
-          })}
+              return (
+                <div key={index} className="flex items-center gap-2 text-xs">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                  <span style={{ color: tickColor }}>{displayLabel}</span>
+                  <span className="font-semibold ml-auto" style={{ color: tooltipText }}>{formattedValue}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     }
@@ -1033,10 +1052,12 @@ export const DataChart = memo(function DataChart({
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
-              {settings.showGridLines && <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />}
+              {settings.showGridLines && <CartesianGrid vertical={false} stroke={gridColor} strokeWidth={1} />}
               <XAxis
                 dataKey="name"
-                tick={{ fontSize, fill: tickColor }}
+                tick={{ fontSize, fill: tickColor, fontWeight: 500 }}
+                axisLine={false}
+                tickLine={false}
                 interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
@@ -1044,15 +1065,17 @@ export const DataChart = memo(function DataChart({
                 height={responsiveBottomMargin + 15}
               />
               <YAxis
-                tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
+                tick={{ fontSize: isMobile ? 9 : 11, fill: tickColor, fontWeight: 400 }}
                 tickFormatter={yAxisFormatter}
-                width={isMobile ? 35 : 60}
+                axisLine={false}
+                tickLine={false}
+                width={isMobile ? 32 : 48}
                 domain={[
                   settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
                   settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
                 ]}
               />
-              <Tooltip content={renderTooltipContent} isAnimationActive={false} />
+              <Tooltip content={renderTooltipContent} isAnimationActive={false} cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
               {!isMobile && settings.legendPosition !== 'hidden' && (
                 <Legend
                   verticalAlign={settings.legendPosition}
@@ -1068,7 +1091,7 @@ export const DataChart = memo(function DataChart({
                     dataKey={col}
                     name={info?.displayName || col}
                     fill={chartColors[index % chartColors.length]}
-                    radius={[2, 2, 0, 0]}
+                    radius={[6, 6, 0, 0]}
                     barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
                     isAnimationActive={false}
                   >
@@ -1092,10 +1115,12 @@ export const DataChart = memo(function DataChart({
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
-              {settings.showGridLines && <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />}
+              {settings.showGridLines && <CartesianGrid vertical={false} stroke={gridColor} strokeWidth={1} />}
               <XAxis
                 dataKey="name"
-                tick={{ fontSize, fill: tickColor }}
+                tick={{ fontSize, fill: tickColor, fontWeight: 500 }}
+                axisLine={false}
+                tickLine={false}
                 interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
@@ -1103,9 +1128,11 @@ export const DataChart = memo(function DataChart({
                 height={responsiveBottomMargin + 15}
               />
               <YAxis
-                tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
+                tick={{ fontSize: isMobile ? 9 : 11, fill: tickColor, fontWeight: 400 }}
                 tickFormatter={yAxisFormatter}
-                width={isMobile ? 35 : 60}
+                axisLine={false}
+                tickLine={false}
+                width={isMobile ? 32 : 48}
                 domain={[
                   settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
                   settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
@@ -1121,16 +1148,17 @@ export const DataChart = memo(function DataChart({
               )}
               {dataColumns.map((col, index) => {
                 const info = aggregationInfo.find(a => a.column === col);
+                const color = chartColors[index % chartColors.length];
                 return (
                   <Line
                     key={col}
                     type="monotone"
                     dataKey={col}
                     name={info?.displayName || col}
-                    stroke={chartColors[index % chartColors.length]}
-                    strokeWidth={isMobile ? 1.5 : 2}
-                    dot={!isMobile && dataCount <= 30 ? { fill: chartColors[index % chartColors.length], strokeWidth: 2, r: 2 } : false}
-                    activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
+                    stroke={color}
+                    strokeWidth={isMobile ? 2 : 2.5}
+                    dot={!isMobile && dataCount <= 30 ? { fill: isDark ? '#18181b' : '#fff', stroke: color, strokeWidth: 2.5, r: 3.5 } : false}
+                    activeDot={{ r: 5, fill: color, stroke: isDark ? '#18181b' : '#fff', strokeWidth: 2.5 }}
                     isAnimationActive={false}
                   >
                     {settings.showDataLabels && !isMobile && dataCount <= 20 && (
@@ -1153,10 +1181,23 @@ export const DataChart = memo(function DataChart({
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <AreaChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
-              {settings.showGridLines && <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />}
+              <defs>
+                {dataColumns.map((col, index) => {
+                  const color = chartColors[index % chartColors.length];
+                  return (
+                    <linearGradient key={`gradient-${col}`} id={`areaGradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+                      <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                    </linearGradient>
+                  );
+                })}
+              </defs>
+              {settings.showGridLines && <CartesianGrid vertical={false} stroke={gridColor} strokeWidth={1} />}
               <XAxis
                 dataKey="name"
-                tick={{ fontSize, fill: tickColor }}
+                tick={{ fontSize, fill: tickColor, fontWeight: 500 }}
+                axisLine={false}
+                tickLine={false}
                 interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
                 angle={xAxisConfig.angle}
                 textAnchor={xAxisConfig.textAnchor}
@@ -1164,9 +1205,11 @@ export const DataChart = memo(function DataChart({
                 height={responsiveBottomMargin + 15}
               />
               <YAxis
-                tick={{ fontSize: isMobile ? 9 : 12, fill: tickColor }}
+                tick={{ fontSize: isMobile ? 9 : 11, fill: tickColor, fontWeight: 400 }}
                 tickFormatter={yAxisFormatter}
-                width={isMobile ? 35 : 60}
+                axisLine={false}
+                tickLine={false}
+                width={isMobile ? 32 : 48}
                 domain={[
                   settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
                   settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
@@ -1182,16 +1225,18 @@ export const DataChart = memo(function DataChart({
               )}
               {dataColumns.map((col, index) => {
                 const info = aggregationInfo.find(a => a.column === col);
+                const color = chartColors[index % chartColors.length];
                 return (
                   <Area
                     key={col}
                     type="monotone"
                     dataKey={col}
                     name={info?.displayName || col}
-                    stroke={chartColors[index % chartColors.length]}
-                    fill={chartColors[index % chartColors.length]}
-                    fillOpacity={0.3}
-                    activeDot={{ r: 4, fill: chartColors[index % chartColors.length], stroke: isDark ? '#1a1a1a' : '#fff', strokeWidth: 2 }}
+                    stroke={color}
+                    strokeWidth={2}
+                    fill={`url(#areaGradient-${index})`}
+                    fillOpacity={1}
+                    activeDot={{ r: 5, fill: color, stroke: isDark ? '#18181b' : '#fff', strokeWidth: 2.5 }}
                     isAnimationActive={false}
                   >
                     {settings.showDataLabels && !isMobile && dataCount <= 20 && (
@@ -1229,6 +1274,11 @@ export const DataChart = memo(function DataChart({
           return `${truncateLabel(name || "", 10)} (${(percent * 100).toFixed(0)}%)`;
         };
 
+        // Donut inner radius — 55% of outer for clean donut look
+        const innerRadius = typeof pieOuterRadius === 'string'
+          ? `${parseFloat(pieOuterRadius) * 0.55}%`
+          : Math.round(pieOuterRadius * 0.55);
+
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <PieChart>
@@ -1239,8 +1289,12 @@ export const DataChart = memo(function DataChart({
                 labelLine={false}
                 label={!isMobile && pieData.length <= 8 && settings.showDataLabels ? renderLabel : false}
                 outerRadius={pieOuterRadius}
+                innerRadius={innerRadius}
                 dataKey="value"
                 isAnimationActive={false}
+                stroke={isDark ? '#18181b' : '#fff'}
+                strokeWidth={3}
+                paddingAngle={2}
               >
                 {pieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
@@ -1250,9 +1304,10 @@ export const DataChart = memo(function DataChart({
                 contentStyle={{
                   backgroundColor: tooltipBg,
                   border: `1px solid ${tooltipBorder}`,
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   fontSize: isMobile ? "10px" : "12px",
                   color: tooltipText,
+                  boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)',
                 }}
                 itemStyle={{ color: tooltipText }}
                 labelStyle={{ color: tooltipText }}
