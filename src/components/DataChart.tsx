@@ -49,6 +49,7 @@ export interface ChartManipulation {
   excludedCategories: Set<string>;
   columnAggregations: Record<string, AggregationType>;
   hiddenColumns: Set<string>;
+  groupByColumn?: string;
 }
 
 interface DataChartProps {
@@ -60,6 +61,7 @@ interface DataChartProps {
   onManipulationChange?: (manipulation: ChartManipulation) => void;
   fillContainer?: boolean; // When true, chart fills parent container instead of using fixed height
   borderless?: boolean; // When true, removes padding, bg, and rounded corners (for focus mode)
+  preferredGroupColumn?: string; // AI-suggested group column (from viz hint)
 }
 
 // Hook to detect screen size
@@ -179,10 +181,37 @@ function truncateLabel(label: string, maxLength: number = 15): string {
 }
 
 // Column semantic type detection
-type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric' | 'junk';
+type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric' | 'junk' | 'boolean';
 
-function detectColumnType(columnName: string): ColumnSemanticType {
+function detectColumnType(columnName: string, data?: Record<string, unknown>[]): ColumnSemanticType {
   const name = columnName.toLowerCase();
+
+  // Boolean/flag columns — should COUNT (count of trues), not AVG
+  if (name.startsWith('is_') || name.startsWith('has_') || name.startsWith('can_') ||
+      name === 'flag' || name.includes('_flag') ||
+      name === 'active' || name === 'enabled' || name === 'verified' || name === 'deleted' ||
+      name === 'approved' || name === 'published' || name === 'archived' ||
+      name.startsWith('is') && name.length > 2 && name[2] === name[2].toUpperCase()) {
+    return 'boolean';
+  }
+
+  // Data-based boolean detection: if all values are 0/1/true/false/yes/no
+  if (data && data.length > 0) {
+    const sampleSize = Math.min(data.length, 200);
+    let allBoolean = true;
+    const booleanValues = new Set(['0', '1', 'true', 'false', 'yes', 'no']);
+    for (let i = 0; i < sampleSize; i++) {
+      const val = data[i][columnName];
+      if (val === null || val === undefined || val === '') continue;
+      if (typeof val === 'boolean') continue;
+      const strVal = String(val).toLowerCase().trim();
+      if (!booleanValues.has(strVal)) {
+        allBoolean = false;
+        break;
+      }
+    }
+    if (allBoolean) return 'boolean';
+  }
 
   // Junk columns — should be hidden from charts entirely (row numbers, intermediate calculations)
   if (name === 'rownum' || name === 'row_number' || name === 'rn' || name === 'row_num' ||
@@ -228,18 +257,58 @@ function detectColumnType(columnName: string): ColumnSemanticType {
     return 'count';
   }
 
-  // Amount/Money columns - should SUM
+  // Amount/Money/Financial columns - should SUM
   if (name.includes('amount') || name.includes('price') || name.includes('cost') ||
       name.includes('revenue') || name.includes('salary') || name.includes('income') ||
       name.includes('expense') || name.includes('payment') || name.includes('fee') ||
       name.includes('balance') || name.includes('budget') || name.includes('profit') ||
       name.includes('loss') || name.includes('value') || name.includes('sum') ||
       name.includes('money') || name.includes('$') || name.includes('usd') ||
-      name.includes('eur') || name.includes('gbp')) {
+      name.includes('eur') || name.includes('gbp') ||
+      name === 'mrr' || name === 'arr' || name === 'acv' || name === 'tcv' ||
+      name.includes('investment') || name.includes('funding') || name.includes('valuation') ||
+      name.includes('capital') || name.includes('equity') || name.includes('debt') ||
+      name.includes('asset') || name.includes('liability') ||
+      name.includes('sales') || name.includes('turnover') || name.includes('margin') ||
+      name.includes('earning') || name.includes('dividend') || name.includes('roi') ||
+      name.includes('spend') || name.includes('tax') || name.includes('wage') ||
+      name.includes('bonus') || name.includes('commission') || name.includes('rent') ||
+      name.includes('loan') || name.includes('deposit') || name.includes('withdraw')) {
     return 'amount';
   }
 
   return 'numeric';
+}
+
+// Get the default aggregation for a column based on its semantic type
+// AI viz hint aggregations take priority (set via manipulation.columnAggregations) — this is just the fallback
+export function getDefaultAggregationForColumn(colName: string, data?: Record<string, unknown>[]): AggregationType {
+  const type = detectColumnType(colName, data);
+  switch (type) {
+    case 'boolean': return 'SUM';
+    case 'percentage': return 'AVG';
+    case 'score': return 'AVG';
+    case 'count': return 'SUM';
+    case 'amount': return 'SUM';
+    case 'id':
+    case 'junk':
+      return 'COUNT';
+    case 'numeric':
+    default: {
+      // Simple fallback: small values → AVG (likely scores/ratings), large → SUM (likely financial)
+      if (data && data.length > 0) {
+        const sample = data.slice(0, 50).map(row => {
+          const val = row[colName];
+          return typeof val === 'number' ? val : Number(val) || 0;
+        }).filter(v => v !== 0);
+        if (sample.length > 0) {
+          const max = Math.max(...sample);
+          return max <= 100 ? 'AVG' : 'SUM';
+        }
+      }
+      return 'SUM';
+    }
+  }
 }
 
 // Helper to count unique values with early exit (optimized for large datasets)
@@ -304,12 +373,19 @@ function findBestCategoricalColumn(
 
 // Build a display name for a column+aggregation, avoiding double prefixes
 // (e.g., if column is already "Avg Sleep Duration", don't produce "Avg Avg Sleep Duration")
-function buildDisplayName(col: string, aggregation: AggregationType): string {
+function buildDisplayName(col: string, aggregation: AggregationType, detectedType?: ColumnSemanticType): string {
   const lower = col.toLowerCase();
   const alreadyPrefixed = lower.startsWith('avg ') || lower.startsWith('total ') ||
     lower.startsWith('count ') || lower.startsWith('sum ') || lower.startsWith('min ') ||
     lower.startsWith('max ') || lower.startsWith('count of ');
   if (alreadyPrefixed) return col;
+
+  // Boolean columns: never show "Avg", use plain name or "Count of"
+  if (detectedType === 'boolean') {
+    if (aggregation === 'COUNT') return `Count ${col}`;
+    if (aggregation === 'SUM') return col; // SUM of 1s = count of trues, just show col name
+    return col; // For any other aggregation, just use the column name
+  }
 
   switch (aggregation) {
     case 'COUNT': return `Count ${col}`;
@@ -340,7 +416,7 @@ function smartAggregateData(
 ): { chartData: Record<string, unknown>[]; aggregationInfo: AggregationInfo[] } {
   // Determine aggregation type for each column
   const aggregationInfo: AggregationInfo[] = valueColumns.map(col => {
-    const detectedType = detectColumnType(col);
+    const detectedType = detectColumnType(col, data);
 
     // Check if user has specified an aggregation
     if (userAggregations && userAggregations[col]) {
@@ -348,52 +424,14 @@ function smartAggregateData(
       return {
         column: col,
         aggregation,
-        displayName: buildDisplayName(col, aggregation),
+        displayName: buildDisplayName(col, aggregation, detectedType),
         detectedType,
       };
     }
 
-    let aggregation: AggregationType;
-
-    switch (detectedType) {
-      case 'id':
-      case 'junk':
-        aggregation = 'COUNT';
-        break;
-      case 'score':
-      case 'percentage':
-        aggregation = 'AVG';
-        break;
-      case 'amount':
-      case 'count':
-        aggregation = 'SUM';
-        break;
-      default:
-        // For unknown numeric, check uniqueness + value range to detect IDs vs metrics
-        const sampleValues = data.slice(0, 100).map(row => {
-          const val = row[col];
-          return typeof val === 'number' ? val : Number(val) || 0;
-        }).filter(v => v !== 0);
-
-        if (sampleValues.length > 0) {
-          const avg = sampleValues.reduce((a, b) => a + b, 0) / sampleValues.length;
-          const max = Math.max(...sampleValues);
-          const uniqueRatio = new Set(sampleValues).size / sampleValues.length;
-          // IDs: nearly unique values + values proportional to dataset size
-          if (uniqueRatio > 0.85 && max > data.length * 0.5 && avg > data.length * 0.3) {
-            aggregation = 'COUNT';
-          } else if (max <= 100 || avg <= 50) {
-            aggregation = 'AVG';
-          } else {
-            aggregation = 'SUM';
-          }
-        } else {
-          // No non-zero values (likely binary 0/1 column) — AVG gives proportion
-          aggregation = 'AVG';
-        }
-    }
-
-    return { column: col, aggregation, displayName: buildDisplayName(col, aggregation), detectedType };
+    // Fall back to type-based defaults (AI handles important cases via userAggregations)
+    const aggregation = getDefaultAggregationForColumn(col, data);
+    return { column: col, aggregation, displayName: buildDisplayName(col, aggregation, detectedType), detectedType };
   });
 
   // Group by label with incremental aggregation (memory-efficient for large datasets)
@@ -570,6 +608,7 @@ export const DataChart = memo(function DataChart({
   onManipulationChange,
   fillContainer = false,
   borderless = false,
+  preferredGroupColumn,
 }: DataChartProps) {
   const isDark = useDarkMode();
   const screenSize = useScreenSize();
@@ -626,8 +665,18 @@ export const DataChart = memo(function DataChart({
     // Find first non-numeric column to use as label, or use first column
     const nonNumericColumns = columns.filter(col => !numericColumns.includes(col));
 
-    // Prefer best categorical column, then any non-numeric, then first column
-    const labelColumn = bestCategoryColumn || (nonNumericColumns.length > 0 ? nonNumericColumns[0] : columns[0]);
+    // Check if user has manually set a group column (highest priority)
+    const resolvedManualGroup = currentManipulation.groupByColumn
+      ? columns.find(col => col.toLowerCase() === currentManipulation.groupByColumn!.toLowerCase())
+      : undefined;
+
+    // Check if AI's preferred group column exists in the data (case-insensitive match)
+    const resolvedPreferred = preferredGroupColumn
+      ? columns.find(col => col.toLowerCase() === preferredGroupColumn.toLowerCase())
+      : undefined;
+
+    // Priority: manual group > AI preferred > best categorical > first non-numeric > first column
+    const labelColumn = resolvedManualGroup || resolvedPreferred || bestCategoryColumn || (nonNumericColumns.length > 0 ? nonNumericColumns[0] : columns[0]);
 
     // Use numeric columns as data columns, excluding the label column if it was numeric
     const dataColumns = numericColumns.filter(col => col !== labelColumn);
@@ -640,15 +689,19 @@ export const DataChart = memo(function DataChart({
         ? numericColumns.slice(1)
         : numericColumns;
 
-    // Auto-hide junk columns (row numbers, IDs) when better columns exist
+    // Auto-hide junk, ID, and boolean columns when better columns exist
     const allDataColumns = (() => {
       // Remove pure junk (row numbers, serial numbers)
-      const noJunk = rawDataColumns.filter(col => detectColumnType(col) !== 'junk');
+      const noJunk = rawDataColumns.filter(col => detectColumnType(col, data) !== 'junk');
       if (noJunk.length === 0) return rawDataColumns; // Fallback: keep everything
 
       // Remove ID columns if there are non-ID columns left
-      const noIds = noJunk.filter(col => detectColumnType(col) !== 'id');
-      return noIds.length > 0 ? noIds : noJunk;
+      const noIds = noJunk.filter(col => detectColumnType(col, data) !== 'id');
+      const afterIds = noIds.length > 0 ? noIds : noJunk;
+
+      // Remove boolean columns from chart (they remain visible in table view)
+      const noBooleans = afterIds.filter(col => detectColumnType(col, data) !== 'boolean');
+      return noBooleans.length > 0 ? noBooleans : afterIds;
     })();
 
     // Filter out hidden columns (from manipulation UI or viz hint)
@@ -665,55 +718,25 @@ export const DataChart = memo(function DataChart({
     const isLargeDataset = data.length > 50;
 
     // Build aggregation info for all value columns
+    // Priority: user/AI manipulation > name-based detection > simple fallback
     const aggregationInfo: AggregationInfo[] = finalDataColumns.map(col => {
-      const type = detectColumnType(col);
-      let aggregation: AggregationType;
+      const type = detectColumnType(col, data);
 
-      switch (type) {
-        case 'id':
-        case 'junk':
-          aggregation = 'COUNT';
-          break;
-        case 'score':
-        case 'percentage':
-          aggregation = 'AVG';
-          break;
-        case 'amount':
-        case 'count':
-          aggregation = 'SUM';
-          break;
-        default:
-          // For unknown numeric, check uniqueness + value range to detect IDs vs metrics
-          const sampleValues = data.slice(0, 100).map(row => {
-            const val = row[col];
-            return typeof val === 'number' ? val : Number(val) || 0;
-          }).filter(v => v !== 0);
-
-          if (sampleValues.length > 0) {
-            const avg = sampleValues.reduce((a, b) => a + b, 0) / sampleValues.length;
-            const max = Math.max(...sampleValues);
-            const uniqueRatio = new Set(sampleValues).size / sampleValues.length;
-            // IDs: nearly unique values + values proportional to dataset size
-            if (uniqueRatio > 0.85 && max > data.length * 0.5 && avg > data.length * 0.3) {
-              aggregation = 'COUNT';
-            } else if (max <= 100 || avg <= 50) {
-              aggregation = 'AVG';
-            } else {
-              aggregation = 'SUM';
-            }
-          } else {
-            // No non-zero values (likely binary 0/1 column) — AVG gives proportion
-            aggregation = 'AVG';
-          }
+      // 1. Trust AI/user-set aggregation first (from viz hint or manual selection)
+      if (currentManipulation.columnAggregations[col]) {
+        const aggregation = currentManipulation.columnAggregations[col];
+        return { column: col, aggregation, displayName: buildDisplayName(col, aggregation, type), detectedType: type };
       }
 
-      return { column: col, aggregation, displayName: buildDisplayName(col, aggregation), detectedType: type };
+      // 2. Fall back to type-based defaults
+      const aggregation = getDefaultAggregationForColumn(col, data);
+      return { column: col, aggregation, displayName: buildDisplayName(col, aggregation, type), detectedType: type };
     });
 
     // Check if label column is categorical (few unique values)
     const isCategorical = isCategoricalColumn(data, labelColumn);
 
-    // Pre-filter data by excluded categories (applies to ALL code paths)
+    // Pre-filter data by excluded categories (uses labelColumn which reflects current Group By)
     const hasExclusions = currentManipulation.excludedCategories.size > 0;
     const filteredData = hasExclusions
       ? data.filter(row => !currentManipulation.excludedCategories.has(String(row[labelColumn] ?? "Unknown")))
@@ -739,8 +762,7 @@ export const DataChart = memo(function DataChart({
         labelColumn,
         finalDataColumns,
         maxItems,
-        currentManipulation.columnAggregations,
-        currentManipulation.excludedCategories
+        currentManipulation.columnAggregations
       );
       chartData = result.chartData;
       finalAggregationInfo = result.aggregationInfo;
@@ -755,8 +777,7 @@ export const DataChart = memo(function DataChart({
           labelColumn,
           finalDataColumns,
           chartType === "pie" ? 10 : 30,
-          currentManipulation.columnAggregations,
-          currentManipulation.excludedCategories
+          currentManipulation.columnAggregations
         );
         chartData = result.chartData;
         finalAggregationInfo = result.aggregationInfo;
@@ -770,8 +791,7 @@ export const DataChart = memo(function DataChart({
             labelColumn,
             finalDataColumns,
             chartType === "pie" ? 10 : 30,
-            currentManipulation.columnAggregations,
-            currentManipulation.excludedCategories
+            currentManipulation.columnAggregations
           );
           chartData = result.chartData;
           finalAggregationInfo = result.aggregationInfo;
@@ -793,7 +813,7 @@ export const DataChart = memo(function DataChart({
       }
     }
 
-    // Get unique categories for manipulation UI (limit to 500 for performance with large datasets)
+    // Get unique categories for manipulation UI — follows the current Group By column
     const allCategoriesSet = new Set<string>();
     for (let i = 0; i < data.length && allCategoriesSet.size < 500; i++) {
       allCategoriesSet.add(String(data[i][labelColumn] ?? "Unknown"));
@@ -801,7 +821,12 @@ export const DataChart = memo(function DataChart({
     const allCategories = Array.from(allCategoriesSet);
 
     const hasNonZeroValues = chartData.some((item) =>
-      finalDataColumns.some((col) => (item[col] as number) > 0)
+      finalDataColumns.some((col) => {
+        const val = item[col];
+        if (val === undefined || val === null) return false;
+        const num = Number(val);
+        return !isNaN(num) && num !== 0;
+      })
     );
 
     // Prepare pie data with smart aggregation
@@ -1027,22 +1052,21 @@ export const DataChart = memo(function DataChart({
 
   // Early return for no data - AFTER all hooks are called
   if (!chartConfig) {
+    if (chartType === "table") return null;
+    const hasHiddenCols = currentManipulation.hiddenColumns.size > 0;
     return (
-      <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm ${fillContainer ? 'h-full' : 'h-64'}`}>
-        {chartType === "table" ? null : "No numeric data to visualize"}
+      <div className={`flex flex-col items-center justify-center gap-2 text-gray-500 dark:text-gray-400 text-xs sm:text-sm ${fillContainer ? 'h-full' : 'h-48'}`}>
+        <span>{hasHiddenCols ? "All chart columns are hidden" : "No numeric data to chart"}</span>
+        {hasHiddenCols && (
+          <button onClick={resetManipulations} className="text-[11px] px-3 py-1 rounded-lg bg-gray-100 dark:bg-[#222] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] transition-colors">
+            Reset columns
+          </button>
+        )}
       </div>
     );
   }
 
-  if (!hasNonZeroValues) {
-    return (
-      <div className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-2 sm:p-4 transition-colors">
-        <div className="h-[150px] sm:h-[200px] flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
-          No data to visualize (all values are 0)
-        </div>
-      </div>
-    );
-  }
+  // No longer blocking render for zero values — just show the chart
 
   const renderChart = () => {
     const responsiveBottomMargin = isMobile ? Math.min(bottomMargin, 40) : bottomMargin;
@@ -1258,8 +1282,8 @@ export const DataChart = memo(function DataChart({
       case "pie":
         if (pieData.length === 0) {
           return (
-            <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm ${fillContainer ? 'h-full' : ''}`} style={fillContainer ? undefined : { height: chartHeight as number }}>
-              No data to visualize (all values are 0)
+            <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm ${fillContainer ? 'h-full' : ''}`} style={fillContainer ? undefined : { height: chartHeight as number }}>
+              No pie data (all values are zero or negative)
             </div>
           );
         }

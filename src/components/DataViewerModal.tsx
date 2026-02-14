@@ -26,6 +26,7 @@ interface DataViewerModalProps {
   initialChartSettings?: ChartSettings;
   onSettingsChange?: (settings: ChartSettings) => void;
   initialManipulation?: { excludedCategories: string[]; columnAggregations: Record<string, string>; hiddenColumns: string[] };
+  preferredGroupColumn?: string;
 }
 
 function formatCellValue(value: unknown): string {
@@ -306,6 +307,7 @@ export function DataViewerModal({
   initialChartSettings,
   onSettingsChange,
   initialManipulation,
+  preferredGroupColumn,
 }: DataViewerModalProps) {
   const [currentView, setCurrentView] = useState<ChartType>(initialChartType);
   const isDark = useDarkMode();
@@ -1072,6 +1074,7 @@ export function DataViewerModal({
                 onManipulationChange={setManipulation}
                 fillContainer={true}
                 borderless={chartOnlyMode}
+                preferredGroupColumn={preferredGroupColumn}
               />
             </div>
           )}
