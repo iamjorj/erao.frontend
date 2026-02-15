@@ -254,12 +254,23 @@ export interface ValueColumnHint {
   aggregation: 'SUM' | 'AVG' | 'COUNT' | 'MIN' | 'MAX' | 'NONE';
 }
 
+export interface ClarificationOption {
+  label: string;
+  value: string;
+}
+
+export interface ClarificationRequest {
+  question: string;
+  options: ClarificationOption[];
+}
+
 export interface ChatResponse {
   userMessage: Message;
   assistantMessage: Message;
   queryResult: string | null;
   tokensUsed: number;
   visualizationHint?: VisualizationHint;
+  clarification?: ClarificationRequest;
 }
 
 // Usage types

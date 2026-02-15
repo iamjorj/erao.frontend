@@ -25,6 +25,7 @@ import {
   isFailed,
   isProcessing,
   getTierName,
+  ClarificationRequest,
 } from "@/lib/api";
 import { DataChart, ChartType, detectChartType, ChartSettings, defaultChartSettings, ChartManipulation, AggregationType, getDefaultAggregationForColumn } from "@/components/DataChart";
 import { DataViewerModal } from "@/components/DataViewerModal";
@@ -40,6 +41,7 @@ function stripCodeBlocks(content: string): string {
     .replace(/```sql[\s\S]*?```/gi, "") // Remove SQL code blocks (auto-executed)
     .replace(/```json[\s\S]*?```/gi, "") // Remove JSON code blocks
     .replace(/```viz[\s\S]*?```/gi, "") // Remove viz code blocks
+    .replace(/```clarification[\s\S]*?```/gi, "") // Remove clarification code blocks
     .replace(/\[Query Result:[\s\S]*$/gi, "") // Remove [Query Result: to end of string
     .replace(/\[DATA_CONTEXT:[\s\S]*?\]/gi, "") // Remove [DATA_CONTEXT: ...] tags (including multiline)
     .replace(/\[DATA_CONTEXT:[^\]]*$/gi, "") // Remove unclosed [DATA_CONTEXT: to end
@@ -837,6 +839,7 @@ export default function AIPage() {
   // Chart view state - tracks view mode per message
   const [chartViews, setChartViews] = useState<Record<string, ChartType>>({});
   const [expandedSql, setExpandedSql] = useState<Set<string>>(new Set());
+  const [clarificationOptions, setClarificationOptions] = useState<Record<string, ClarificationRequest>>({});
 
   // Quick Filters state - tracks active filters per table view (keyed by viewKey)
   // Format: { [viewKey]: { [columnName]: filterValue[] } }
@@ -1534,6 +1537,14 @@ export default function AIPage() {
           });
         }
 
+        // Layer 2: Store clarification options if AI returned them
+        if (response.data.clarification) {
+          setClarificationOptions(prev => ({
+            ...prev,
+            [response.data.assistantMessage.id]: response.data.clarification!,
+          }));
+        }
+
         // Check if user requested a specific chart type
         const requestedChartType = detectRequestedChartType(messageContent);
         if (requestedChartType && response.data.assistantMessage.queryResult) {
@@ -1696,6 +1707,24 @@ export default function AIPage() {
         setInputValue(messageContent);
       }
     }
+  };
+
+  const handleClarificationClick = (messageId: string, optionValue: string) => {
+    // Remove clarification card (one-shot)
+    setClarificationOptions(prev => {
+      const next = { ...prev };
+      delete next[messageId];
+      return next;
+    });
+    // Send the option value as a new user message
+    setInputValue(optionValue);
+    // Use a small delay to let state update, then submit
+    setTimeout(() => {
+      const form = document.querySelector('form[data-chat-form]') as HTMLFormElement;
+      if (form) {
+        form.requestSubmit();
+      }
+    }, 50);
   };
 
   const handleLogout = async () => {
@@ -2217,6 +2246,23 @@ export default function AIPage() {
                     <div className="pl-[42px]">
                     <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl px-4 py-3 shadow-sm dark:shadow-none">
                     <MarkdownResponse content={stripCodeBlocks(message.content)} />
+                    {clarificationOptions[message.id] && (
+                      <div className="mt-3 p-3 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#141414]">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2.5">{clarificationOptions[message.id].question}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {clarificationOptions[message.id].options.map((opt, i) => (
+                            <button
+                              key={i}
+                              onClick={() => handleClarificationClick(message.id, opt.value)}
+                              disabled={isSending}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] hover:border-gray-300 dark:hover:border-[#444] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {(() => {
                       const parsedResults = parseQueryResult(message.queryResult);
                       if (!parsedResults || parsedResults.length === 0) return null;
@@ -3092,6 +3138,7 @@ export default function AIPage() {
               </div>
             )}
             <form
+              data-chat-form
               onSubmit={handleSendMessage}
               className="w-full h-11 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl px-2 flex items-center gap-1.5 border border-gray-200 dark:border-[#262626] focus-within:border-gray-300 dark:focus-within:border-[#404040] focus-within:bg-white dark:focus-within:bg-[#1a1a1a] transition-all"
             >
