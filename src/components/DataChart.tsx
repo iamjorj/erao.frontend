@@ -181,7 +181,7 @@ function truncateLabel(label: string, maxLength: number = 15): string {
 }
 
 // Column semantic type detection
-type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric' | 'junk' | 'boolean';
+type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric' | 'junk' | 'boolean' | 'year';
 
 function detectColumnType(columnName: string, data?: Record<string, unknown>[]): ColumnSemanticType {
   const name = columnName.toLowerCase();
@@ -211,6 +211,33 @@ function detectColumnType(columnName: string, data?: Record<string, unknown>[]):
       }
     }
     if (allBoolean) return 'boolean';
+  }
+
+  // Year-like columns — should be used for grouping, not plotted as values
+  // Name-based: column name contains 'year' or equals 'yr'
+  if (name === 'year' || name === 'yr' || name.includes('_year') || name.includes('year_')) {
+    return 'year';
+  }
+  // Data-based: ALL sampled values are integers in 1900-2100 range AND low cardinality
+  if (data && data.length > 0) {
+    const sampleSize = Math.min(data.length, 200);
+    let allYearLike = true;
+    const yearValues = new Set<number>();
+    let nonNullCount = 0;
+    for (let i = 0; i < sampleSize; i++) {
+      const val = data[i][columnName];
+      if (val === null || val === undefined || val === '') continue;
+      nonNullCount++;
+      const numVal = typeof val === 'number' ? val : Number(val);
+      if (!Number.isInteger(numVal) || numVal < 1900 || numVal > 2100) {
+        allYearLike = false;
+        break;
+      }
+      yearValues.add(numVal);
+    }
+    if (allYearLike && nonNullCount > 0 && yearValues.size <= 30) {
+      return 'year';
+    }
   }
 
   // Junk columns — should be hidden from charts entirely (row numbers, intermediate calculations)
@@ -286,6 +313,7 @@ export function getDefaultAggregationForColumn(colName: string, data?: Record<st
   const type = detectColumnType(colName, data);
   switch (type) {
     case 'boolean': return 'SUM';
+    case 'year': return 'COUNT';
     case 'percentage': return 'AVG';
     case 'score': return 'AVG';
     case 'count': return 'SUM';
@@ -322,6 +350,59 @@ function countUniqueValues(data: Record<string, unknown>[], col: string, maxChec
   }
 
   return uniqueValues.size;
+}
+
+// Check if a column contains date-like values (for X-axis formatting)
+function isDateLikeColumn(data: Record<string, unknown>[], columnName: string): boolean {
+  const sampleSize = Math.min(data.length, 50);
+  let dateCount = 0;
+  let nonNullCount = 0;
+
+  for (let i = 0; i < sampleSize; i++) {
+    const val = data[i][columnName];
+    if (val === null || val === undefined || val === '') continue;
+    nonNullCount++;
+
+    const strVal = String(val).trim();
+    // Skip pure numbers that aren't year-like (e.g., IDs, counts)
+    if (/^\d+$/.test(strVal) && (Number(strVal) < 1900 || Number(strVal) > 2100)) continue;
+
+    const parsed = new Date(strVal);
+    if (!isNaN(parsed.getTime())) {
+      const year = parsed.getFullYear();
+      if (year >= 1900 && year <= 2100) {
+        dateCount++;
+      }
+    }
+  }
+
+  // 80%+ must parse as valid dates
+  return nonNullCount > 0 && dateCount >= nonNullCount * 0.8;
+}
+
+// Format a date-like value for chart axis labels
+function formatDateLabel(value: string): string {
+  const trimmed = value.trim();
+  const parsed = new Date(trimmed);
+
+  if (isNaN(parsed.getTime())) return trimmed;
+
+  const year = parsed.getFullYear();
+  if (year < 1900 || year > 2100) return trimmed;
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[parsed.getMonth()];
+  const day = parsed.getDate();
+  const yearShort = `'${String(year).slice(2)}`;
+
+  // "2022-01-01 00:00:00" → "Jan 1 '22"
+  // "2023-02" → "Feb '23"
+  // If the input looks like just year-month (no day info or day is 1), omit day
+  if (/^\d{4}-\d{2}$/.test(trimmed) || (day === 1 && /^\d{4}-\d{2}-01/.test(trimmed))) {
+    return `${month} ${yearShort}`;
+  }
+
+  return `${month} ${day} ${yearShort}`;
 }
 
 // Find the best categorical column for grouping
@@ -371,14 +452,68 @@ function findBestCategoricalColumn(
   return null;
 }
 
+// Filter out columns with vastly different scales (e.g., Year ~2022 alongside Revenue ~300K)
+function filterScaleMismatchColumns(data: Record<string, unknown>[], columns: string[]): string[] {
+  if (columns.length <= 1) return columns;
+
+  const sampleSize = Math.min(data.length, 200);
+  const maxValues: Record<string, number> = {};
+
+  for (const col of columns) {
+    let colMax = 0;
+    for (let i = 0; i < sampleSize; i++) {
+      const val = data[i][col];
+      const numVal = typeof val === 'number' ? Math.abs(val) : Math.abs(Number(val) || 0);
+      if (numVal > colMax) colMax = numVal;
+    }
+    maxValues[col] = colMax;
+  }
+
+  const overallMax = Math.max(...Object.values(maxValues));
+  if (overallMax === 0) return columns;
+
+  // If a column's max is <1% of the overall max (100x smaller), auto-hide it
+  const filtered = columns.filter(col => {
+    const colMax = maxValues[col];
+    return colMax >= overallMax * 0.01;
+  });
+
+  // Safety: never filter if it would leave 0 columns
+  return filtered.length > 0 ? filtered : columns;
+}
+
 // Build a display name for a column+aggregation, avoiding double prefixes
 // (e.g., if column is already "Avg Sleep Duration", don't produce "Avg Avg Sleep Duration")
 function buildDisplayName(col: string, aggregation: AggregationType, detectedType?: ColumnSemanticType): string {
   const lower = col.toLowerCase();
+
+  // Check for space-separated prefixes (e.g., "Avg Sleep Duration") — already readable
   const alreadyPrefixed = lower.startsWith('avg ') || lower.startsWith('total ') ||
     lower.startsWith('count ') || lower.startsWith('sum ') || lower.startsWith('min ') ||
     lower.startsWith('max ') || lower.startsWith('count of ');
   if (alreadyPrefixed) return col;
+
+  // Check for underscore-separated prefixes (e.g., "avg_cgpa", "total_revenue")
+  // These would produce "Avg avg_cgpa" → instead produce "Avg CGPA" or "Total Revenue"
+  const underscorePrefixes: Record<string, AggregationType> = {
+    'avg_': 'AVG', 'total_': 'SUM', 'count_': 'COUNT', 'sum_': 'SUM',
+    'min_': 'MIN', 'max_': 'MAX',
+  };
+  for (const [prefix, prefixAgg] of Object.entries(underscorePrefixes)) {
+    if (lower.startsWith(prefix)) {
+      // Strip the prefix and format the rest nicely
+      const rest = col.slice(prefix.length);
+      const cleanName = rest.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      // If the aggregation matches the prefix, just use the clean name with our prefix
+      if (aggregation === prefixAgg) {
+        const aggLabel = aggregation === 'AVG' ? 'Avg' : aggregation === 'SUM' ? 'Total' :
+          aggregation === 'COUNT' ? 'Count' : aggregation === 'MIN' ? 'Min' : 'Max';
+        return `${aggLabel} ${cleanName}`;
+      }
+      // Different aggregation than prefix implies — show both
+      return col;
+    }
+  }
 
   // Boolean columns: never show "Avg", use plain name or "Count of"
   if (detectedType === 'boolean') {
@@ -535,11 +670,16 @@ function sampleDataWithRollingAvg(
   maxPoints: number = 50, // Reduced from 100 for better tooltip performance
   aggregationInfo: AggregationInfo[]
 ): Record<string, unknown>[] {
+  // Detect if labelColumn is date-like for better axis labels
+  const isDateColumn = isDateLikeColumn(data, labelColumn);
+
   if (data.length <= maxPoints) {
     return data.map((row, idx) => {
-      const fullName = String(row[labelColumn] ?? `Row ${idx + 1}`);
+      const rawName = String(row[labelColumn] ?? `Row ${idx + 1}`);
+      const fullName = rawName;
+      const displayName = isDateColumn ? formatDateLabel(rawName) : truncateLabel(rawName, 12);
       const item: Record<string, unknown> = {
-        name: truncateLabel(fullName, 12),
+        name: displayName,
         fullName: fullName,
         _index: idx, // Unique key for tooltip tracking
       };
@@ -564,8 +704,15 @@ function sampleDataWithRollingAvg(
     // Use range label for bucket with unique index to avoid duplicate keys
     const startLabel = String(firstRow[labelColumn] ?? `Row ${i + 1}`);
     const endLabel = String(lastRow[labelColumn] ?? `Row ${i + bucket.length}`);
-    // Add bucket index to ensure uniqueness
-    const label = bucket.length > 1 ? `${bucketIndex + 1}` : truncateLabel(startLabel, 10);
+    // Format label: date-aware or bucket index
+    let label: string;
+    if (isDateColumn) {
+      label = bucket.length > 1
+        ? `${formatDateLabel(startLabel)}-${formatDateLabel(endLabel)}`
+        : formatDateLabel(startLabel);
+    } else {
+      label = bucket.length > 1 ? `${bucketIndex + 1}` : truncateLabel(startLabel, 10);
+    }
 
     const item: Record<string, unknown> = {
       name: label,
@@ -689,7 +836,7 @@ export const DataChart = memo(function DataChart({
         ? numericColumns.slice(1)
         : numericColumns;
 
-    // Auto-hide junk, ID, and boolean columns when better columns exist
+    // Auto-hide junk, ID, boolean, and year columns when better columns exist
     const allDataColumns = (() => {
       // Remove pure junk (row numbers, serial numbers)
       const noJunk = rawDataColumns.filter(col => detectColumnType(col, data) !== 'junk');
@@ -701,11 +848,18 @@ export const DataChart = memo(function DataChart({
 
       // Remove boolean columns from chart (they remain visible in table view)
       const noBooleans = afterIds.filter(col => detectColumnType(col, data) !== 'boolean');
-      return noBooleans.length > 0 ? noBooleans : afterIds;
+      const afterBooleans = noBooleans.length > 0 ? noBooleans : afterIds;
+
+      // Remove year-like columns (they belong on X-axis, not as plotted values)
+      const noYears = afterBooleans.filter(col => detectColumnType(col, data) !== 'year');
+      return noYears.length > 0 ? noYears : afterBooleans;
     })();
 
+    // Filter out scale-mismatched columns (e.g., avg_line_revenue ~$600 vs total_revenue ~$267K)
+    const scaleFilteredColumns = filterScaleMismatchColumns(data, allDataColumns);
+
     // Filter out hidden columns (from manipulation UI or viz hint)
-    const finalDataColumns = allDataColumns.filter(col => !currentManipulation.hiddenColumns.has(col));
+    const finalDataColumns = scaleFilteredColumns.filter(col => !currentManipulation.hiddenColumns.has(col));
 
     // Store all columns for the manipulation UI (including auto-filtered and hidden ones)
     const allAvailableColumns = rawDataColumns;
@@ -1095,7 +1249,7 @@ export const DataChart = memo(function DataChart({
                 tickLine={false}
                 width={isMobile ? 32 : 48}
                 domain={[
-                  settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
+                  settings.yAxisMin === 'auto' ? 0 : settings.yAxisMin,
                   settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
                 ]}
               />
