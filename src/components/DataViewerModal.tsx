@@ -11,6 +11,7 @@ import {
   ChartManipulation,
   AggregationType,
   defaultChartSettings,
+  getDefaultAggregationForColumn,
 } from "./DataChart";
 
 export type { ChartType };
@@ -25,8 +26,10 @@ interface DataViewerModalProps {
   userQuestion?: string;
   initialChartSettings?: ChartSettings;
   onSettingsChange?: (settings: ChartSettings) => void;
-  initialManipulation?: { excludedCategories: string[]; columnAggregations: Record<string, string>; hiddenColumns: string[] };
+  initialManipulation?: { excludedCategories: string[]; columnAggregations: Record<string, string>; hiddenColumns: string[]; groupByColumn?: string };
   preferredGroupColumn?: string;
+  aiSuggestion?: string;
+  onManipulationChange?: (m: ChartManipulation) => void;
 }
 
 function formatCellValue(value: unknown): string {
@@ -308,6 +311,8 @@ export function DataViewerModal({
   onSettingsChange,
   initialManipulation,
   preferredGroupColumn,
+  aiSuggestion,
+  onManipulationChange,
 }: DataViewerModalProps) {
   const [currentView, setCurrentView] = useState<ChartType>(initialChartType);
   const isDark = useDarkMode();
@@ -320,11 +325,21 @@ export function DataViewerModal({
   const [showSettings, setShowSettings] = useState(false);
   const [showManipulation, setShowManipulation] = useState(false);
   const [chartOnlyMode, setChartOnlyMode] = useState(false);
-  const [manipulation, setManipulation] = useState<ChartManipulation>(() => ({
+  const [manipulation, setManipulationState] = useState<ChartManipulation>(() => ({
     excludedCategories: new Set(initialManipulation?.excludedCategories ?? []),
     columnAggregations: (initialManipulation?.columnAggregations ?? {}) as Record<string, AggregationType>,
     hiddenColumns: new Set(initialManipulation?.hiddenColumns ?? []),
+    groupByColumn: initialManipulation?.groupByColumn,
   }));
+
+  // Wrapper that syncs manipulation changes back to parent
+  const setManipulation: typeof setManipulationState = useCallback((value) => {
+    setManipulationState(prev => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      onManipulationChange?.(next);
+      return next;
+    });
+  }, [onManipulationChange]);
   const manipulationRef = useRef<HTMLDivElement>(null);
 
   // Sync settings when initialChartSettings changes
@@ -336,10 +351,11 @@ export function DataViewerModal({
 
   // Sync manipulation when initialManipulation changes (new modal open)
   useEffect(() => {
-    setManipulation({
+    setManipulationState({
       excludedCategories: new Set(initialManipulation?.excludedCategories ?? []),
       columnAggregations: (initialManipulation?.columnAggregations ?? {}) as Record<string, AggregationType>,
       hiddenColumns: new Set(initialManipulation?.hiddenColumns ?? []),
+      groupByColumn: initialManipulation?.groupByColumn,
     });
   }, [initialManipulation]);
 
@@ -465,24 +481,32 @@ export function DataViewerModal({
       'year', 'month', 'quarter', 'period', 'day', 'weekday'
     ];
 
-    // Find categorical column using same priority as DataChart
+    // Find categorical column - respect groupByColumn if set
     let categoricalColumn: string | null = null;
     let categories: string[] = [];
 
-    // First try to find columns matching priority patterns
-    for (const pattern of categoryPatterns) {
-      const match = nonNumericColumns.find(col => col.toLowerCase().includes(pattern));
-      if (match) {
-        const uniqueValues = new Set(filteredRows.map(row => String(row[match] ?? '')));
-        if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
-          categoricalColumn = match;
-          categories = Array.from(uniqueValues).slice(0, 30);
-          break;
+    if (manipulation.groupByColumn) {
+      const matchedCol = columns.find(col => col.toLowerCase() === manipulation.groupByColumn!.toLowerCase());
+      if (matchedCol) {
+        categoricalColumn = matchedCol;
+        categories = Array.from(new Set(filteredRows.map(row => String(row[matchedCol] ?? '')))).slice(0, 30);
+      }
+    }
+
+    if (!categoricalColumn) {
+      for (const pattern of categoryPatterns) {
+        const match = nonNumericColumns.find(col => col.toLowerCase().includes(pattern));
+        if (match) {
+          const uniqueValues = new Set(filteredRows.map(row => String(row[match] ?? '')));
+          if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
+            categoricalColumn = match;
+            categories = Array.from(uniqueValues).slice(0, 30);
+            break;
+          }
         }
       }
     }
 
-    // Then find any non-numeric column with good cardinality
     if (!categoricalColumn) {
       for (const col of nonNumericColumns) {
         const uniqueValues = new Set(filteredRows.map(row => String(row[col] ?? '')));
@@ -494,15 +518,25 @@ export function DataViewerModal({
       }
     }
 
+    // Collect all columns that could serve as group-by
+    const groupableColumns: string[] = [];
+    for (const col of nonNumericColumns) {
+      const uniqueValues = new Set(filteredRows.slice(0, 500).map(row => String(row[col] ?? '')));
+      if (uniqueValues.size >= 2 && uniqueValues.size <= 100) {
+        groupableColumns.push(col);
+      }
+    }
+
     const isCategorical = categoricalColumn !== null && categories.length >= 2;
 
     return {
       numericColumns,
+      groupableColumns,
       categoricalColumn,
       categories,
       isCategorical,
     };
-  }, [columns, filteredRows]);
+  }, [columns, filteredRows, manipulation.groupByColumn]);
 
   // Manipulation handlers
   const toggleCategory = useCallback((category: string) => {
@@ -541,12 +575,14 @@ export function DataViewerModal({
       excludedCategories: new Set(),
       columnAggregations: {},
       hiddenColumns: new Set(),
+      groupByColumn: undefined,
     });
-  }, []);
+  }, [setManipulation]);
 
   const hasActiveManipulations = manipulation.excludedCategories.size > 0 ||
     Object.keys(manipulation.columnAggregations).length > 0 ||
-    manipulation.hiddenColumns.size > 0;
+    manipulation.hiddenColumns.size > 0 ||
+    !!manipulation.groupByColumn;
 
   const handleFilterChange = useCallback((column: string, value: unknown) => {
     setFilters(prev => {
@@ -668,27 +704,6 @@ export function DataViewerModal({
         `}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Chart-only mode floating exit */}
-        {chartOnlyMode && (
-          <button
-            onClick={() => setChartOnlyMode(false)}
-            className={`absolute top-3 right-3 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg border backdrop-blur-sm transition-all duration-200 hover:scale-105 ${
-              isDark
-                ? 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20 hover:text-white'
-                : 'bg-black/5 border-black/10 text-black/50 hover:bg-black/10 hover:text-black/70'
-            }`}
-            title="Exit focus mode (Esc)"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
-            </svg>
-            <span className="text-xs font-medium">Exit Focus</span>
-            <kbd className={`text-[10px] px-1.5 py-0.5 rounded border ${
-              isDark ? 'border-white/20 bg-white/5' : 'border-black/10 bg-black/5'
-            }`}>Esc</kbd>
-          </button>
-        )}
-
         {/* Header - compact */}
         {!chartOnlyMode && <div className={`flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b flex-shrink-0 ${
           isDark ? "border-[#222]" : "border-gray-200"
@@ -850,6 +865,44 @@ export function DataViewerModal({
                         </div>
                       </div>
 
+                      {/* AI Suggestion */}
+                      {aiSuggestion && (
+                        <div className={`flex items-center gap-2 px-2.5 py-2 rounded-lg ${isDark ? 'bg-indigo-950/30 border border-indigo-900/40' : 'bg-indigo-50 border border-indigo-100'}`}>
+                          <svg className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" /></svg>
+                          {manipulation.groupByColumn === aiSuggestion ? (
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 flex-1">AI grouped by <strong>{aiSuggestion}</strong></span>
+                          ) : (
+                            <>
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 flex-1">AI suggests: <strong>{aiSuggestion}</strong></span>
+                              <button onClick={() => setManipulation({ ...manipulation, groupByColumn: aiSuggestion, excludedCategories: new Set() })} className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors font-medium">Apply</button>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Group By */}
+                      {dataAnalysis.groupableColumns.length > 0 && (
+                        <div>
+                          <label className={`text-[11px] font-medium uppercase tracking-wider block mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Group By
+                          </label>
+                          <select
+                            value={manipulation.groupByColumn || ''}
+                            onChange={(e) => setManipulation({ ...manipulation, groupByColumn: e.target.value || undefined, excludedCategories: new Set() })}
+                            className={`w-full text-[11px] rounded-lg px-2.5 py-1.5 outline-none ${
+                              isDark
+                                ? 'bg-[#222] border border-[#333] text-gray-200 focus:border-[#444]'
+                                : 'bg-gray-50 border border-gray-200 text-gray-700 focus:border-gray-300'
+                            }`}
+                          >
+                            <option value="">Auto (default)</option>
+                            {dataAnalysis.groupableColumns.map((col) => (
+                              <option key={col} value={col}>{col}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
                       {/* Columns - Show/Hide */}
                       {dataAnalysis.numericColumns.length > 1 && (
                         <div>
@@ -930,7 +983,7 @@ export function DataViewerModal({
                                   {col}
                                 </span>
                                 <select
-                                  value={manipulation.columnAggregations[col] || 'COUNT'}
+                                  value={manipulation.columnAggregations[col] || getDefaultAggregationForColumn(col, filteredRows)}
                                   onChange={(e) => changeAggregation(col, e.target.value as AggregationType)}
                                   className={`text-[11px] rounded-md px-1.5 py-1 outline-none ${
                                     isDark

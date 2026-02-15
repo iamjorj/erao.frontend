@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navbar, Footer } from "@/components/shared";
+import { auth } from "@/lib/api";
 
 function ContactSalesButton({ variant = "outline" }: { variant?: "outline" | "filled" }) {
   return (
@@ -256,6 +258,13 @@ function DemoPreview() {
 }
 
 export default function LandingPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (auth.isAuthenticated()) {
+      router.replace("/ai");
+    }
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
