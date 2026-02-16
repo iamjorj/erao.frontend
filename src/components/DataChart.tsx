@@ -1,24 +1,8 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
-  LabelList,
-} from "recharts";
+import { useMemo, useState, useEffect, useCallback, memo } from "react";
+import ReactECharts from "echarts-for-react";
+import * as echarts from "echarts";
 
 export type ChartType = "bar" | "line" | "pie" | "area" | "table";
 export type AggregationType = 'COUNT' | 'AVG' | 'SUM' | 'MIN' | 'MAX';
@@ -98,52 +82,20 @@ const COLOR_THEMES: Record<ChartSettings['colorTheme'], string[]> = {
     "#fb923c", // orange
   ],
   monochrome: [
-    "#e2e8f0", // slate-200
-    "#cbd5e1", // slate-300
-    "#94a3b8", // slate-400
-    "#64748b", // slate-500
-    "#475569", // slate-600
-    "#334155", // slate-700
-    "#1e293b", // slate-800
-    "#0f172a", // slate-900
-    "#f1f5f9", // slate-100
-    "#f8fafc", // slate-50
+    "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569",
+    "#334155", "#1e293b", "#0f172a", "#f1f5f9", "#f8fafc",
   ],
   blue: [
-    "#818cf8", // indigo-400
-    "#6366f1", // indigo-500
-    "#4f46e5", // indigo-600
-    "#4338ca", // indigo-700
-    "#a5b4fc", // indigo-300
-    "#c7d2fe", // indigo-200
-    "#3730a3", // indigo-800
-    "#312e81", // indigo-900
-    "#e0e7ff", // indigo-100
-    "#eef2ff", // indigo-50
+    "#818cf8", "#6366f1", "#4f46e5", "#4338ca", "#a5b4fc",
+    "#c7d2fe", "#3730a3", "#312e81", "#e0e7ff", "#eef2ff",
   ],
   green: [
-    "#34d399", // emerald-400
-    "#10b981", // emerald-500
-    "#059669", // emerald-600
-    "#047857", // emerald-700
-    "#6ee7b7", // emerald-300
-    "#a7f3d0", // emerald-200
-    "#065f46", // emerald-800
-    "#064e3b", // emerald-900
-    "#d1fae5", // emerald-100
-    "#ecfdf5", // emerald-50
+    "#34d399", "#10b981", "#059669", "#047857", "#6ee7b7",
+    "#a7f3d0", "#065f46", "#064e3b", "#d1fae5", "#ecfdf5",
   ],
   purple: [
-    "#a78bfa", // violet-400
-    "#8b5cf6", // violet-500
-    "#7c3aed", // violet-600
-    "#6d28d9", // violet-700
-    "#c4b5fd", // violet-300
-    "#ddd6fe", // violet-200
-    "#5b21b6", // violet-800
-    "#4c1d95", // violet-900
-    "#ede9fe", // violet-100
-    "#f5f3ff", // violet-50
+    "#a78bfa", "#8b5cf6", "#7c3aed", "#6d28d9", "#c4b5fd",
+    "#ddd6fe", "#5b21b6", "#4c1d95", "#ede9fe", "#f5f3ff",
   ],
   custom: [], // Custom colors provided via settings.customColors
 };
@@ -161,7 +113,6 @@ function useDarkMode(): boolean {
     };
     checkDarkMode();
 
-    // Watch for changes
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -180,13 +131,21 @@ function truncateLabel(label: string, maxLength: number = 15): string {
   return label.substring(0, maxLength - 3) + "...";
 }
 
+// Convert hex color to rgba string
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // Column semantic type detection
 type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric' | 'junk' | 'boolean' | 'year';
 
 function detectColumnType(columnName: string, data?: Record<string, unknown>[]): ColumnSemanticType {
   const name = columnName.toLowerCase();
 
-  // Boolean/flag columns — should COUNT (count of trues), not AVG
+  // Boolean/flag columns
   if (name.startsWith('is_') || name.startsWith('has_') || name.startsWith('can_') ||
       name === 'flag' || name.includes('_flag') ||
       name === 'active' || name === 'enabled' || name === 'verified' || name === 'deleted' ||
@@ -195,7 +154,7 @@ function detectColumnType(columnName: string, data?: Record<string, unknown>[]):
     return 'boolean';
   }
 
-  // Data-based boolean detection: if all values are 0/1/true/false/yes/no
+  // Data-based boolean detection
   if (data && data.length > 0) {
     const sampleSize = Math.min(data.length, 200);
     let allBoolean = true;
@@ -213,12 +172,10 @@ function detectColumnType(columnName: string, data?: Record<string, unknown>[]):
     if (allBoolean) return 'boolean';
   }
 
-  // Year-like columns — should be used for grouping, not plotted as values
-  // Name-based: column name contains 'year' or equals 'yr'
+  // Year-like columns
   if (name === 'year' || name === 'yr' || name.includes('_year') || name.includes('year_')) {
     return 'year';
   }
-  // Data-based: ALL sampled values are integers in 1900-2100 range AND low cardinality
   if (data && data.length > 0) {
     const sampleSize = Math.min(data.length, 200);
     let allYearLike = true;
@@ -240,14 +197,14 @@ function detectColumnType(columnName: string, data?: Record<string, unknown>[]):
     }
   }
 
-  // Junk columns — should be hidden from charts entirely (row numbers, intermediate calculations)
+  // Junk columns
   if (name === 'rownum' || name === 'row_number' || name === 'rn' || name === 'row_num' ||
       name === 'sno' || name === 's_no' || name === 'sr_no' || name === 'serial' ||
       name === 'row' || name === '#') {
     return 'junk';
   }
 
-  // ID columns - should COUNT, not SUM
+  // ID columns
   if (name.includes('_id') || name.endsWith('id') || name === 'id' ||
       name.includes('_key') || name.endsWith('key') ||
       name.includes('_no') || name.endsWith('no') || name === 'no' ||
@@ -256,7 +213,7 @@ function detectColumnType(columnName: string, data?: Record<string, unknown>[]):
     return 'id';
   }
 
-  // Score/Rating/Measurement columns - should AVG
+  // Score/Rating/Measurement columns
   if (name.includes('score') || name.includes('rating') || name.includes('grade') ||
       name.includes('cgpa') || name.includes('gpa') || name.includes('marks') ||
       name.includes('rank') || name.includes('level') || name.includes('tier') ||
@@ -271,20 +228,20 @@ function detectColumnType(columnName: string, data?: Record<string, unknown>[]):
     return 'score';
   }
 
-  // Percentage columns - should AVG
+  // Percentage columns
   if (name.includes('percent') || name.includes('pct') || name.includes('rate') ||
       name.includes('ratio') || name.includes('proportion') || name.endsWith('%')) {
     return 'percentage';
   }
 
-  // Count columns - should SUM (they're already counts)
+  // Count columns
   if (name.includes('count') || name.includes('quantity') || name.includes('qty') ||
       name.includes('num_') || name.startsWith('n_') || name.includes('total') ||
       name.includes('_cnt')) {
     return 'count';
   }
 
-  // Amount/Money/Financial columns - should SUM
+  // Amount/Money/Financial columns
   if (name.includes('amount') || name.includes('price') || name.includes('cost') ||
       name.includes('revenue') || name.includes('salary') || name.includes('income') ||
       name.includes('expense') || name.includes('payment') || name.includes('fee') ||
@@ -308,7 +265,6 @@ function detectColumnType(columnName: string, data?: Record<string, unknown>[]):
 }
 
 // Get the default aggregation for a column based on its semantic type
-// AI viz hint aggregations take priority (set via manipulation.columnAggregations) — this is just the fallback
 export function getDefaultAggregationForColumn(colName: string, data?: Record<string, unknown>[]): AggregationType {
   const type = detectColumnType(colName, data);
   switch (type) {
@@ -323,7 +279,6 @@ export function getDefaultAggregationForColumn(colName: string, data?: Record<st
       return 'COUNT';
     case 'numeric':
     default: {
-      // Simple fallback: small values → AVG (likely scores/ratings), large → SUM (likely financial)
       if (data && data.length > 0) {
         const sample = data.slice(0, 50).map(row => {
           const val = row[colName];
@@ -339,20 +294,20 @@ export function getDefaultAggregationForColumn(colName: string, data?: Record<st
   }
 }
 
-// Helper to count unique values with early exit (optimized for large datasets)
+// Helper to count unique values with early exit
 function countUniqueValues(data: Record<string, unknown>[], col: string, maxCheck: number = 100): number {
-  const sampleSize = Math.min(data.length, 2000); // Sample first 2000 rows
+  const sampleSize = Math.min(data.length, 2000);
   const uniqueValues = new Set<string>();
 
   for (let i = 0; i < sampleSize; i++) {
     uniqueValues.add(String(data[i][col] ?? ''));
-    if (uniqueValues.size > maxCheck) return uniqueValues.size; // Early exit
+    if (uniqueValues.size > maxCheck) return uniqueValues.size;
   }
 
   return uniqueValues.size;
 }
 
-// Check if a column contains date-like values (for X-axis formatting)
+// Check if a column contains date-like values
 function isDateLikeColumn(data: Record<string, unknown>[], columnName: string): boolean {
   const sampleSize = Math.min(data.length, 50);
   let dateCount = 0;
@@ -364,7 +319,6 @@ function isDateLikeColumn(data: Record<string, unknown>[], columnName: string): 
     nonNullCount++;
 
     const strVal = String(val).trim();
-    // Skip pure numbers that aren't year-like (e.g., IDs, counts)
     if (/^\d+$/.test(strVal) && (Number(strVal) < 1900 || Number(strVal) > 2100)) continue;
 
     const parsed = new Date(strVal);
@@ -376,7 +330,6 @@ function isDateLikeColumn(data: Record<string, unknown>[], columnName: string): 
     }
   }
 
-  // 80%+ must parse as valid dates
   return nonNullCount > 0 && dateCount >= nonNullCount * 0.8;
 }
 
@@ -395,9 +348,6 @@ function formatDateLabel(value: string): string {
   const day = parsed.getDate();
   const yearShort = `'${String(year).slice(2)}`;
 
-  // "2022-01-01 00:00:00" → "Jan 1 '22"
-  // "2023-02" → "Feb '23"
-  // If the input looks like just year-month (no day info or day is 1), omit day
   if (/^\d{4}-\d{2}$/.test(trimmed) || (day === 1 && /^\d{4}-\d{2}-01/.test(trimmed))) {
     return `${month} ${yearShort}`;
   }
@@ -413,7 +363,6 @@ function findBestCategoricalColumn(
 ): string | null {
   const nonNumericColumns = columns.filter(col => !numericColumns.includes(col));
 
-  // Priority patterns for grouping columns
   const categoryPatterns = [
     'category', 'type', 'status', 'gender', 'sex', 'class', 'group', 'department',
     'region', 'country', 'state', 'city', 'branch', 'segment', 'channel',
@@ -421,7 +370,6 @@ function findBestCategoricalColumn(
     'year', 'month', 'quarter', 'period', 'day', 'weekday'
   ];
 
-  // First try to find columns matching priority patterns
   for (const pattern of categoryPatterns) {
     const match = nonNumericColumns.find(col => col.toLowerCase().includes(pattern));
     if (match) {
@@ -432,7 +380,6 @@ function findBestCategoricalColumn(
     }
   }
 
-  // Then find any non-numeric column with good cardinality (2-30 unique values)
   for (const col of nonNumericColumns) {
     const uniqueCount = countUniqueValues(data, col, 30);
     if (uniqueCount >= 2 && uniqueCount <= 30) {
@@ -440,7 +387,6 @@ function findBestCategoricalColumn(
     }
   }
 
-  // Fall back to first non-numeric column if it has reasonable cardinality
   if (nonNumericColumns.length > 0) {
     const firstCol = nonNumericColumns[0];
     const uniqueCount = countUniqueValues(data, firstCol, 100);
@@ -452,7 +398,7 @@ function findBestCategoricalColumn(
   return null;
 }
 
-// Filter out columns with vastly different scales (e.g., Year ~2022 alongside Revenue ~300K)
+// Filter out columns with vastly different scales
 function filterScaleMismatchColumns(data: Record<string, unknown>[], columns: string[]): string[] {
   if (columns.length <= 1) return columns;
 
@@ -472,54 +418,44 @@ function filterScaleMismatchColumns(data: Record<string, unknown>[], columns: st
   const overallMax = Math.max(...Object.values(maxValues));
   if (overallMax === 0) return columns;
 
-  // If a column's max is <1% of the overall max (100x smaller), auto-hide it
   const filtered = columns.filter(col => {
     const colMax = maxValues[col];
     return colMax >= overallMax * 0.01;
   });
 
-  // Safety: never filter if it would leave 0 columns
   return filtered.length > 0 ? filtered : columns;
 }
 
-// Build a display name for a column+aggregation, avoiding double prefixes
-// (e.g., if column is already "Avg Sleep Duration", don't produce "Avg Avg Sleep Duration")
+// Build a display name for a column+aggregation
 function buildDisplayName(col: string, aggregation: AggregationType, detectedType?: ColumnSemanticType): string {
   const lower = col.toLowerCase();
 
-  // Check for space-separated prefixes (e.g., "Avg Sleep Duration") — already readable
   const alreadyPrefixed = lower.startsWith('avg ') || lower.startsWith('total ') ||
     lower.startsWith('count ') || lower.startsWith('sum ') || lower.startsWith('min ') ||
     lower.startsWith('max ') || lower.startsWith('count of ');
   if (alreadyPrefixed) return col;
 
-  // Check for underscore-separated prefixes (e.g., "avg_cgpa", "total_revenue")
-  // These would produce "Avg avg_cgpa" → instead produce "Avg CGPA" or "Total Revenue"
   const underscorePrefixes: Record<string, AggregationType> = {
     'avg_': 'AVG', 'total_': 'SUM', 'count_': 'COUNT', 'sum_': 'SUM',
     'min_': 'MIN', 'max_': 'MAX',
   };
   for (const [prefix, prefixAgg] of Object.entries(underscorePrefixes)) {
     if (lower.startsWith(prefix)) {
-      // Strip the prefix and format the rest nicely
       const rest = col.slice(prefix.length);
       const cleanName = rest.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      // If the aggregation matches the prefix, just use the clean name with our prefix
       if (aggregation === prefixAgg) {
         const aggLabel = aggregation === 'AVG' ? 'Avg' : aggregation === 'SUM' ? 'Total' :
           aggregation === 'COUNT' ? 'Count' : aggregation === 'MIN' ? 'Min' : 'Max';
         return `${aggLabel} ${cleanName}`;
       }
-      // Different aggregation than prefix implies — show both
       return col;
     }
   }
 
-  // Boolean columns: never show "Avg", use plain name or "Count of"
   if (detectedType === 'boolean') {
     if (aggregation === 'COUNT') return `Count ${col}`;
-    if (aggregation === 'SUM') return col; // SUM of 1s = count of trues, just show col name
-    return col; // For any other aggregation, just use the column name
+    if (aggregation === 'SUM') return col;
+    return col;
   }
 
   switch (aggregation) {
@@ -549,11 +485,9 @@ function smartAggregateData(
   userAggregations?: Record<string, AggregationType>,
   excludedCategories?: Set<string>
 ): { chartData: Record<string, unknown>[]; aggregationInfo: AggregationInfo[] } {
-  // Determine aggregation type for each column
   const aggregationInfo: AggregationInfo[] = valueColumns.map(col => {
     const detectedType = detectColumnType(col, data);
 
-    // Check if user has specified an aggregation
     if (userAggregations && userAggregations[col]) {
       const aggregation = userAggregations[col];
       return {
@@ -564,13 +498,10 @@ function smartAggregateData(
       };
     }
 
-    // Fall back to type-based defaults (AI handles important cases via userAggregations)
     const aggregation = getDefaultAggregationForColumn(col, data);
     return { column: col, aggregation, displayName: buildDisplayName(col, aggregation, detectedType), detectedType };
   });
 
-  // Group by label with incremental aggregation (memory-efficient for large datasets)
-  // Instead of storing all values, we compute running sum/count/min/max
   interface GroupStats {
     count: number;
     stats: Record<string, { sum: number; count: number; min: number; max: number }>;
@@ -580,7 +511,6 @@ function smartAggregateData(
   data.forEach((row) => {
     const label = String(row[labelColumn] ?? "Unknown");
 
-    // Skip excluded categories
     if (excludedCategories?.has(label)) return;
 
     if (!grouped.has(label)) {
@@ -603,12 +533,11 @@ function smartAggregateData(
     });
   });
 
-  // Calculate final aggregated values
   const result: Record<string, unknown>[] = Array.from(grouped.entries()).map(([label, group]) => {
     const item: Record<string, unknown> = {
       name: truncateLabel(label),
       fullName: label,
-      _count: group.count, // Store count for reference
+      _count: group.count,
     };
 
     aggregationInfo.forEach(({ column, aggregation }) => {
@@ -639,26 +568,21 @@ function smartAggregateData(
     return item;
   });
 
-  // Sort by count (most common categories first) or first value column
   result.sort((a, b) => (b._count as number) - (a._count as number));
 
-  // Limit to maxItems
   return { chartData: result.slice(0, maxItems), aggregationInfo };
 }
 
-// Check if label column is categorical (few unique values - good for aggregation)
+// Check if label column is categorical
 function isCategoricalColumn(data: Record<string, unknown>[], labelColumn: string): boolean {
-  // Use early exit for large datasets - sample first 1000 rows
   const sampleSize = Math.min(data.length, 1000);
   const uniqueValues = new Set<string>();
 
   for (let i = 0; i < sampleSize; i++) {
     uniqueValues.add(String(data[i][labelColumn] ?? ""));
-    // Early exit if too many unique values
     if (uniqueValues.size > 30) return false;
   }
 
-  // Categorical if 2-30 unique values and much less than sample size
   return uniqueValues.size >= 2 && uniqueValues.size <= 30 && uniqueValues.size < sampleSize * 0.5;
 }
 
@@ -667,10 +591,9 @@ function sampleDataWithRollingAvg(
   data: Record<string, unknown>[],
   labelColumn: string,
   valueColumns: string[],
-  maxPoints: number = 50, // Reduced from 100 for better tooltip performance
+  maxPoints: number = 50,
   aggregationInfo: AggregationInfo[]
 ): Record<string, unknown>[] {
-  // Detect if labelColumn is date-like for better axis labels
   const isDateColumn = isDateLikeColumn(data, labelColumn);
 
   if (data.length <= maxPoints) {
@@ -681,7 +604,7 @@ function sampleDataWithRollingAvg(
       const item: Record<string, unknown> = {
         name: displayName,
         fullName: fullName,
-        _index: idx, // Unique key for tooltip tracking
+        _index: idx,
       };
       valueColumns.forEach((col) => {
         const val = row[col];
@@ -691,7 +614,6 @@ function sampleDataWithRollingAvg(
     });
   }
 
-  // For large datasets, create buckets and aggregate
   const bucketSize = Math.ceil(data.length / maxPoints);
   const sampled: Record<string, unknown>[] = [];
   let bucketIndex = 0;
@@ -701,10 +623,8 @@ function sampleDataWithRollingAvg(
     const firstRow = bucket[0];
     const lastRow = bucket[bucket.length - 1];
 
-    // Use range label for bucket with unique index to avoid duplicate keys
     const startLabel = String(firstRow[labelColumn] ?? `Row ${i + 1}`);
     const endLabel = String(lastRow[labelColumn] ?? `Row ${i + bucket.length}`);
-    // Format label: date-aware or bucket index
     let label: string;
     if (isDateColumn) {
       label = bucket.length > 1
@@ -722,7 +642,6 @@ function sampleDataWithRollingAvg(
     };
     bucketIndex++;
 
-    // Aggregate each column according to its type
     valueColumns.forEach((col) => {
       const info = aggregationInfo.find(a => a.column === col);
       const values = bucket.map(row => {
@@ -735,7 +654,6 @@ function sampleDataWithRollingAvg(
       } else if (info?.aggregation === 'COUNT') {
         item[col] = values.length;
       } else {
-        // AVG for scores or unknown
         item[col] = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) / 100;
       }
     });
@@ -776,18 +694,8 @@ export const DataChart = memo(function DataChart({
     ? settings.customColors
     : COLOR_THEMES[settings.colorTheme] || COLORS;
 
-  // Responsive chart dimensions - fill available space
-  const chartHeight = fillContainer ? "100%" : (isMobile ? 250 : screenSize === "tablet" ? 300 : 320);
-  const pieOuterRadius = fillContainer
-    ? (isMobile ? "70%" : "75%")
-    : (isMobile ? 70 : screenSize === "tablet" ? 85 : 100);
-  const fontSize = isMobile ? 9 : screenSize === "tablet" ? 10 : 11;
-  const legendFontSize = isMobile ? "10px" : "12px";
-  const margins = isMobile
-    ? { top: 5, right: 5, left: 0, bottom: 35 }
-    : screenSize === "tablet"
-    ? { top: 10, right: 15, left: 10, bottom: 50 }
-    : { top: 20, right: 30, left: 20, bottom: 60 };
+  // Responsive chart dimensions (base)
+  const baseChartHeight = fillContainer ? "100%" : (isMobile ? 250 : screenSize === "tablet" ? 300 : 320);
 
   // Memoize all chart data processing
   const chartConfig = useMemo(() => {
@@ -795,7 +703,6 @@ export const DataChart = memo(function DataChart({
       return null;
     }
 
-    // Find all numeric columns (check all columns, not just after first)
     const numericColumns = columns.filter(col =>
       data.some(row => {
         const val = row[col];
@@ -806,110 +713,80 @@ export const DataChart = memo(function DataChart({
       })
     );
 
-    // Find best categorical column for grouping (smart detection)
     const bestCategoryColumn = findBestCategoricalColumn(data, columns, numericColumns);
-
-    // Find first non-numeric column to use as label, or use first column
     const nonNumericColumns = columns.filter(col => !numericColumns.includes(col));
 
-    // Check if user has manually set a group column (highest priority)
     const resolvedManualGroup = currentManipulation.groupByColumn
       ? columns.find(col => col.toLowerCase() === currentManipulation.groupByColumn!.toLowerCase())
       : undefined;
 
-    // Check if AI's preferred group column exists in the data (case-insensitive match)
     const resolvedPreferred = preferredGroupColumn
       ? columns.find(col => col.toLowerCase() === preferredGroupColumn.toLowerCase())
       : undefined;
 
-    // Priority: manual group > AI preferred > best categorical > first non-numeric > first column
     const labelColumn = resolvedManualGroup || resolvedPreferred || bestCategoryColumn || (nonNumericColumns.length > 0 ? nonNumericColumns[0] : columns[0]);
 
-    // Use numeric columns as data columns, excluding the label column if it was numeric
     const dataColumns = numericColumns.filter(col => col !== labelColumn);
 
-    // If no data columns found but we have numeric columns, use all except first as data
-    // and first as label (fallback for all-numeric data)
     const rawDataColumns = dataColumns.length > 0
       ? dataColumns
       : numericColumns.length > 1
         ? numericColumns.slice(1)
         : numericColumns;
 
-    // Auto-hide junk, ID, boolean, and year columns when better columns exist
     const allDataColumns = (() => {
-      // Remove pure junk (row numbers, serial numbers)
       const noJunk = rawDataColumns.filter(col => detectColumnType(col, data) !== 'junk');
-      if (noJunk.length === 0) return rawDataColumns; // Fallback: keep everything
+      if (noJunk.length === 0) return rawDataColumns;
 
-      // Remove ID columns if there are non-ID columns left
       const noIds = noJunk.filter(col => detectColumnType(col, data) !== 'id');
       const afterIds = noIds.length > 0 ? noIds : noJunk;
 
-      // Remove boolean columns from chart (they remain visible in table view)
       const noBooleans = afterIds.filter(col => detectColumnType(col, data) !== 'boolean');
       const afterBooleans = noBooleans.length > 0 ? noBooleans : afterIds;
 
-      // Remove year-like columns (they belong on X-axis, not as plotted values)
       const noYears = afterBooleans.filter(col => detectColumnType(col, data) !== 'year');
       return noYears.length > 0 ? noYears : afterBooleans;
     })();
 
-    // Filter out scale-mismatched columns (e.g., avg_line_revenue ~$600 vs total_revenue ~$267K)
     const scaleFilteredColumns = filterScaleMismatchColumns(data, allDataColumns);
 
-    // Filter out hidden columns (from manipulation UI or viz hint)
     const finalDataColumns = scaleFilteredColumns.filter(col => !currentManipulation.hiddenColumns.has(col));
 
-    // Store all columns for the manipulation UI (including auto-filtered and hidden ones)
     const allAvailableColumns = rawDataColumns;
 
-    // If no numeric columns at all, can't render a chart
     if (finalDataColumns.length === 0) {
       return null;
     }
 
     const isLargeDataset = data.length > 50;
 
-    // Build aggregation info for all value columns
-    // Priority: user/AI manipulation > name-based detection > simple fallback
     const aggregationInfo: AggregationInfo[] = finalDataColumns.map(col => {
       const type = detectColumnType(col, data);
 
-      // 1. Trust AI/user-set aggregation first (from viz hint or manual selection)
       if (currentManipulation.columnAggregations[col]) {
         const aggregation = currentManipulation.columnAggregations[col];
         return { column: col, aggregation, displayName: buildDisplayName(col, aggregation, type), detectedType: type };
       }
 
-      // 2. Fall back to type-based defaults
       const aggregation = getDefaultAggregationForColumn(col, data);
       return { column: col, aggregation, displayName: buildDisplayName(col, aggregation, type), detectedType: type };
     });
 
-    // Check if label column is categorical (few unique values)
     const isCategorical = isCategoricalColumn(data, labelColumn);
 
-    // Pre-filter data by excluded categories (uses labelColumn which reflects current Group By)
     const hasExclusions = currentManipulation.excludedCategories.size > 0;
     const filteredData = hasExclusions
       ? data.filter(row => !currentManipulation.excludedCategories.has(String(row[labelColumn] ?? "Unknown")))
       : data;
 
-    // Check if user has set custom aggregations
     const hasUserAggregations = Object.keys(currentManipulation.columnAggregations).length > 0;
 
-    // Process data based on chart type and size
     let chartData: Record<string, unknown>[];
     let finalAggregationInfo = aggregationInfo;
 
     const effectiveIsLargeDataset = filteredData.length > 50;
 
-    // For ALL chart types with categorical data, aggregate first
-    // Categorical data (like Gender: Male/Female) should always be grouped
-    // Also force aggregation when user has set custom aggregations
     if (isCategorical || hasUserAggregations) {
-      // Use smart aggregation for categorical data
       const maxItems = chartType === "pie" ? 10 : 50;
       const result = smartAggregateData(
         filteredData,
@@ -921,10 +798,8 @@ export const DataChart = memo(function DataChart({
       chartData = result.chartData;
       finalAggregationInfo = result.aggregationInfo;
     } else if (chartType === "line" || chartType === "area") {
-      // For line/area with non-categorical (sequential/time) data, sample with rolling average
       chartData = sampleDataWithRollingAvg(filteredData, labelColumn, finalDataColumns, 60, aggregationInfo);
     } else {
-      // For bar/pie with non-categorical data
       if (effectiveIsLargeDataset) {
         const result = smartAggregateData(
           filteredData,
@@ -936,10 +811,8 @@ export const DataChart = memo(function DataChart({
         chartData = result.chartData;
         finalAggregationInfo = result.aggregationInfo;
       } else {
-        // Small dataset - still use smart aggregation for consistency
         const uniqueLabels = new Set(filteredData.map(row => String(row[labelColumn] ?? "")));
         if (uniqueLabels.size < filteredData.length * 0.8) {
-          // Has grouping potential
           const result = smartAggregateData(
             filteredData,
             labelColumn,
@@ -950,7 +823,6 @@ export const DataChart = memo(function DataChart({
           chartData = result.chartData;
           finalAggregationInfo = result.aggregationInfo;
         } else {
-          // Mostly unique values - just format for display
           chartData = filteredData.slice(0, 50).map((row) => {
             const fullName = String(row[labelColumn] ?? "");
             const item: Record<string, unknown> = {
@@ -967,7 +839,6 @@ export const DataChart = memo(function DataChart({
       }
     }
 
-    // Get unique categories for manipulation UI — follows the current Group By column
     const allCategoriesSet = new Set<string>();
     for (let i = 0; i < data.length && allCategoriesSet.size < 500; i++) {
       allCategoriesSet.add(String(data[i][labelColumn] ?? "Unknown"));
@@ -983,7 +854,6 @@ export const DataChart = memo(function DataChart({
       })
     );
 
-    // Prepare pie data with smart aggregation
     let pieData: Array<{ name: string; fullName: string; value: number }> = [];
     if (chartType === "pie") {
       if (finalDataColumns.length === 1) {
@@ -993,7 +863,6 @@ export const DataChart = memo(function DataChart({
           value: item[finalDataColumns[0]] as number,
         }));
       } else {
-        // For pie with multiple columns, show column totals
         pieData = finalDataColumns.map((col) => {
           const info = finalAggregationInfo.find(a => a.column === col);
           const values = chartData.map(item => item[col] as number);
@@ -1012,11 +881,9 @@ export const DataChart = memo(function DataChart({
           };
         });
       }
-      // Filter zeros and sort by value
       pieData = pieData.filter((item) => item.value > 0).sort((a, b) => b.value - a.value);
     }
 
-    // Build chart description
     let chartDescription = '';
     if ((isLargeDataset || isCategorical) && bestCategoryColumn) {
       const firstAgg = finalAggregationInfo[0];
@@ -1038,125 +905,32 @@ export const DataChart = memo(function DataChart({
       isCategorical,
       allCategories,
     };
-  }, [data, columns, chartType, currentManipulation]);
+  }, [data, columns, chartType, currentManipulation, preferredGroupColumn]);
 
-  // Extract values from chartConfig (with defaults for when it's null)
+  // Extract values from chartConfig
   const chartData = chartConfig?.chartData ?? [];
   const dataColumns = chartConfig?.dataColumns ?? [];
-  const allAvailableColumns = chartConfig?.allAvailableColumns ?? [];
   const pieData = chartConfig?.pieData ?? [];
-  const hasNonZeroValues = chartConfig?.hasNonZeroValues ?? false;
   const isLargeDataset = chartConfig?.isLargeDataset ?? false;
   const aggregationInfo = chartConfig?.aggregationInfo ?? [];
   const chartDescription = chartConfig?.chartDescription ?? '';
   const isCategorical = chartConfig?.isCategorical ?? false;
-  const allCategories = chartConfig?.allCategories ?? [];
-  const labelColumn = chartConfig?.labelColumn ?? '';
   const dataCount = chartData.length;
 
-  // Theme colors - clean minimal styling
-  const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
-  const tickColor = isDark ? "#9ca3af" : "#64748b";
-  const tooltipBg = isDark ? "#18181b" : "white";
-  const tooltipBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const tooltipText = isDark ? "#f1f5f9" : "#1e293b";
-  const axisLineColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-
-  // X-axis config - memoized to prevent recalculation
-  const xAxisConfig = useMemo(() => {
-    if (dataCount <= 10) {
-      return { interval: 0, angle: 0, textAnchor: "middle" as const, dy: 8 };
-    } else if (dataCount <= 20) {
-      return { interval: 0, angle: -45, textAnchor: "end" as const, dy: 4 };
-    } else {
-      const skipInterval = Math.ceil(dataCount / 15);
-      return { interval: skipInterval - 1, angle: -45, textAnchor: "end" as const, dy: 4 };
+  // Compute effective chart height — expand for pie legend wrapping
+  const chartHeight = useMemo(() => {
+    if (fillContainer) return "100%";
+    const base = typeof baseChartHeight === 'number' ? baseChartHeight : 320;
+    if (chartType === 'pie' && pieData.length > 0 && settings.legendPosition !== 'hidden') {
+      const itemsPerRow = isMobile ? 2 : screenSize === 'tablet' ? 3 : 4;
+      const legendRows = Math.ceil(pieData.length / itemsPerRow);
+      const extraRows = Math.max(0, legendRows - 1);
+      return base + extraRows * 24;
     }
-  }, [dataCount]);
+    return base;
+  }, [fillContainer, baseChartHeight, chartType, pieData.length, settings.legendPosition, isMobile, screenSize]);
 
-  const bottomMargin = dataCount > 10 ? 60 : 20;
-
-  // Memoized formatters — always abbreviate large numbers for clean axes
-  const yAxisFormatter = useCallback((v: number) => {
-    if (v === 0) return '0';
-    const abs = Math.abs(v);
-    if (abs >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B`;
-    if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-    if (abs >= 1_000) return `${(v / 1_000).toFixed(abs >= 10_000 ? 0 : 1)}K`;
-    if (Number.isInteger(v)) return String(v);
-    return v.toFixed(1);
-  }, []);
-  const labelFormatter = useCallback((v: unknown) => {
-    if (typeof v !== 'number') return String(v);
-    const abs = Math.abs(v);
-    if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-    if (abs >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
-    return v.toLocaleString();
-  }, []);
-
-  // Memoized tooltip content renderer to prevent re-renders
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderTooltipContent = useCallback((props: any) => {
-    const { active, payload, label } = props as {
-      active?: boolean;
-      payload?: Array<{ name: string; value: number; color: string; dataKey?: string }>;
-      label?: string;
-    };
-    if (active && payload && payload.length) {
-      const found = chartData.find(d => d.name === label);
-      const fullName = found ? String(found.fullName) : (label || "");
-      const recordCount = found?._count as number | undefined;
-      const bucketSize = found?._bucketSize as number | undefined;
-
-      return (
-        <div
-          className="rounded-xl px-3 py-2.5 max-w-xs"
-          style={{
-            backgroundColor: tooltipBg,
-            border: `1px solid ${tooltipBorder}`,
-            boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)',
-          }}
-        >
-          <p className="text-xs font-medium mb-1.5 truncate" style={{ color: tooltipText }}>
-            {fullName}
-          </p>
-          {recordCount && recordCount > 1 && (
-            <p className="text-[10px] mb-1" style={{ color: tickColor }}>
-              {recordCount.toLocaleString()} records
-            </p>
-          )}
-          {bucketSize && bucketSize > 1 && (
-            <p className="text-[10px] mb-1" style={{ color: tickColor }}>
-              {bucketSize.toLocaleString()} rows averaged
-            </p>
-          )}
-          <div className="space-y-1">
-            {payload.map((entry, index) => {
-              const aggInfo = aggregationInfo?.find(a => a.column === entry.dataKey);
-              const displayLabel = entry.name || aggInfo?.displayName || entry.dataKey || 'Value';
-              const isAvg = aggInfo?.aggregation === 'AVG' || displayLabel.toLowerCase().startsWith('avg ');
-              const formattedValue = typeof entry.value === "number"
-                ? (isAvg
-                  ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                  : entry.value.toLocaleString())
-                : entry.value;
-
-              return (
-                <div key={index} className="flex items-center gap-2 text-xs">
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-                  <span style={{ color: tickColor }}>{displayLabel}</span>
-                  <span className="font-semibold ml-auto" style={{ color: tooltipText }}>{formattedValue}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  }, [chartData, aggregationInfo, tooltipBg, tooltipBorder, tooltipText, tickColor]);
-
-  // Toggle category exclusion
+  // Manipulation callbacks
   const toggleCategory = useCallback((category: string) => {
     const newExcluded = new Set(currentManipulation.excludedCategories);
     if (newExcluded.has(category)) {
@@ -1170,7 +944,6 @@ export const DataChart = memo(function DataChart({
     });
   }, [currentManipulation, setManipulation]);
 
-  // Change aggregation for a column
   const changeAggregation = useCallback((column: string, aggregation: AggregationType) => {
     setManipulation({
       ...currentManipulation,
@@ -1181,7 +954,6 @@ export const DataChart = memo(function DataChart({
     });
   }, [currentManipulation, setManipulation]);
 
-  // Toggle column visibility
   const toggleColumn = useCallback((column: string) => {
     const newHidden = new Set(currentManipulation.hiddenColumns);
     if (newHidden.has(column)) {
@@ -1195,7 +967,6 @@ export const DataChart = memo(function DataChart({
     });
   }, [currentManipulation, setManipulation]);
 
-  // Reset manipulations
   const resetManipulations = useCallback(() => {
     setManipulation({
       excludedCategories: new Set(),
@@ -1204,7 +975,411 @@ export const DataChart = memo(function DataChart({
     });
   }, [setManipulation]);
 
-  // Early return for no data - AFTER all hooks are called
+  // Build ECharts option — memoized separately from data processing
+  const chartOption = useMemo(() => {
+    if (!chartConfig || chartType === 'table') return null;
+
+    const { chartData: cd, dataColumns: dc, pieData: pd, aggregationInfo: ai } = chartConfig;
+    const count = cd.length;
+    const mobile = screenSize === 'mobile';
+    const tablet = screenSize === 'tablet';
+    const fs = mobile ? 9 : tablet ? 10 : 11;
+
+    // Theme colors
+    const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+    const tickColor = isDark ? "#9ca3af" : "#64748b";
+    const tBg = isDark ? "#18181b" : "#ffffff";
+    const tBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+    const tText = isDark ? "#f1f5f9" : "#1e293b";
+    const shadowCss = isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)';
+
+    // Formatters
+    const fmtAxis = (v: number) => {
+      if (v === 0) return '0';
+      const abs = Math.abs(v);
+      if (abs >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
+      if (abs >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+      if (abs >= 1e3) return `${(v / 1e3).toFixed(abs >= 1e4 ? 0 : 1)}K`;
+      if (Number.isInteger(v)) return String(v);
+      return v.toFixed(1);
+    };
+    const fmtLabel = (v: unknown) => {
+      if (typeof v !== 'number') return String(v);
+      const abs = Math.abs(v);
+      if (abs >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+      if (abs >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
+      return v.toLocaleString();
+    };
+
+    // Escape HTML for tooltip
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // X-axis interval and rotation
+    let xInterval: number;
+    let xRotate: number;
+    if (count <= 10) {
+      xInterval = 0;
+      xRotate = 0;
+    } else if (count <= 20) {
+      xInterval = 0;
+      xRotate = -45;
+    } else {
+      xInterval = Math.ceil(count / 15) - 1;
+      xRotate = -45;
+    }
+
+    const margins = mobile
+      ? { top: 5, right: 5, left: 0, bottom: 35 }
+      : tablet
+      ? { top: 10, right: 15, left: 10, bottom: 50 }
+      : { top: 20, right: 30, left: 20, bottom: 60 };
+    const bottomMargin = count > 10 ? 60 : 20;
+    const respBottom = mobile ? Math.min(bottomMargin, 40) : bottomMargin;
+
+    // Build series name → color lookup for tooltip (avoids hollow-dot itemStyle.color leak)
+    const seriesColorMap: Record<string, string> = {};
+    dc.forEach((col, i) => {
+      const info = ai.find(a => a.column === col);
+      seriesColorMap[info?.displayName || col] = chartColors[i % chartColors.length];
+    });
+
+    // Common axis tooltip formatter (bar/line/area)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const axisTooltipFmt = (params: any) => {
+      const arr = Array.isArray(params) ? params : [params];
+      if (arr.length === 0) return '';
+      const idx = arr[0].dataIndex;
+      const item = cd[idx];
+      if (!item) return '';
+
+      const fullName = esc(String(item.fullName ?? arr[0].name ?? ''));
+      const recordCount = item._count as number | undefined;
+      const bucketSize = item._bucketSize as number | undefined;
+
+      let h = `<div style="max-width:280px;font-family:system-ui,-apple-system,sans-serif;">`;
+      h += `<div style="font-size:12px;font-weight:500;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${tText};">${fullName}</div>`;
+      if (recordCount && recordCount > 1) {
+        h += `<div style="font-size:10px;margin-bottom:4px;color:${tickColor};">${recordCount.toLocaleString()} records</div>`;
+      }
+      if (bucketSize && bucketSize > 1) {
+        h += `<div style="font-size:10px;margin-bottom:4px;color:${tickColor};">${bucketSize.toLocaleString()} rows averaged</div>`;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      arr.forEach((p: any) => {
+        const info = ai?.find(a => a.displayName === p.seriesName || a.column === p.seriesName);
+        const isAvg = info?.aggregation === 'AVG' || (p.seriesName || '').toLowerCase().startsWith('avg ');
+        const val = typeof p.value === 'number'
+          ? (isAvg ? p.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : p.value.toLocaleString())
+          : String(p.value);
+
+        const dotColor = seriesColorMap[p.seriesName] || p.color;
+        h += `<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin-top:4px;">`;
+        h += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;"></span>`;
+        h += `<span style="color:${tickColor};">${esc(p.seriesName)}</span>`;
+        h += `<span style="font-weight:600;margin-left:auto;color:${tText};">${val}</span>`;
+        h += `</div>`;
+      });
+      h += `</div>`;
+      return h;
+    };
+
+    // Grid config
+    const grid = {
+      top: settings.legendPosition === 'top' && !mobile ? margins.top + 30 : margins.top + 10,
+      right: margins.right,
+      bottom: respBottom + (settings.legendPosition === 'bottom' && !mobile ? 30 : 15),
+      left: margins.left + (mobile ? 35 : 50),
+      containLabel: false,
+    };
+
+    // Common x-axis
+    const xAxis = {
+      type: 'category' as const,
+      data: cd.map(d => d.name as string),
+      axisLabel: {
+        fontSize: fs,
+        color: tickColor,
+        fontWeight: 500 as const,
+        interval: mobile ? Math.max(xInterval, Math.ceil(count / 5)) : xInterval,
+        rotate: xRotate,
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    };
+
+    // Common y-axis
+    const yAxisBase = {
+      type: 'value' as const,
+      axisLabel: {
+        fontSize: mobile ? 9 : 11,
+        color: tickColor,
+        fontWeight: 400 as const,
+        formatter: fmtAxis,
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: {
+        show: settings.showGridLines,
+        lineStyle: { color: gridColor, width: 1 },
+      },
+    };
+
+    // Common tooltip base
+    const tooltipBase = {
+      backgroundColor: tBg,
+      borderColor: tBorder,
+      borderWidth: 1,
+      padding: [10, 12],
+      textStyle: { color: tText, fontSize: 12 },
+      extraCssText: `border-radius:12px;box-shadow:${shadowCss};`,
+    };
+
+    // Common legend
+    const legend = {
+      show: !mobile && settings.legendPosition !== 'hidden',
+      top: settings.legendPosition === 'top' ? 0 : undefined,
+      bottom: settings.legendPosition === 'bottom' ? 0 : undefined,
+      textStyle: { color: tickColor, fontSize: mobile ? 10 : 12 },
+    };
+
+    switch (chartType) {
+      case 'bar':
+        return {
+          animation: false,
+          grid,
+          xAxis,
+          yAxis: {
+            ...yAxisBase,
+            min: settings.yAxisMin === 'auto' ? 0 : settings.yAxisMin,
+            max: settings.yAxisMax === 'auto' ? undefined : settings.yAxisMax,
+          },
+          tooltip: {
+            ...tooltipBase,
+            trigger: 'axis' as const,
+            formatter: axisTooltipFmt,
+            axisPointer: {
+              type: 'shadow' as const,
+              shadowStyle: {
+                color: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+              },
+            },
+          },
+          legend,
+          series: dc.map((col, i) => {
+            const info = ai.find(a => a.column === col);
+            return {
+              type: 'bar' as const,
+              name: info?.displayName || col,
+              data: cd.map(d => (d[col] as number) ?? null),
+              itemStyle: {
+                color: chartColors[i % chartColors.length],
+                borderRadius: [6, 6, 0, 0],
+              },
+              barMaxWidth: settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined,
+              large: true,
+              largeThreshold: 2000,
+              label: {
+                show: settings.showDataLabels,
+                position: 'top' as const,
+                color: tickColor,
+                fontSize: mobile ? 8 : 10,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter: (p: any) => fmtLabel(p.value),
+              },
+            };
+          }),
+        };
+
+      case 'line':
+        return {
+          animation: false,
+          grid,
+          xAxis,
+          yAxis: {
+            ...yAxisBase,
+            min: settings.yAxisMin === 'auto' ? undefined : settings.yAxisMin,
+            max: settings.yAxisMax === 'auto' ? undefined : settings.yAxisMax,
+          },
+          tooltip: {
+            ...tooltipBase,
+            trigger: 'axis' as const,
+            formatter: axisTooltipFmt,
+          },
+          legend,
+          series: dc.map((col, i) => {
+            const info = ai.find(a => a.column === col);
+            const color = chartColors[i % chartColors.length];
+            const showDot = !mobile && count <= 30;
+            return {
+              type: 'line' as const,
+              name: info?.displayName || col,
+              data: cd.map(d => (d[col] as number) ?? null),
+              smooth: true,
+              color,
+              lineStyle: { width: mobile ? 2 : 2.5, color },
+              showSymbol: showDot,
+              symbol: 'circle',
+              symbolSize: 7,
+              itemStyle: {
+                color: isDark ? '#18181b' : '#fff',
+                borderColor: color,
+                borderWidth: 2.5,
+              },
+              emphasis: {
+                symbolSize: 10,
+                itemStyle: {
+                  color,
+                  borderColor: isDark ? '#18181b' : '#fff',
+                  borderWidth: 2.5,
+                },
+              },
+              sampling: 'lttb' as const,
+              large: true,
+              largeThreshold: 2000,
+              label: {
+                show: settings.showDataLabels && !mobile && count <= 20,
+                position: 'top' as const,
+                color: tickColor,
+                fontSize: 9,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter: (p: any) => fmtLabel(p.value),
+              },
+            };
+          }),
+        };
+
+      case 'area':
+        return {
+          animation: false,
+          grid,
+          xAxis,
+          yAxis: {
+            ...yAxisBase,
+            min: settings.yAxisMin === 'auto' ? undefined : settings.yAxisMin,
+            max: settings.yAxisMax === 'auto' ? undefined : settings.yAxisMax,
+          },
+          tooltip: {
+            ...tooltipBase,
+            trigger: 'axis' as const,
+            formatter: axisTooltipFmt,
+          },
+          legend,
+          series: dc.map((col, i) => {
+            const info = ai.find(a => a.column === col);
+            const color = chartColors[i % chartColors.length];
+            return {
+              type: 'line' as const,
+              name: info?.displayName || col,
+              data: cd.map(d => (d[col] as number) ?? null),
+              smooth: true,
+              lineStyle: { width: 2, color },
+              areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: hexToRgba(color, 0.25) },
+                  { offset: 1, color: hexToRgba(color, 0.02) },
+                ]),
+              },
+              itemStyle: { color },
+              showSymbol: false,
+              emphasis: {
+                symbolSize: 10,
+                itemStyle: {
+                  color,
+                  borderColor: isDark ? '#18181b' : '#fff',
+                  borderWidth: 2.5,
+                },
+              },
+              sampling: 'lttb' as const,
+              large: true,
+              largeThreshold: 2000,
+              label: {
+                show: settings.showDataLabels && !mobile && count <= 20,
+                position: 'top' as const,
+                color: tickColor,
+                fontSize: 9,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter: (p: any) => fmtLabel(p.value),
+              },
+            };
+          }),
+        };
+
+      case 'pie': {
+        if (pd.length === 0) return null;
+
+        const total = pd.reduce((sum, item) => sum + item.value, 0);
+        const outerR = mobile ? '70%' : '75%';
+        const innerR = mobile ? '38%' : '42%'; // ~55% of outer
+
+        return {
+          animation: false,
+          tooltip: {
+            ...tooltipBase,
+            trigger: 'item' as const,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            formatter: (p: any) => {
+              const val = p.value as number;
+              const pct = ((val / total) * 100).toFixed(1);
+              return `<div style="font-family:system-ui,-apple-system,sans-serif;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};"></span>
+                  <span style="font-size:12px;font-weight:500;color:${tText};">${esc(p.name)}</span>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:${tText};padding-left:16px;">${val.toLocaleString()} (${pct}%)</div>
+              </div>`;
+            },
+          },
+          legend: {
+            show: settings.legendPosition !== 'hidden',
+            orient: 'horizontal' as const,
+            left: 'center',
+            top: settings.legendPosition === 'top' ? 0 : undefined,
+            bottom: settings.legendPosition === 'bottom' ? 0 : undefined,
+            textStyle: { color: tickColor, fontSize: mobile ? 9 : 11 },
+            itemGap: mobile ? 10 : 14,
+            formatter: (name: string) => truncateLabel(name, mobile ? 12 : 20),
+          },
+          series: [{
+            type: 'pie' as const,
+            radius: [innerR, outerR],
+            center: ['50%', settings.legendPosition === 'bottom' ? '45%' : settings.legendPosition === 'top' ? '55%' : '50%'],
+            padAngle: 2,
+            data: pd.map((d, i) => ({
+              name: d.name,
+              value: d.value,
+              itemStyle: { color: chartColors[i % chartColors.length] },
+            })),
+            itemStyle: {
+              borderColor: isDark ? '#18181b' : '#fff',
+              borderWidth: 3,
+            },
+            label: {
+              show: !mobile && pd.length <= 8 && settings.showDataLabels,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter: (p: any) => {
+                if (p.percent < 5) return '';
+                return `${truncateLabel(p.name || '', 10)} (${Math.round(p.percent)}%)`;
+              },
+              color: tickColor,
+              fontSize: 11,
+            },
+            labelLine: {
+              show: !mobile && pd.length <= 8 && settings.showDataLabels,
+            },
+            emphasis: {
+              scaleSize: 5,
+            },
+          }],
+        };
+      }
+
+      default:
+        return null;
+    }
+  }, [chartConfig, chartType, settings, isDark, screenSize, chartColors]);
+
+  // Early return for no data — AFTER all hooks
   if (!chartConfig) {
     if (chartType === "table") return null;
     const hasHiddenCols = currentManipulation.hiddenColumns.size > 0;
@@ -1220,301 +1395,10 @@ export const DataChart = memo(function DataChart({
     );
   }
 
-  // No longer blocking render for zero values — just show the chart
-
-  const renderChart = () => {
-    const responsiveBottomMargin = isMobile ? Math.min(bottomMargin, 40) : bottomMargin;
-
-    switch (chartType) {
-      case "bar":
-        return (
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
-              {settings.showGridLines && <CartesianGrid vertical={false} stroke={gridColor} strokeWidth={1} />}
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize, fill: tickColor, fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
-                angle={xAxisConfig.angle}
-                textAnchor={xAxisConfig.textAnchor}
-                dy={xAxisConfig.dy}
-                height={responsiveBottomMargin + 15}
-              />
-              <YAxis
-                tick={{ fontSize: isMobile ? 9 : 11, fill: tickColor, fontWeight: 400 }}
-                tickFormatter={yAxisFormatter}
-                axisLine={false}
-                tickLine={false}
-                width={isMobile ? 32 : 48}
-                domain={[
-                  settings.yAxisMin === 'auto' ? 0 : settings.yAxisMin,
-                  settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
-                ]}
-              />
-              <Tooltip content={renderTooltipContent} isAnimationActive={false} cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
-              {!isMobile && settings.legendPosition !== 'hidden' && (
-                <Legend
-                  verticalAlign={settings.legendPosition}
-                  wrapperStyle={{ fontSize: legendFontSize, paddingTop: settings.legendPosition === 'bottom' ? "10px" : "0", paddingBottom: settings.legendPosition === 'top' ? "10px" : "0", color: tickColor }}
-                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-                />
-              )}
-              {dataColumns.map((col, index) => {
-                const info = aggregationInfo.find(a => a.column === col);
-                return (
-                  <Bar
-                    key={col}
-                    dataKey={col}
-                    name={info?.displayName || col}
-                    fill={chartColors[index % chartColors.length]}
-                    radius={[6, 6, 0, 0]}
-                    barSize={settings.barWidth ? Math.round(settings.barWidth * 0.5) : undefined}
-                    isAnimationActive={false}
-                  >
-                    {settings.showDataLabels && (
-                      <LabelList
-                        dataKey={col}
-                        position="top"
-                        fill={tickColor}
-                        fontSize={isMobile ? 8 : 10}
-                        formatter={labelFormatter}
-                      />
-                    )}
-                  </Bar>
-                );
-              })}
-            </BarChart>
-          </ResponsiveContainer>
-        );
-
-      case "line":
-        return (
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <LineChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
-              {settings.showGridLines && <CartesianGrid vertical={false} stroke={gridColor} strokeWidth={1} />}
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize, fill: tickColor, fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
-                angle={xAxisConfig.angle}
-                textAnchor={xAxisConfig.textAnchor}
-                dy={xAxisConfig.dy}
-                height={responsiveBottomMargin + 15}
-              />
-              <YAxis
-                tick={{ fontSize: isMobile ? 9 : 11, fill: tickColor, fontWeight: 400 }}
-                tickFormatter={yAxisFormatter}
-                axisLine={false}
-                tickLine={false}
-                width={isMobile ? 32 : 48}
-                domain={[
-                  settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
-                  settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
-                ]}
-              />
-              <Tooltip content={renderTooltipContent} isAnimationActive={false} />
-              {!isMobile && settings.legendPosition !== 'hidden' && (
-                <Legend
-                  verticalAlign={settings.legendPosition}
-                  wrapperStyle={{ fontSize: legendFontSize, paddingTop: settings.legendPosition === 'bottom' ? "10px" : "0", paddingBottom: settings.legendPosition === 'top' ? "10px" : "0", color: tickColor }}
-                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-                />
-              )}
-              {dataColumns.map((col, index) => {
-                const info = aggregationInfo.find(a => a.column === col);
-                const color = chartColors[index % chartColors.length];
-                return (
-                  <Line
-                    key={col}
-                    type="monotone"
-                    dataKey={col}
-                    name={info?.displayName || col}
-                    stroke={color}
-                    strokeWidth={isMobile ? 2 : 2.5}
-                    dot={!isMobile && dataCount <= 30 ? { fill: isDark ? '#18181b' : '#fff', stroke: color, strokeWidth: 2.5, r: 3.5 } : false}
-                    activeDot={{ r: 5, fill: color, stroke: isDark ? '#18181b' : '#fff', strokeWidth: 2.5 }}
-                    isAnimationActive={false}
-                  >
-                    {settings.showDataLabels && !isMobile && dataCount <= 20 && (
-                      <LabelList
-                        dataKey={col}
-                        position="top"
-                        fill={tickColor}
-                        fontSize={9}
-                        formatter={labelFormatter}
-                      />
-                    )}
-                  </Line>
-                );
-              })}
-            </LineChart>
-          </ResponsiveContainer>
-        );
-
-      case "area":
-        return (
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <AreaChart data={chartData} margin={{ ...margins, bottom: responsiveBottomMargin }}>
-              <defs>
-                {dataColumns.map((col, index) => {
-                  const color = chartColors[index % chartColors.length];
-                  return (
-                    <linearGradient key={`gradient-${col}`} id={`areaGradient-${index}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={color} stopOpacity={0.25} />
-                      <stop offset="100%" stopColor={color} stopOpacity={0.02} />
-                    </linearGradient>
-                  );
-                })}
-              </defs>
-              {settings.showGridLines && <CartesianGrid vertical={false} stroke={gridColor} strokeWidth={1} />}
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize, fill: tickColor, fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-                interval={isMobile ? Math.max(xAxisConfig.interval, Math.ceil(dataCount / 5)) : xAxisConfig.interval}
-                angle={xAxisConfig.angle}
-                textAnchor={xAxisConfig.textAnchor}
-                dy={xAxisConfig.dy}
-                height={responsiveBottomMargin + 15}
-              />
-              <YAxis
-                tick={{ fontSize: isMobile ? 9 : 11, fill: tickColor, fontWeight: 400 }}
-                tickFormatter={yAxisFormatter}
-                axisLine={false}
-                tickLine={false}
-                width={isMobile ? 32 : 48}
-                domain={[
-                  settings.yAxisMin === 'auto' ? 'auto' : settings.yAxisMin,
-                  settings.yAxisMax === 'auto' ? 'auto' : settings.yAxisMax
-                ]}
-              />
-              <Tooltip content={renderTooltipContent} isAnimationActive={false} />
-              {!isMobile && settings.legendPosition !== 'hidden' && (
-                <Legend
-                  verticalAlign={settings.legendPosition}
-                  wrapperStyle={{ fontSize: legendFontSize, paddingTop: settings.legendPosition === 'bottom' ? "10px" : "0", paddingBottom: settings.legendPosition === 'top' ? "10px" : "0", color: tickColor }}
-                  formatter={(value) => <span style={{ color: tickColor }}>{value}</span>}
-                />
-              )}
-              {dataColumns.map((col, index) => {
-                const info = aggregationInfo.find(a => a.column === col);
-                const color = chartColors[index % chartColors.length];
-                return (
-                  <Area
-                    key={col}
-                    type="monotone"
-                    dataKey={col}
-                    name={info?.displayName || col}
-                    stroke={color}
-                    strokeWidth={2}
-                    fill={`url(#areaGradient-${index})`}
-                    fillOpacity={1}
-                    activeDot={{ r: 5, fill: color, stroke: isDark ? '#18181b' : '#fff', strokeWidth: 2.5 }}
-                    isAnimationActive={false}
-                  >
-                    {settings.showDataLabels && !isMobile && dataCount <= 20 && (
-                      <LabelList
-                        dataKey={col}
-                        position="top"
-                        fill={tickColor}
-                        fontSize={9}
-                        formatter={labelFormatter}
-                      />
-                    )}
-                  </Area>
-                );
-              })}
-            </AreaChart>
-          </ResponsiveContainer>
-        );
-
-      case "pie":
-        if (pieData.length === 0) {
-          return (
-            <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm ${fillContainer ? 'h-full' : ''}`} style={fillContainer ? undefined : { height: chartHeight as number }}>
-              No pie data (all values are zero or negative)
-            </div>
-          );
-        }
-
-        // Calculate total for percentages
-        const total = pieData.reduce((sum, item) => sum + item.value, 0);
-
-        // Only show labels for slices > 5% to avoid overlap (hide on mobile)
-        const renderLabel = ({ name, percent }: { name?: string; percent?: number }) => {
-          if (isMobile) return "";
-          if (!percent || percent < 0.05) return "";
-          return `${truncateLabel(name || "", 10)} (${(percent * 100).toFixed(0)}%)`;
-        };
-
-        // Donut inner radius — 55% of outer for clean donut look
-        const innerRadius = typeof pieOuterRadius === 'string'
-          ? `${parseFloat(pieOuterRadius) * 0.55}%`
-          : Math.round(pieOuterRadius * 0.55);
-
-        return (
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={!isMobile && pieData.length <= 8 && settings.showDataLabels ? renderLabel : false}
-                outerRadius={pieOuterRadius}
-                innerRadius={innerRadius}
-                dataKey="value"
-                isAnimationActive={false}
-                stroke={isDark ? '#18181b' : '#fff'}
-                strokeWidth={3}
-                paddingAngle={2}
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: tooltipBg,
-                  border: `1px solid ${tooltipBorder}`,
-                  borderRadius: "12px",
-                  fontSize: isMobile ? "10px" : "12px",
-                  color: tooltipText,
-                  boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)',
-                }}
-                itemStyle={{ color: tooltipText }}
-                labelStyle={{ color: tooltipText }}
-                formatter={(value) => {
-                  const numVal = typeof value === "number" ? value : Number(value) || 0;
-                  return [`${numVal.toLocaleString()} (${((numVal / total) * 100).toFixed(1)}%)`, ""];
-                }}
-              />
-              {settings.legendPosition !== 'hidden' && (
-                <Legend
-                  verticalAlign={settings.legendPosition}
-                  wrapperStyle={{ fontSize: isMobile ? "9px" : "11px", color: tickColor }}
-                  formatter={(value) => <span style={{ color: tickColor }}>{truncateLabel(value, isMobile ? 12 : 20)}</span>}
-                />
-              )}
-            </PieChart>
-          </ResponsiveContainer>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  // Build info text for the chart
+  // Build info text
   const getChartInfoText = () => {
     const parts: string[] = [];
 
-    // Show data size info
     if (isCategorical) {
       parts.push(`${data.length.toLocaleString()} rows → ${dataCount} categories`);
     } else if (isLargeDataset) {
@@ -1531,7 +1415,6 @@ export const DataChart = memo(function DataChart({
       }
     }
 
-    // Add aggregation info for the first column
     if (aggregationInfo && aggregationInfo.length > 0 && chartType !== "pie" && (isCategorical || isLargeDataset)) {
       const firstAgg = aggregationInfo[0];
       if (firstAgg.aggregation === 'COUNT') {
@@ -1547,10 +1430,24 @@ export const DataChart = memo(function DataChart({
       }
     }
 
-    return parts.length > 0 ? parts.join(" • ") : null;
+    return parts.length > 0 ? parts.join(" \u2022 ") : null;
   };
 
   const infoText = getChartInfoText();
+
+  // Pie empty state
+  if (chartType === 'pie' && pieData.length === 0) {
+    return (
+      <div className={`w-full h-full overflow-hidden relative flex flex-col ${
+        borderless ? 'p-0' : 'bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors'
+      }`}>
+        <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm ${fillContainer ? 'h-full' : ''}`}
+             style={fillContainer ? undefined : { height: typeof chartHeight === 'number' ? chartHeight : undefined }}>
+          No pie data (all values are zero or negative)
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full h-full overflow-hidden relative flex flex-col ${
@@ -1574,9 +1471,17 @@ export const DataChart = memo(function DataChart({
         </div>
       )}
 
-      {/* Chart container - fills remaining space */}
+      {/* Chart container */}
       <div className="flex-1 min-h-0">
-        {renderChart()}
+        {chartOption ? (
+          <ReactECharts
+            option={chartOption}
+            style={{ height: typeof chartHeight === 'number' ? chartHeight : '100%', width: '100%' }}
+            notMerge={true}
+            lazyUpdate={true}
+            opts={{ renderer: 'canvas' }}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -1586,23 +1491,19 @@ export const DataChart = memo(function DataChart({
 export function detectChartType(columns: string[], rowCount: number, data?: Record<string, unknown>[]): ChartType {
   const colNames = columns.map(c => c.toLowerCase());
 
-  // Check if there's a time/date column → line chart
   const hasTimeColumn = colNames.some(c =>
     c.includes('date') || c.includes('time') || c.includes('year') || c.includes('month') ||
     c.includes('quarter') || c.includes('period') || c.includes('week') || c.includes('day')
   );
   if (hasTimeColumn && rowCount > 3) return "line";
 
-  // If many columns (4+), table is better for readability
   const numericCols = columns.filter(c => {
     const type = detectColumnType(c);
     return type !== 'id' && type !== 'junk';
   });
   if (numericCols.length >= 4 && rowCount > 10) return "table";
 
-  // Small category sets → pie for distribution
   if (rowCount >= 2 && rowCount <= 6) {
-    // Check if it looks like a distribution (single numeric column)
     const meaningfulNumeric = columns.filter(c => {
       const type = detectColumnType(c);
       return type !== 'id' && type !== 'junk';
@@ -1610,12 +1511,8 @@ export function detectChartType(columns: string[], rowCount: number, data?: Reco
     if (meaningfulNumeric.length <= 2) return "pie";
   }
 
-  // Rankings, scores, comparisons → bar
   if (rowCount <= 20) return "bar";
-
-  // Large datasets without time → bar (aggregated)
   if (rowCount > 20 && rowCount <= 50) return "bar";
 
-  // Very large → line (sampled)
   return "line";
 }
