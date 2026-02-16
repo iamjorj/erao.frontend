@@ -705,7 +705,7 @@ export const DataChart = memo(function DataChart({
     : COLOR_THEMES[settings.colorTheme] || COLORS;
 
   // Responsive chart dimensions (base)
-  const baseChartHeight = fillContainer ? "100%" : (isMobile ? 250 : screenSize === "tablet" ? 300 : 320);
+  const baseChartHeight = fillContainer ? "100%" : (isMobile ? 300 : screenSize === "tablet" ? 300 : 320);
 
   // Memoize all chart data processing
   const chartConfig = useMemo(() => {
@@ -1095,8 +1095,8 @@ export const DataChart = memo(function DataChart({
     };
 
     // Grid config — extra bottom space for legend when many series
-    const legendBottomExtra = settings.legendPosition === 'bottom' && !mobile
-      ? (dc.length > 5 ? 45 : 35)
+    const legendBottomExtra = settings.legendPosition === 'bottom'
+      ? mobile ? 25 : (dc.length > 5 ? 45 : 35)
       : 15;
     const grid = {
       top: settings.legendPosition === 'top' && !mobile ? margins.top + 30 : margins.top + 10,
@@ -1142,6 +1142,7 @@ export const DataChart = memo(function DataChart({
 
     // Common tooltip base
     const tooltipBase = {
+      confine: true,
       backgroundColor: tBg,
       borderColor: tBorder,
       borderWidth: 1,
@@ -1152,12 +1153,15 @@ export const DataChart = memo(function DataChart({
 
     // Common legend — always scrollable to prevent overlap
     const legend = {
-      show: !mobile && settings.legendPosition !== 'hidden',
+      show: settings.legendPosition !== 'hidden',
       type: 'scroll' as const,
       top: settings.legendPosition === 'top' ? 0 : undefined,
       bottom: settings.legendPosition === 'bottom' ? 0 : undefined,
-      textStyle: { color: tickColor, fontSize: mobile ? 10 : 12 },
-      formatter: (name: string) => truncateLabel(name, 25),
+      textStyle: { color: tickColor, fontSize: mobile ? 9 : 12 },
+      itemWidth: mobile ? 12 : 25,
+      itemHeight: mobile ? 8 : 14,
+      itemGap: mobile ? 6 : 10,
+      formatter: (name: string) => truncateLabel(name, mobile ? 12 : 25),
       pageTextStyle: { color: tickColor },
       pageIconColor: tickColor,
       pageIconInactiveColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
@@ -1495,7 +1499,7 @@ export const DataChart = memo(function DataChart({
       <div className="flex-1 min-h-0">
         {chartOption ? (
           <ReactECharts
-            option={chartOption}
+            option={{ ...chartOption, ...(isMobile ? { useCoarsePointer: true } : {}) }}
             style={{ height: typeof chartHeight === 'number' ? chartHeight : '100%', width: '100%' }}
             notMerge={true}
             lazyUpdate={true}

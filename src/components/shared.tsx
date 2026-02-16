@@ -35,16 +35,27 @@ export const EmailButton = ({
 };
 
 // Logo icon component
-export const LogoIcon = ({ className = "w-12 h-12", dark = true }: { className?: string; dark?: boolean }) => (
-  <Image
-    src="/logo.png"
-    alt="Erao Logo"
-    width={200}
-    height={200}
-    quality={100}
-    priority
-    className={`${className} ${dark ? "invert" : ""}`}
-  />
+export const LogoIcon = ({ className = "w-12 h-12" }: { className?: string }) => (
+  <>
+    <Image
+      src="/logo-dark.png"
+      alt="Erao Logo"
+      width={200}
+      height={200}
+      quality={100}
+      priority
+      className={`${className} dark:hidden`}
+    />
+    <Image
+      src="/logo.png"
+      alt="Erao Logo"
+      width={200}
+      height={200}
+      quality={100}
+      priority
+      className={`${className} hidden dark:block`}
+    />
+  </>
 );
 
 // Navigation dropdown data

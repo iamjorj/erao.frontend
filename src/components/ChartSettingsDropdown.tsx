@@ -131,7 +131,7 @@ export function ChartSettingsDropdown({
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{chartType} Settings</h3>
           <button
             onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 transition-colors"
+            className="w-8 h-8 sm:w-6 sm:h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

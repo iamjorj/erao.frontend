@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, auth, SubscriptionPlan, SubscriptionResponse } from "@/lib/api";
+import SettingsBottomNav from "@/components/SettingsBottomNav";
 
 export default function SubscriptionsPage() {
   return (
@@ -328,7 +329,12 @@ function SubscriptionsContent() {
             </div>
           </div>
         </section>
+
+        {/* Spacer for bottom nav */}
+        <div className="h-20" />
       </main>
+
+      <SettingsBottomNav />
     </div>
   );
 }

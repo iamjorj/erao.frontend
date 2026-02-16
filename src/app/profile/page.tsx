@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, User, auth } from "@/lib/api";
+import SettingsBottomNav from "@/components/SettingsBottomNav";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -242,7 +243,12 @@ export default function ProfilePage() {
             </button>
           </div>
         </section>
+
+        {/* Spacer for bottom nav */}
+        <div className="h-20" />
       </main>
+
+      <SettingsBottomNav />
     </div>
   );
 }

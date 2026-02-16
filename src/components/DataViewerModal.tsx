@@ -732,7 +732,7 @@ export function DataViewerModal({
             </button>
             <button
               onClick={onClose}
-              className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+              className={`w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center rounded-md transition-colors ${
                 isDark ? "text-gray-400 hover:bg-[#1a1a1a]" : "text-gray-400 hover:bg-gray-100"
               }`}
             >
@@ -754,14 +754,14 @@ export function DataViewerModal({
               <button
                 key={btn.type}
                 onClick={() => setCurrentView(btn.type)}
-                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 flex items-center gap-2 ${
+                className={`px-4 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 flex items-center gap-2 ${
                   currentView === btn.type
                     ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
                     : isDark ? "text-gray-400 hover:bg-[#1a1a1a]" : "text-gray-500 hover:bg-gray-100"
                 }`}
               >
                 <span className="[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-[18px] sm:[&>svg]:h-[18px]">{btn.icon}</span>
-                <span className="hidden sm:inline">{btn.label}</span>
+                <span>{btn.label}</span>
               </button>
             ))}
           </div>
@@ -772,7 +772,7 @@ export function DataViewerModal({
             {sqlQuery && (
               <button
                 onClick={() => setShowSql(!showSql)}
-                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                   showSql
                     ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
                     : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
@@ -789,7 +789,7 @@ export function DataViewerModal({
             {currentView === "table" && (
               <button
                 onClick={() => setShowFilterModal(true)}
-                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                   activeFilterCount > 0
                     ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
                     : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
@@ -807,7 +807,7 @@ export function DataViewerModal({
               <div className="relative" ref={manipulationRef}>
                 <button
                   onClick={() => { setShowSettings(false); setShowManipulation(!showManipulation); }}
-                  className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                  className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                     showManipulation || hasActiveManipulations
                       ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
                       : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
@@ -1020,7 +1020,7 @@ export function DataViewerModal({
               <>
                 <button
                   onClick={() => { setShowManipulation(false); setShowSettings(!showSettings); }}
-                  className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                  className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                     showSettings
                       ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
                       : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
@@ -1047,7 +1047,7 @@ export function DataViewerModal({
             {currentView !== "table" && (
               <button
                 onClick={() => setChartOnlyMode(true)}
-                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors ${
+                className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                   isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 title="Focus mode (chart only)"
@@ -1089,7 +1089,7 @@ export function DataViewerModal({
                   <span className="max-w-[60px] truncate">{formatCellValue(val)}</span>
                   <button
                     onClick={() => handleFilterChange(col, val)}
-                    className="ml-0.5 hover:opacity-70"
+                    className="ml-0.5 p-1 hover:opacity-70"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, UsageStats, UsageLogEntry, auth, getTierName } from "@/lib/api";
+import SettingsBottomNav from "@/components/SettingsBottomNav";
 
 export default function UsagePage() {
   const router = useRouter();
@@ -261,7 +262,12 @@ export default function UsagePage() {
             </div>
           )}
         </section>
+
+        {/* Spacer for bottom nav */}
+        <div className="h-20" />
       </main>
+
+      <SettingsBottomNav />
     </div>
   );
 }

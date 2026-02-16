@@ -26,7 +26,7 @@ const plans = [
     price: 0,
     features: [
       { name: "1 database connection", included: true },
-      { name: "10 queries/month", included: true },
+      { name: "25 queries/month", included: true },
     ],
     cta: "Contact Sales",
     popular: false,
@@ -37,7 +37,7 @@ const plans = [
     price: 49,
     features: [
       { name: "5 database connections", included: true },
-      { name: "100 queries/month", included: true },
+      { name: "150 queries/month", included: true },
     ],
     cta: "Contact Sales",
     popular: true,
@@ -58,7 +58,7 @@ const plans = [
 const faqs = [
   {
     question: "Can I try Erao for free?",
-    answer: "Yes! Our Free plan lets you connect 1 database and run 10 queries per month at no cost. No credit card required to get started.",
+    answer: "Yes! Our Free plan lets you connect 1 database and run 25 queries per month at no cost. No credit card required to get started.",
   },
   {
     question: "Can I delete my account?",
@@ -163,7 +163,7 @@ export default function PricingPage() {
               <tbody>
                 {[
                   { feature: "Database connections", free: "1", pro: "5", enterprise: "Unlimited" },
-                  { feature: "Queries per month", free: "10", pro: "100", enterprise: "Unlimited" },
+                  { feature: "Queries per month", free: "25", pro: "150", enterprise: "Unlimited" },
                 ].map((row) => (
                   <tr key={row.feature} className="border-b border-gray-100">
                     <td className="py-3 sm:py-4 pr-2 sm:pr-4 text-xs sm:text-sm text-gray-700">{row.feature}</td>

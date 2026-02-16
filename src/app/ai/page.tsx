@@ -38,6 +38,7 @@ import { DataViewerModal } from "@/components/DataViewerModal";
 import { MarkdownResponse } from "@/components/MarkdownResponse";
 import { FilterModal, FilterOperator, AdvancedFilter } from "@/components/FilterModal";
 import { ChartSettingsDropdown } from "@/components/ChartSettingsDropdown";
+import SettingsBottomNav from "@/components/SettingsBottomNav";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Helper to strip SQL/JSON/viz code blocks from AI response text
@@ -304,10 +305,10 @@ function VirtualTable({
         const aNum = Number(aVal);
         const bNum = Number(bVal);
         if (!isNaN(aNum) && !isNaN(bNum)) {
-          return sortDir === 'asc' ? aNum - bNum : bNum - aNum;
+          return sortDir === 'asc' ? bNum - aNum : aNum - bNum;
         }
         const cmp = String(aVal).localeCompare(String(bVal));
-        return sortDir === 'asc' ? cmp : -cmp;
+        return sortDir === 'asc' ? -cmp : cmp;
       });
     }
 
@@ -409,7 +410,7 @@ function VirtualTable({
       {/* Scroll container */}
       <div
         ref={parentRef}
-        className="max-h-[420px] overflow-auto custom-scrollbar"
+        className="max-h-[60vh] sm:max-h-[420px] overflow-auto custom-scrollbar"
       >
         <div style={{ minWidth: needsScroll ? `${totalTableWidth}px` : undefined }}>
           {/* Header */}
@@ -444,7 +445,7 @@ function VirtualTable({
                     </svg>
                   )}
                   {sortCol !== col && (
-                    <svg className="w-3 h-3 flex-shrink-0 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="currentColor">
+                    <svg className="w-3 h-3 flex-shrink-0 text-gray-300 dark:text-gray-600 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="currentColor">
                       <path d="M6 2L9 5.5H3L6 2Z" />
                       <path d="M6 10L3 6.5H9L6 10Z" />
                     </svg>
@@ -453,7 +454,7 @@ function VirtualTable({
                 {/* Resize handle */}
                 <div
                   onMouseDown={(e) => handleResizeStart(col, e)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full cursor-col-resize bg-gray-200 dark:bg-[#333] opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:!bg-blue-400 dark:hover:!bg-blue-500 active:!bg-blue-500 transition-all z-20"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full cursor-col-resize bg-gray-200 dark:bg-[#333] hidden sm:block opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:!bg-blue-400 dark:hover:!bg-blue-500 active:!bg-blue-500 transition-all z-20"
                 />
               </div>
             ))}
@@ -646,7 +647,7 @@ function ChartDataSettings({
             {hasActive && (
               <button onClick={onReset} className="text-[10px] px-2 py-0.5 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors">Reset</button>
             )}
-            <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 transition-colors">
+            <button onClick={onClose} className="w-8 h-8 sm:w-6 sm:h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -841,6 +842,10 @@ export default function AIPage() {
 
   // Mobile sidebar open state (for overlay on mobile)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Mobile navigation: 'chats' shows full-page conversation list, 'chat' shows active conversation
+  const [mobileView, setMobileView] = useState<'chats' | 'chat'>('chats');
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
 
   // Chart view state - tracks view mode per message
   const [chartViews, setChartViews] = useState<Record<string, ChartType>>({});
@@ -1816,21 +1821,115 @@ export default function AIPage() {
 
   return (
     <div className="h-dvh bg-gray-50 dark:bg-[#0a0a0a] flex transition-colors duration-200 overflow-hidden">
-      {/* Mobile sidebar overlay */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile Chats View - full-page conversation list */}
+      <div className={`md:hidden fixed inset-0 z-30 flex-col bg-white dark:bg-[#0a0a0a] ${mobileView === 'chats' ? 'flex' : 'hidden'}`}>
+        {/* Header */}
+        <div className="px-4 pt-4 pb-2 flex-shrink-0">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Chats</h1>
+        </div>
 
-      {/* Sidebar */}
+        {/* Search */}
+        <div className="px-4 pb-3 flex-shrink-0">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={mobileSearchQuery}
+              onChange={(e) => setMobileSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full h-10 bg-gray-100 dark:bg-[#141414] rounded-xl pl-10 pr-4 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none border-none"
+            />
+          </div>
+        </div>
+
+        {/* Conversations list */}
+        <div className="flex-1 overflow-y-auto px-3 pb-20">
+          {loadingConversations ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-[#141414] flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                </svg>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No conversations yet</p>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Tap below to start your first chat</p>
+            </div>
+          ) : (
+            conversations
+              .filter(chat =>
+                !mobileSearchQuery ||
+                (chat.title || 'New Chat').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
+                (chat.databaseConnectionName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
+                (chat.fileDocumentName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase())
+              )
+              .map((chat, idx) => (
+                <div
+                  key={chat.id}
+                  onClick={() => {
+                    selectConversation(chat.id);
+                    setMobileView('chat');
+                    setMobileSearchQuery('');
+                  }}
+                  className={`px-3 py-3 rounded-xl cursor-pointer transition-all duration-300 mb-0.5 ${
+                    chat.id === selectedConversationId
+                      ? 'bg-gray-100 dark:bg-[#141414]'
+                      : 'active:bg-gray-50 dark:active:bg-[#0f0f0f]'
+                  }`}
+                  style={{ animationDelay: `${idx * 30}ms` }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-[14px] font-medium text-gray-900 dark:text-white truncate">
+                        {chat.title || 'New Chat'}
+                      </span>
+                      {pendingConversations.has(chat.id) && (
+                        <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gray-500"></span>
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap ml-3 flex-shrink-0">
+                      {formatRelativeTime(chat.updatedAt)}
+                    </span>
+                  </div>
+                  {(chat.databaseConnectionName || chat.fileDocumentName) && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                      {chat.databaseConnectionName || chat.fileDocumentName}
+                    </p>
+                  )}
+                </div>
+              ))
+          )}
+        </div>
+
+        {/* New Chat FAB - bottom right above nav */}
+        <button
+          onClick={() => { createNewConversation(); setMobileView('chat'); }}
+          className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[60] flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg shadow-gray-900/20 dark:shadow-black/30 active:scale-95 transition-transform"
+        >
+          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          <span className="text-sm font-medium">New chat</span>
+        </button>
+
+        {/* Bottom nav */}
+        <SettingsBottomNav />
+      </div>
+
+      {/* Sidebar (desktop only) */}
       <aside className={`
+        hidden md:flex md:flex-col
         ${sidebarCollapsed ? 'md:w-[60px]' : 'md:w-[260px]'}
-        w-[280px]
-        bg-[#fafafa] dark:bg-[#0a0a0a] flex flex-col justify-between border-r border-gray-200/60 dark:border-[#1a1a1a] transition-all duration-200
-        fixed md:relative inset-y-0 left-0 z-50
-        ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+        bg-[#fafafa] dark:bg-[#0a0a0a] justify-between border-r border-gray-200/60 dark:border-[#1a1a1a] transition-all duration-200
+        relative
       `}>
         {/* Top Section */}
         <div className="flex flex-col">
@@ -1845,7 +1944,7 @@ export default function AIPage() {
               {/* Close button for mobile */}
               <button
                 onClick={() => setMobileSidebarOpen(false)}
-                className="md:hidden w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors"
+                className="md:hidden w-11 h-11 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
@@ -1988,10 +2087,10 @@ export default function AIPage() {
                                 setChatMenuOpen(chat.id);
                               }
                             }}
-                            className={`p-1 rounded transition-colors ${
+                            className={`p-2 sm:p-1 rounded transition-colors ${
                               chatMenuOpen === chat.id
                                 ? "bg-gray-200 dark:bg-[#262626]"
-                                : "opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-[#1a1a1a]"
+                                : "sm:opacity-0 sm:group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-[#1a1a1a]"
                             }`}
                           >
                             <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -2174,58 +2273,31 @@ export default function AIPage() {
       {/* Main Content */}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden transition-colors duration-200 relative">
         {/* Header */}
-        <header className="px-3 sm:px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-[#1a1a1a] z-10 bg-white dark:bg-[#0a0a0a] transition-colors duration-200 flex-shrink-0">
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Hamburger menu for mobile */}
-            <button
-              onClick={() => setMobileSidebarOpen(true)}
-              className="md:hidden w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#141414] rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <h1 className="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[120px] sm:max-w-none">
-              {selectedConversation?.title || "New Chat"}
-            </h1>
-            <div className="flex items-center gap-1">
+        <header className="border-b border-gray-100 dark:border-[#1a1a1a] z-10 bg-white dark:bg-[#0a0a0a] transition-colors duration-200 flex-shrink-0">
+          {/* Row 1: Back/Title + DB/File (desktop inline) */}
+          <div className="px-3 sm:px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Back button for mobile */}
               <button
-                onClick={() => setShowDatabaseModal(true)}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs transition-colors ${
-                  selectedDatabase
-                    ? "bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
-                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-[#141414]"
-                }`}
+                onClick={() => setMobileView('chats')}
+                className="md:hidden flex items-center text-sm text-gray-900 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-1 -ml-1"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                <span className="hidden sm:inline">{selectedDatabase ? selectedDatabase.name : "Database"}</span>
-                <span className="sm:hidden">{selectedDatabase ? "DB" : "DB"}</span>
               </button>
-              <button
-                onClick={() => setShowFilesModal(true)}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs transition-colors ${
-                  selectedFile
-                    ? "bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
-                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-[#141414]"
-                }`}
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span className="hidden sm:inline truncate max-w-[100px]">{selectedFile ? selectedFile.originalFileName : "File"}</span>
-                <span className="sm:hidden">File</span>
-              </button>
+              <h1 className="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[180px] sm:max-w-none">
+                {selectedConversation?.title || "New Chat"}
+              </h1>
             </div>
+            {/* Upload indicator */}
+            {isUploadingFile && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <div className="w-3 h-3 border-2 border-gray-300 dark:border-[#262626] border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin" />
+                Uploading...
+              </div>
+            )}
           </div>
-          {/* Upload indicator */}
-          {isUploadingFile && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-              <div className="w-3 h-3 border-2 border-gray-300 dark:border-[#262626] border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin" />
-              Uploading...
-            </div>
-          )}
         </header>
 
         {/* Loading overlay - covers entire chat area with solid background */}
@@ -2307,69 +2379,69 @@ export default function AIPage() {
                                   </div>
                                   {/* View Toggle Buttons */}
                                   <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-100 dark:border-[#1f1f1f] gap-0.5 sm:gap-1 overflow-x-auto">
-                                    <div className="flex items-center gap-0.5 flex-shrink min-w-0">
+                                    <div className="flex items-center gap-0.5 flex-shrink-0">
                                       <button
                                         onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "table" }))}
-                                        className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                           currentView === "table"
                                             ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                             : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                         }`}
                                       >
-                                        <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                        <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                         <span className="hidden sm:inline">Table</span>
                                       </button>
                                       {hasNumericData && result.rows.length > 1 && (
                                         <>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "bar" }))}
-                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "bar"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                             <span className="hidden sm:inline">Bar</span>
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "line" }))}
-                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "line"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                                            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                                             <span className="hidden sm:inline">Line</span>
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "pie" }))}
-                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "pie"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8l5.66 5.66C14.38 19.19 13.23 20 12 20z" /></svg>
+                                            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8l5.66 5.66C14.38 19.19 13.23 20 12 20z" /></svg>
                                             <span className="hidden sm:inline">Pie</span>
                                           </button>
                                           <button
                                             onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "area" }))}
-                                            className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                            className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                               currentView === "area"
                                                 ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                                 : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                             }`}
                                           >
-                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M4 15l4-8 4 4 4-6 4 10" /></svg>
+                                            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M4 15l4-8 4 4 4-6 4 10" /></svg>
                                             <span className="hidden sm:inline">Area</span>
                                           </button>
                                         </>
                                       )}
                                     </div>
                                     {/* Toolbar: SQL, Filter, Settings, Expand */}
-                                    <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0 relative ml-1.5 sm:ml-3 pl-1.5 sm:pl-3 border-l border-gray-200 dark:border-[#333]">
+                                    <div className="flex items-center gap-1.5 sm:gap-1 flex-shrink-0 relative ml-1.5 sm:ml-3 pl-1.5 sm:pl-3 border-l border-gray-200 dark:border-[#333]">
                                       {/* SQL Button - only show on first table */}
                                       {idx === 0 && message.sqlQuery && (
                                         <button
@@ -2379,14 +2451,14 @@ export default function AIPage() {
                                             else next.add(message.id);
                                             return next;
                                           })}
-                                          className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                          className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                             expandedSql.has(message.id)
                                               ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
                                               : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
                                           }`}
                                           title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
                                         >
-                                          <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                                          <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
                                             <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
                                           </svg>
                                         </button>
@@ -2399,14 +2471,14 @@ export default function AIPage() {
                                         return (
                                           <button
                                             onClick={() => setShowFilterModal(viewKey)}
-                                            className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                            className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                               hasAnyFilters
                                                 ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
                                                 : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
                                             }`}
                                             title="Filter data"
                                           >
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                                             </svg>
                                           </button>
@@ -2416,10 +2488,10 @@ export default function AIPage() {
                                       {currentView !== "table" && (
                                         <button
                                           onClick={() => { setShowChartManipulation(null); setShowChartSettings(showChartSettings === viewKey ? null : viewKey); }}
-                                          className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                          className="flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
                                           title="Chart settings"
                                         >
-                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                           </svg>
@@ -2439,14 +2511,14 @@ export default function AIPage() {
                                         <>
                                           <button
                                             onClick={() => { setShowChartSettings(null); setShowChartManipulation(showChartManipulation === viewKey ? null : viewKey); }}
-                                            className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                            className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                               hasActiveManipulation(viewKey) || showChartManipulation === viewKey
                                                 ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
                                                 : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
                                             }`}
                                             title="Adjust chart data"
                                           >
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
                                             </svg>
                                           </button>
@@ -2489,10 +2561,10 @@ export default function AIPage() {
                                           });
                                           setDataViewerOpen(message.id);
                                       }}
-                                      className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                      className="flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
                                       title="Expand fullscreen"
                                     >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                       </svg>
                                     </button>
@@ -2662,69 +2734,69 @@ export default function AIPage() {
                         <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#262626] rounded-xl overflow-visible relative mt-2 shadow-sm dark:shadow-none">
                           {/* View Toggle Buttons - always show for tables */}
                           <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-100 dark:border-[#1f1f1f] gap-0.5 sm:gap-1 overflow-x-auto">
-                            <div className="flex items-center gap-0.5 flex-shrink min-w-0">
+                            <div className="flex items-center gap-0.5 flex-shrink-0">
                               <button
                                 onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "table" }))}
-                                className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                   currentView === "table"
                                     ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                 }`}
                               >
-                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                 <span className="hidden sm:inline">Table</span>
                               </button>
                               {hasNumericData && parsedResult.rows.length > 1 && (
                                 <>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "bar" }))}
-                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "bar"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                     <span className="hidden sm:inline">Bar</span>
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "line" }))}
-                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "line"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                                     <span className="hidden sm:inline">Line</span>
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "pie" }))}
-                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "pie"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8l5.66 5.66C14.38 19.19 13.23 20 12 20z" /></svg>
+                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8l5.66 5.66C14.38 19.19 13.23 20 12 20z" /></svg>
                                     <span className="hidden sm:inline">Pie</span>
                                   </button>
                                   <button
                                     onClick={() => setChartViews(prev => ({ ...prev, [message.id]: "area" }))}
-                                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs rounded-md transition-colors whitespace-nowrap ${
+                                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs rounded-md transition-colors whitespace-nowrap ${
                                       currentView === "area"
                                         ? "bg-black dark:bg-white text-white dark:text-gray-900"
                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#252525]"
                                     }`}
                                   >
-                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M4 15l4-8 4 4 4-6 4 10" /></svg>
+                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M4 15l4-8 4 4 4-6 4 10" /></svg>
                                     <span className="hidden sm:inline">Area</span>
                                   </button>
                                 </>
                               )}
                             </div>
                               {/* Toolbar: SQL, Filter, Settings, Expand */}
-                              <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0 relative ml-1.5 sm:ml-3 pl-1.5 sm:pl-3 border-l border-gray-200 dark:border-[#333]">
+                              <div className="flex items-center gap-1.5 sm:gap-1 flex-shrink-0 relative ml-1.5 sm:ml-3 pl-1.5 sm:pl-3 border-l border-gray-200 dark:border-[#333]">
                                 {/* SQL Button */}
                                 {message.sqlQuery && (
                                   <button
@@ -2734,14 +2806,14 @@ export default function AIPage() {
                                       else next.add(message.id);
                                       return next;
                                     })}
-                                    className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                    className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                       expandedSql.has(message.id)
                                         ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
                                         : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
                                     }`}
                                     title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
                                   >
-                                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
                                       <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
                                     </svg>
                                   </button>
@@ -2754,14 +2826,14 @@ export default function AIPage() {
                                   return (
                                     <button
                                       onClick={() => setShowFilterModal(message.id)}
-                                      className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                      className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                         hasAnyFilters
                                           ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
                                           : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
                                       }`}
                                       title="Filter data"
                                     >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                                       </svg>
                                     </button>
@@ -2771,10 +2843,10 @@ export default function AIPage() {
                                 {currentView !== "table" && (
                                   <button
                                     onClick={() => { setShowChartManipulation(null); setShowChartSettings(showChartSettings === message.id ? null : message.id); }}
-                                    className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                    className="flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
                                     title="Chart settings"
                                   >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
@@ -2794,14 +2866,14 @@ export default function AIPage() {
                                   <>
                                     <button
                                       onClick={() => { setShowChartSettings(null); setShowChartManipulation(showChartManipulation === message.id ? null : message.id); }}
-                                      className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                      className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
                                         hasActiveManipulation(message.id) || showChartManipulation === message.id
                                           ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
                                           : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
                                       }`}
                                       title="Adjust chart data"
                                     >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" />
                                       </svg>
                                     </button>
@@ -2844,10 +2916,10 @@ export default function AIPage() {
                                     });
                                     setDataViewerOpen(message.id);
                                   }}
-                                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
+                                  className="flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors"
                                   title="Expand fullscreen"
                                 >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                   </svg>
                                 </button>
@@ -3125,7 +3197,7 @@ export default function AIPage() {
         )}
 
         {/* Input Area */}
-        <div className={`${isEmptyChat ? 'absolute inset-0 flex items-center justify-center px-3 sm:px-5' : 'absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 flex justify-center backdrop-blur-xl bg-white/5 dark:bg-[#0a0a0a]/60'}`}>
+        <div className={`${isEmptyChat ? 'absolute inset-0 flex items-center justify-center px-3 sm:px-5' : 'absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-5 pt-3 sm:pt-4 flex justify-center backdrop-blur-xl bg-white/5 dark:bg-[#0a0a0a]/60'}`}>
           <div className={`w-full max-w-[680px] ${isEmptyChat ? 'flex flex-col items-center gap-4 sm:gap-6' : ''}`}>
             {isEmptyChat && (
               <div className="text-center px-2">
@@ -3146,9 +3218,9 @@ export default function AIPage() {
             <form
               data-chat-form
               onSubmit={handleSendMessage}
-              className="w-full h-11 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl px-2 flex items-center gap-1.5 border border-gray-200 dark:border-[#262626] focus-within:border-gray-300 dark:focus-within:border-[#404040] focus-within:bg-white dark:focus-within:bg-[#1a1a1a] transition-all"
+              className="w-full h-12 sm:h-11 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl px-2 flex items-center gap-1.5 border border-gray-200 dark:border-[#262626] focus-within:border-gray-300 dark:focus-within:border-[#404040] focus-within:bg-white dark:focus-within:bg-[#1a1a1a] transition-all"
             >
-              {/* File Upload Button */}
+              {/* Hidden file input for uploads */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -3156,15 +3228,34 @@ export default function AIPage() {
                 accept=".xlsx,.xls,.docx,.doc,.csv,.xml,.json,.txt"
                 className="hidden"
               />
+              {/* Database select button */}
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingFile}
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-gray-200/70 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
-                title="Upload file (Excel, Word, CSV)"
+                onClick={() => setShowDatabaseModal(true)}
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  selectedDatabase
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                }`}
+                title={selectedDatabase ? selectedDatabase.name : "Select database"}
               >
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+              </button>
+              {/* Files select button */}
+              <button
+                type="button"
+                onClick={() => setShowFilesModal(true)}
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  selectedFile
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                }`}
+                title={selectedFile ? selectedFile.originalFileName : "Select or upload file"}
+              >
+                <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
 
@@ -3172,14 +3263,15 @@ export default function AIPage() {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder={selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask anything about your data..."}
+                placeholder={selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask about your data..."}
                 disabled={isSending}
-                className="flex-1 text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
+                className="flex-1 min-w-0 ml-0.5 text-base sm:text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
+                enterKeyHint="send"
               />
               <button
                 type="submit"
                 disabled={isSending || !inputValue.trim()}
-                className="w-8 h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-10 h-10 sm:w-8 sm:h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <svg className="w-4 h-4 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -3568,7 +3660,7 @@ function DatabaseModal({
                 </div>
 
                 {/* Actions - show on hover */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -4055,6 +4147,19 @@ function FilesModal({
           </button>
         </div>
 
+        {/* Upload action at top */}
+        <div className="px-4 py-2.5 border-b border-gray-100 dark:border-[#262626]">
+          <button
+            onClick={onUpload}
+            className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-[#262626] hover:bg-gray-200 dark:hover:bg-[#333] rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Upload File
+          </button>
+        </div>
+
         {/* List */}
         <div className="max-h-[320px] overflow-y-auto">
           {files.length === 0 ? (
@@ -4106,7 +4211,7 @@ function FilesModal({
                     e.stopPropagation();
                     onDelete(file.id);
                   }}
-                  className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                   title="Delete"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4118,18 +4223,6 @@ function FilesModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-gray-100 dark:border-[#262626] flex gap-2">
-          <button
-            onClick={onUpload}
-            className="w-full h-9 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#262626] rounded-lg transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Upload File
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -4199,19 +4292,19 @@ function SchemaViewerModal({
           : 'rounded-t-2xl sm:rounded-2xl w-full sm:max-w-6xl max-h-[90vh] sm:max-h-[90vh]'
       }`}>
         {/* Header */}
-        <div className={`border-b border-gray-100 dark:border-[#1a1a1a] ${isFullscreen ? 'p-4' : 'p-6'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{databaseName}</h2>
+        <div className={`border-b border-gray-100 dark:border-[#1a1a1a] ${isFullscreen ? 'p-4' : 'p-3 sm:p-6'}`}>
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">{databaseName}</h2>
               {schema && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   {getDatabaseTypeName(schema.databaseType as DatabaseType)} • {(schema.tables || []).length} tables
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              {/* View Mode Toggle */}
-              <div className="flex bg-gray-100 dark:bg-[#1a1a1a] rounded-lg p-1">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* View Mode Toggle - visible on sm+ in header row, shown below on mobile */}
+              <div className="hidden sm:flex bg-gray-100 dark:bg-[#1a1a1a] rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("diagram")}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
@@ -4252,6 +4345,27 @@ function SchemaViewerModal({
                 <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
+              </button>
+            </div>
+          </div>
+          {/* View Mode Toggle - mobile only, second row */}
+          <div className="flex sm:hidden mb-2">
+            <div className="flex bg-gray-100 dark:bg-[#1a1a1a] rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("diagram")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  viewMode === "diagram" ? "bg-white dark:bg-[#333] text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                Diagram
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  viewMode === "list" ? "bg-white dark:bg-[#333] text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                List
               </button>
             </div>
           </div>
@@ -4302,7 +4416,7 @@ function SchemaViewerModal({
           ) : viewMode === "diagram" ? (
             <ERDiagramView tables={filteredTables} searchQuery={searchQuery} />
           ) : (
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               {filteredTables.length === 0 ? (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                   No tables match your search
@@ -4438,6 +4552,68 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
     setIsPanning(false);
   };
 
+  // Touch support for mobile
+  const pinchDistRef = useRef<number | null>(null);
+
+  const getTouchDistance = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleCanvasTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('.erd-table')) return;
+    if (e.touches.length === 2) {
+      pinchDistRef.current = getTouchDistance(e.touches);
+    } else if (e.touches.length === 1) {
+      setIsPanning(true);
+      setPanStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+    }
+  };
+
+  const handleTableTouchStart = (tableName: string, e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (e.touches.length !== 1) return;
+    const rect = (e.target as HTMLElement).closest('.erd-table')?.getBoundingClientRect();
+    if (rect) {
+      setDragging(tableName);
+      setDragOffset({
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top,
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchDistRef.current !== null) {
+      const newDist = getTouchDistance(e.touches);
+      const delta = (newDist - pinchDistRef.current) * 0.005;
+      const newScale = Math.min(Math.max(scale + delta, 0.3), 2);
+      setScale(newScale);
+      pinchDistRef.current = newDist;
+    } else if (dragging && containerRef.current && e.touches.length === 1) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      setPositions(prev => ({
+        ...prev,
+        [dragging]: {
+          x: (e.touches[0].clientX - containerRect.left - dragOffset.x - pan.x) / scale,
+          y: (e.touches[0].clientY - containerRect.top - dragOffset.y - pan.y) / scale,
+        },
+      }));
+    } else if (isPanning && e.touches.length === 1) {
+      setPan({
+        x: e.touches[0].clientX - panStart.x,
+        y: e.touches[0].clientY - panStart.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setDragging(null);
+    setIsPanning(false);
+    pinchDistRef.current = null;
+  };
+
   // Handle wheel/touchpad events
   const handleWheel = (e: React.WheelEvent) => {
     // Pinch-to-zoom (ctrlKey is true for pinch gestures on touchpad)
@@ -4529,7 +4705,7 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 ${
+      className={`relative w-full h-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 touch-none min-h-[50vh] sm:min-h-[500px] ${
         isPanning ? 'cursor-grabbing' : dragging ? 'cursor-grabbing' : 'cursor-grab'
       }`}
       onMouseDown={handleCanvasMouseDown}
@@ -4537,7 +4713,9 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onWheel={handleWheel}
-      style={{ minHeight: "500px" }}
+      onTouchStart={handleCanvasTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Grid pattern background */}
       <div
@@ -4549,8 +4727,8 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
         }}
       />
 
-      {/* Zoom Controls */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm rounded-xl p-2 shadow-lg border border-gray-200 dark:border-[#262626]">
+      {/* Zoom Controls - hidden on mobile (touch gestures replace) */}
+      <div className="absolute top-4 right-4 z-10 hidden sm:flex gap-2 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm rounded-xl p-2 shadow-lg border border-gray-200 dark:border-[#262626]">
         <button
           onClick={zoomIn}
           className="w-8 h-8 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors text-gray-700 dark:text-gray-200"
@@ -4583,8 +4761,8 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
         </button>
       </div>
 
-      {/* Instructions hint */}
-      <div className="absolute top-4 left-4 z-10 text-xs text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-gray-200 dark:border-[#262626]">
+      {/* Instructions hint - hidden on mobile */}
+      <div className="absolute top-4 left-4 z-10 hidden sm:block text-xs text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-gray-200 dark:border-[#262626]">
         <span className="font-medium">Tip:</span> Drag tables to arrange • Scroll to pan • Pinch to zoom
       </div>
 
@@ -4728,6 +4906,7 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
                 cursor: dragging === table.name ? "grabbing" : "grab",
               }}
               onMouseDown={(e) => handleMouseDown(table.name, e)}
+              onTouchStart={(e) => handleTableTouchStart(table.name, e)}
             >
               {/* Table Header */}
               <div className="bg-gray-900 dark:bg-[#1a1a1a] text-white px-3 py-2 flex items-center gap-2">
@@ -4772,8 +4951,8 @@ function ERDiagramView({ tables, searchQuery = '' }: { tables: TableSchema[]; se
       </div>
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] px-3 py-2">
-        <div className="flex gap-4 text-xs">
+      <div className="absolute bottom-4 left-4 right-4 sm:right-auto bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-[#262626] px-3 py-2">
+        <div className="flex flex-wrap gap-2 sm:gap-4 text-xs">
           <div className="flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12.65 10A5.99 5.99 0 007 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 005.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
@@ -4825,26 +5004,26 @@ function TableCard({
       {/* Table Header */}
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#111111] flex items-center justify-between hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
+        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-50 dark:bg-[#111111] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors text-left"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+            className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            <span className="font-medium text-sm text-gray-900 dark:text-white">{highlightMatch(table.name)}</span>
+            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{highlightMatch(table.name)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span>{table.columns.length} columns</span>
+        <div className="flex items-center flex-wrap gap-1.5 sm:gap-3 text-xs text-gray-500 dark:text-gray-400 pl-6 sm:pl-0">
+          <span>{table.columns.length} cols</span>
           {table.rowCount !== null && (
             <span>{table.rowCount.toLocaleString()} rows</span>
           )}
@@ -4874,10 +5053,10 @@ function TableCard({
             {table.columns.map((column) => (
               <div
                 key={column.name}
-                className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-5 flex justify-center">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="w-5 flex justify-center shrink-0">
                     {pkColumns.has(column.name) ? (
                       <svg className="w-4 h-4 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12.65 10A5.99 5.99 0 007 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 005.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
@@ -4890,9 +5069,9 @@ function TableCard({
                       <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-[#333333]" />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{highlightMatch(column.name)}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{highlightMatch(column.name)}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 pl-7 sm:pl-0 shrink-0">
                   <span className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-[#1a1a1a] px-2 py-0.5 rounded">
                     {column.dataType}
                     {column.maxLength && `(${column.maxLength})`}
@@ -4910,22 +5089,22 @@ function TableCard({
 
           {/* Foreign Keys Section */}
           {table.foreignKeys.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#151515] px-4 py-3">
+            <div className="border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#151515] px-3 sm:px-4 py-2.5 sm:py-3">
               <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Foreign Keys</p>
               <div className="space-y-1.5">
                 {table.foreignKeys.map((fk, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600">
+                  <div key={idx} className="flex items-center flex-wrap gap-1.5 sm:gap-2 text-xs text-gray-600 dark:text-gray-300">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 truncate max-w-[40vw] sm:max-w-none">
                       {fk.column}
                     </span>
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
-                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 truncate max-w-[40vw] sm:max-w-none">
                       {fk.referencedTable}.{fk.referencedColumn}
                     </span>
                     {(fk.onDelete || fk.onUpdate) && (
-                      <span className="text-gray-400">
+                      <span className="text-gray-400 text-[10px] sm:text-xs">
                         ({fk.onDelete && `ON DELETE ${fk.onDelete}`}
                         {fk.onDelete && fk.onUpdate && ', '}
                         {fk.onUpdate && `ON UPDATE ${fk.onUpdate}`})
@@ -4939,14 +5118,14 @@ function TableCard({
 
           {/* Indexes Section */}
           {table.indexes.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#151515] px-4 py-3">
+            <div className="border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#151515] px-3 sm:px-4 py-2.5 sm:py-3">
               <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Indexes</p>
               <div className="space-y-1.5">
                 {table.indexes.map((index, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                    <span className="font-medium">{index.name}</span>
+                  <div key={idx} className="flex items-center flex-wrap gap-1.5 sm:gap-2 text-xs text-gray-600 dark:text-gray-300">
+                    <span className="font-medium truncate max-w-[40vw] sm:max-w-none">{index.name}</span>
                     <span className="text-gray-400">on</span>
-                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600">
+                    <span className="font-mono bg-white dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 truncate max-w-[40vw] sm:max-w-none">
                       {index.columns.join(', ')}
                     </span>
                     {index.isUnique && (
