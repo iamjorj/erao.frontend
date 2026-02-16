@@ -2,6 +2,15 @@ import * as signalR from '@microsoft/signalr';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+// Dev-only logger — silenced in production
+const isDev = process.env.NODE_ENV === 'development';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const devLog: (...args: any[]) => void = isDev ? (...args) => console.log(...args) : () => {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const devWarn: (...args: any[]) => void = isDev ? (...args) => console.warn(...args) : () => {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const devError: (...args: any[]) => void = isDev ? (...args) => console.error(...args) : () => {};
+
 interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -785,6 +794,19 @@ class ApiClient {
 
   // ========== File endpoints ==========
   async uploadFile(file: File): Promise<FileUploadResponse> {
+    // Client-side validation
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    const ALLOWED_EXTENSIONS = ['.csv', '.xlsx', '.xls', '.json', '.tsv'];
+    const fileName = file.name.toLowerCase();
+    const ext = fileName.substring(fileName.lastIndexOf('.'));
+
+    if (file.size > MAX_FILE_SIZE) {
+      throw new ApiError('File too large (max 100MB)', 400, null);
+    }
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      throw new ApiError(`Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`, 400, null);
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -903,6 +925,8 @@ export const auth = {
     if (typeof window !== 'undefined') {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
+      // Set a lightweight cookie for Next.js middleware route protection
+      document.cookie = "logged_in=true; path=/; max-age=2592000; SameSite=Lax";
     }
   },
 
@@ -911,6 +935,8 @@ export const auth = {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      // Clear the route protection cookie
+      document.cookie = "logged_in=; path=/; max-age=0; SameSite=Lax";
     }
   },
 
@@ -1004,19 +1030,19 @@ class ChatHubConnection {
         .build();
 
       this.connection.onclose((error) => {
-        console.log('[SignalR] Connection closed', error);
+        devLog('[SignalR] Connection closed', error);
       });
 
       this.connection.onreconnecting((error) => {
-        console.log('[SignalR] Reconnecting', error);
+        devLog('[SignalR] Reconnecting', error);
       });
 
       this.connection.onreconnected((connectionId) => {
-        console.log('[SignalR] Reconnected', connectionId);
+        devLog('[SignalR] Reconnected', connectionId);
       });
 
       await this.connection.start();
-      console.log('[SignalR] Connected, state:', this.connection.state);
+      devLog('[SignalR] Connected, state:', this.connection.state);
 
       return this.connection;
     } finally {
@@ -1051,15 +1077,15 @@ class ChatHubConnection {
 
     // Set up handlers with logging
     const streamStartedHandler = (data: { conversationId: string }) => {
-      console.log('[SignalR] StreamStarted received:', data);
-      console.log('[SignalR] Expected conversationId:', conversationId);
-      console.log('[SignalR] Match:', data.conversationId === conversationId);
+      devLog('[SignalR] StreamStarted received:', data);
+      devLog('[SignalR] Expected conversationId:', conversationId);
+      devLog('[SignalR] Match:', data.conversationId === conversationId);
       if (data.conversationId === conversationId) {
         handlers.onStreamStarted?.();
       }
     };
     const userMessageSavedHandler = (data: UserMessageSaved) => {
-      console.log('[SignalR] UserMessageSaved', data);
+      devLog('[SignalR] UserMessageSaved', data);
       handlers.onUserMessageSaved?.(data);
     };
     const chunkHandler = (data: StreamChunk) => {
@@ -1068,30 +1094,30 @@ class ChatHubConnection {
       }
     };
     const queryExecutingHandler = (data: { conversationId: string }) => {
-      console.log('[SignalR] QueryExecuting', data);
+      devLog('[SignalR] QueryExecuting', data);
       if (data.conversationId === conversationId) {
         handlers.onQueryExecuting?.();
       }
     };
     const completedHandler = (data: StreamCompleted) => {
-      console.log('[SignalR] StreamCompleted received:', data);
-      console.log('[SignalR] Expected conversationId:', conversationId);
-      console.log('[SignalR] Match:', data.conversationId === conversationId);
+      devLog('[SignalR] StreamCompleted received:', data);
+      devLog('[SignalR] Expected conversationId:', conversationId);
+      devLog('[SignalR] Match:', data.conversationId === conversationId);
       if (data.conversationId === conversationId) {
-        console.log('[SignalR] Calling onCompleted handler');
+        devLog('[SignalR] Calling onCompleted handler');
         handlers.onCompleted?.(data);
         cleanup();
       }
     };
     const errorHandler = (data: StreamError) => {
-      console.log('[SignalR] StreamError', data);
+      devLog('[SignalR] StreamError', data);
       if (data.conversationId === conversationId) {
         handlers.onError?.(data.error);
         cleanup();
       }
     };
     const generalErrorHandler = (error: string) => {
-      console.log('[SignalR] Error', error);
+      devLog('[SignalR] Error', error);
       handlers.onError?.(error);
       cleanup();
     };
@@ -1149,24 +1175,24 @@ class ChatHubConnection {
     // Set a timeout to detect if no events are received (connection issue)
     timeoutId = setTimeout(() => {
       if (!receivedAnyEvent && !isCompleted) {
-        console.error('[SignalR] Timeout - no events received after 30s');
+        devError('[SignalR] Timeout - no events received after 30s');
         handlers.onError?.('Connection timeout. Please try again.');
         cleanup();
       }
     }, 30000);
 
     // Send the message
-    console.log('[SignalR] Invoking SendMessageStreaming for conversation:', conversationId);
-    console.log('[SignalR] Connection state:', connection.state);
+    devLog('[SignalR] Invoking SendMessageStreaming for conversation:', conversationId);
+    devLog('[SignalR] Connection state:', connection.state);
     try {
       await connection.invoke('SendMessageStreaming', {
         conversationId,
         message,
         executeQuery,
       });
-      console.log('[SignalR] SendMessageStreaming invoke completed');
+      devLog('[SignalR] SendMessageStreaming invoke completed');
     } catch (error) {
-      console.error('[SignalR] SendMessageStreaming invoke failed:', error);
+      devError('[SignalR] SendMessageStreaming invoke failed:', error);
       cleanup();
       throw error;
     }

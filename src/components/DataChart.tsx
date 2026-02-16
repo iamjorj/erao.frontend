@@ -336,6 +336,16 @@ function isDateLikeColumn(data: Record<string, unknown>[], columnName: string): 
 // Format a date-like value for chart axis labels
 function formatDateLabel(value: string): string {
   const trimmed = value.trim();
+
+  // Pure year values (e.g. "2022", "2023") — return as-is, don't parse as date
+  if (/^\d{4}$/.test(trimmed)) {
+    const year = Number(trimmed);
+    if (year >= 1900 && year <= 2100) return trimmed;
+  }
+
+  // Pure integer that's not a year — return as-is
+  if (/^\d+$/.test(trimmed)) return trimmed;
+
   const parsed = new Date(trimmed);
 
   if (isNaN(parsed.getTime())) return trimmed;
@@ -1084,19 +1094,24 @@ export const DataChart = memo(function DataChart({
       return h;
     };
 
-    // Grid config
+    // Grid config — extra bottom space for legend when many series
+    const legendBottomExtra = settings.legendPosition === 'bottom' && !mobile
+      ? (dc.length > 5 ? 45 : 35)
+      : 15;
     const grid = {
       top: settings.legendPosition === 'top' && !mobile ? margins.top + 30 : margins.top + 10,
       right: margins.right,
-      bottom: respBottom + (settings.legendPosition === 'bottom' && !mobile ? 30 : 15),
+      bottom: respBottom + legendBottomExtra,
       left: margins.left + (mobile ? 35 : 50),
       containLabel: false,
     };
 
-    // Common x-axis
+    // Common x-axis (boundaryGap: false for line/area so they start from left edge)
+    const isLineOrArea = chartType === 'line' || chartType === 'area';
     const xAxis = {
       type: 'category' as const,
       data: cd.map(d => d.name as string),
+      boundaryGap: !isLineOrArea,
       axisLabel: {
         fontSize: fs,
         color: tickColor,
@@ -1135,12 +1150,17 @@ export const DataChart = memo(function DataChart({
       extraCssText: `border-radius:12px;box-shadow:${shadowCss};`,
     };
 
-    // Common legend
+    // Common legend — always scrollable to prevent overlap
     const legend = {
       show: !mobile && settings.legendPosition !== 'hidden',
+      type: 'scroll' as const,
       top: settings.legendPosition === 'top' ? 0 : undefined,
       bottom: settings.legendPosition === 'bottom' ? 0 : undefined,
       textStyle: { color: tickColor, fontSize: mobile ? 10 : 12 },
+      formatter: (name: string) => truncateLabel(name, 25),
+      pageTextStyle: { color: tickColor },
+      pageIconColor: tickColor,
+      pageIconInactiveColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
     };
 
     switch (chartType) {

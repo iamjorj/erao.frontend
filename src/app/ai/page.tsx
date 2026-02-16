@@ -1,5 +1,11 @@
 ﻿"use client";
 
+// Dev-only logger — silenced in production
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const devError: (...args: any[]) => void = process.env.NODE_ENV === 'development'
+  ? (...args) => console.error(...args)
+  : () => {};
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
@@ -1164,7 +1170,7 @@ export default function AIPage() {
         setConversations(response.data);
       }
     } catch (err) {
-      console.error("Failed to refresh conversations:", err);
+      devError("Failed to refresh conversations:", err);
     }
   };
 
@@ -1199,7 +1205,7 @@ export default function AIPage() {
               }
             }
           } catch {
-            console.error("Failed to load saved conversation");
+            devError("Failed to load saved conversation");
           } finally {
             setLoadingMessages(false);
           }
@@ -1218,7 +1224,7 @@ export default function AIPage() {
         }
       }
     } catch (err) {
-      console.error("Failed to load conversations:", err);
+      devError("Failed to load conversations:", err);
     } finally {
       setLoadingConversations(false);
       setInitialLoadComplete(true);
@@ -1237,7 +1243,7 @@ export default function AIPage() {
         }
       }
     } catch (err) {
-      console.error("Failed to load databases:", err);
+      devError("Failed to load databases:", err);
     }
   };
 
@@ -1252,7 +1258,7 @@ export default function AIPage() {
         setFiles((response as unknown as { files: FileDocument[] }).files);
       }
     } catch (err) {
-      console.error("Failed to load files:", err);
+      devError("Failed to load files:", err);
     }
   };
 
@@ -1298,7 +1304,7 @@ export default function AIPage() {
         setSelectedFileId(null);
       }
     } catch (err) {
-      console.error("Failed to delete file:", err);
+      devError("Failed to delete file:", err);
     }
   };
 
@@ -1370,7 +1376,7 @@ export default function AIPage() {
         }
       }
     } catch (err) {
-      console.error("Failed to load conversation:", err);
+      devError("Failed to load conversation:", err);
       setError("Failed to load conversation");
     } finally {
       setLoadingMessages(false);
@@ -1751,7 +1757,7 @@ export default function AIPage() {
         );
       }
     } catch (err) {
-      console.error("Failed to rename conversation:", err);
+      devError("Failed to rename conversation:", err);
     }
     setEditingConversationId(null);
   };
@@ -1766,7 +1772,7 @@ export default function AIPage() {
         setMessages([]);
       }
     } catch (err) {
-      console.error("Failed to delete conversation:", err);
+      devError("Failed to delete conversation:", err);
     }
     setDeleteConfirm(null);
   };
@@ -1780,7 +1786,7 @@ export default function AIPage() {
         setSelectedDatabaseId(null);
       }
     } catch (err) {
-      console.error("Failed to delete database:", err);
+      devError("Failed to delete database:", err);
     }
     setDeleteConfirm(null);
   };
