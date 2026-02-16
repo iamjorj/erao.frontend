@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -242,6 +243,32 @@ export default function ProfilePage() {
               </svg>
             </button>
           </div>
+        </section>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100 dark:border-[#1a1a1a] mb-8 sm:mb-10" />
+
+        {/* Sign Out */}
+        <section className="mb-8 sm:mb-10">
+          <button
+            onClick={async () => {
+              setSigningOut(true);
+              try {
+                await api.logout();
+              } catch {
+                // Ignore logout errors
+              }
+              auth.clearTokens();
+              router.push("/login");
+            }}
+            disabled={signingOut}
+            className="w-full h-11 flex items-center justify-center gap-2 border border-gray-200 dark:border-[#262626] rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            {signingOut ? "Signing out..." : "Sign out"}
+          </button>
         </section>
 
         {/* Spacer for bottom nav */}
