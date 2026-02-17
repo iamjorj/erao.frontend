@@ -5,7 +5,7 @@ import { PageLayout, EmailButton } from "@/components/shared";
 const securityFeatures = [
   {
     title: "Encrypted Credentials",
-    description: "All database credentials are encrypted using AES-256 encryption. Your passwords and connection strings are never stored in plain text.",
+    description: "All database credentials are encrypted using AES-256 encryption. Uploaded files are stored with encryption at rest. Your passwords and connection strings are never stored in plain text.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -14,7 +14,7 @@ const securityFeatures = [
   },
   {
     title: "Secure Connections",
-    description: "All connections to your databases use SSL/TLS encryption. Data in transit is always protected.",
+    description: "All connections to your databases use SSL/TLS encryption. File uploads are transmitted over HTTPS. Data in transit is always protected.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -22,8 +22,8 @@ const securityFeatures = [
     ),
   },
   {
-    title: "No Data Storage",
-    description: "We never store your actual database data. We only store the queries you run and their metadata, not the results.",
+    title: "Minimal Data Storage",
+    description: "We never store your actual database data—only the queries you run. Uploaded files are stored encrypted and can be deleted at any time. Query results are never persisted.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
@@ -32,7 +32,7 @@ const securityFeatures = [
   },
   {
     title: "Read-Only Queries",
-    description: "Erao only executes read-only (SELECT) queries. We prevent any data modification to keep your database safe.",
+    description: "Erao only executes read-only (SELECT) queries on your databases. File queries run against an isolated copy of your data. We never modify your original data.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -79,10 +79,11 @@ export default function SecurityPage() {
           <h2 className="text-xl sm:text-2xl font-bold text-center mb-8 sm:mb-12">How Your Data Flows</h2>
           <div className="max-w-3xl mx-auto space-y-6">
             {[
-              { step: 1, title: "You ask a question", desc: "Your natural language question is sent to our servers over an encrypted connection." },
-              { step: 2, title: "We generate a query", desc: "Our AI translates your question into a SQL query. Only metadata about your database schema is used." },
-              { step: 3, title: "Query executes on your database", desc: "The query runs directly on your database using your encrypted credentials. We connect via SSL/TLS." },
-              { step: 4, title: "Results displayed to you", desc: "The results are sent back to your browser. We do not store the actual data, only the query text." },
+              { step: 1, title: "You connect a database or upload a file", desc: "Database credentials are encrypted with AES-256. Uploaded files are stored with encryption at rest." },
+              { step: 2, title: "You ask a question", desc: "Your natural language question is sent to our servers over an encrypted connection." },
+              { step: 3, title: "We generate a query", desc: "Our AI translates your question into a query. Only metadata about your schema is used—never your actual data." },
+              { step: 4, title: "Query executes securely", desc: "For databases, the query runs directly via SSL/TLS. For files, the query runs against an isolated copy of your data." },
+              { step: 5, title: "Results displayed to you", desc: "The results are sent back to your browser. We do not store query results—only the query text." },
             ].map((item) => (
               <div key={item.step} className="flex gap-4">
                 <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">

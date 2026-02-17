@@ -9,12 +9,13 @@ const articles: Record<string, { title: string; category: string; content: strin
     title: "Quick Start Guide",
     category: "Getting Started",
     content: [
-      "Welcome to Erao. This guide will help you get started with querying your database using natural language.",
+      "Welcome to Erao. This guide will help you get started with querying your data using natural language.",
       "Step 1: Create an account by clicking 'Start Free' on the homepage.",
-      "Step 2: Once logged in, navigate to your dashboard and click 'Add Database' to connect your first database.",
-      "Step 3: Enter your database connection details. We support 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, Snowflake, ClickHouse, and more.",
-      "Step 4: After connecting, go to the chat interface and start asking questions about your data.",
-      "That's it. You're ready to query your database using natural language.",
+      "Step 2: Once logged in, navigate to your dashboard. You can either connect a database or upload a file.",
+      "Step 3a (Database): Click 'Add Database' and enter your connection details. We support 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, Snowflake, ClickHouse, and more.",
+      "Step 3b (File): Click 'Upload File' and select a CSV, Excel, JSON, XML, Word, or TXT file. Your file will be processed instantly.",
+      "Step 4: Go to the chat interface, select your database or file, and start asking questions about your data.",
+      "That's it. You're ready to query your data using natural language.",
     ],
   },
   "connect-database": {
@@ -30,17 +31,30 @@ const articles: Record<string, { title: string; category: string; content: strin
       "Your credentials are encrypted with AES-256 encryption and stored securely.",
     ],
   },
+  "upload-file": {
+    title: "Uploading Your First File",
+    category: "Getting Started",
+    content: [
+      "Erao lets you upload files and query them with natural language—no database required.",
+      "Step 1: From your dashboard, click 'Upload File' or the '+' button.",
+      "Step 2: Select a file from your device. We support CSV, Excel (.xlsx, .xls), JSON, XML, Word (.docx), and TXT files.",
+      "Step 3: Erao will process your file and extract the data automatically.",
+      "Step 4: Once processed, go to the chat interface, select your file, and start asking questions.",
+      "Tips: Make sure your file has clear column headers. For best results, keep your data clean and well-structured.",
+      "Your uploaded files are stored with encryption at rest and can be deleted at any time.",
+    ],
+  },
   "first-query": {
     title: "Running Your First Query",
     category: "Getting Started",
     content: [
-      "After connecting a database, you can start querying it with natural language.",
-      "1. Select your database from the dropdown in the chat interface.",
-      "2. Type your question in plain English. For example: 'Show me all users created this month'.",
+      "After connecting a database or uploading a file, you can start querying your data with natural language.",
+      "1. Select your database or file from the dropdown in the chat interface.",
+      "2. Type your question in plain English. For example: 'Show me all users created this month' or 'What's the average sales amount?'.",
       "3. Press Enter or click Send.",
-      "4. Erao will generate the appropriate SQL query and execute it against your database.",
+      "4. Erao will generate the appropriate query and execute it against your data source.",
       "5. View your results as a table, chart, or summary.",
-      "Tips: Be specific in your questions. Include table names if you know them.",
+      "Tips: Be specific in your questions. Include table or column names if you know them.",
     ],
   },
   "query-results": {
@@ -58,7 +72,7 @@ const articles: Record<string, { title: string; category: string; content: strin
   },
   "connect-postgresql": {
     title: "Connecting PostgreSQL",
-    category: "Database Connections",
+    category: "Databases & Files",
     content: [
       "To connect a PostgreSQL database to Erao:",
       "1. Get your PostgreSQL connection details from your database provider or server.",
@@ -72,7 +86,7 @@ const articles: Record<string, { title: string; category: string; content: strin
   },
   "connect-mysql": {
     title: "Connecting MySQL",
-    category: "Database Connections",
+    category: "Databases & Files",
     content: [
       "To connect a MySQL database to Erao:",
       "1. Get your MySQL connection details from your database provider or server.",
@@ -86,7 +100,7 @@ const articles: Record<string, { title: string; category: string; content: strin
   },
   "connect-mongodb": {
     title: "Connecting MongoDB",
-    category: "Database Connections",
+    category: "Databases & Files",
     content: [
       "To connect a MongoDB database to Erao:",
       "1. Get your MongoDB connection string from MongoDB Atlas or your server.",
@@ -99,7 +113,7 @@ const articles: Record<string, { title: string; category: string; content: strin
   },
   "connection-troubleshooting": {
     title: "Connection Troubleshooting",
-    category: "Database Connections",
+    category: "Databases & Files",
     content: [
       "If you're having trouble connecting your database, try these steps:",
       "1. Verify your credentials are correct. Copy-paste to avoid typos.",
@@ -170,8 +184,9 @@ const articles: Record<string, { title: string; category: string; content: strin
       "Access your account settings from the user menu in the top right.",
       "Profile: Update your name, email, and password.",
       "Databases: View and manage your connected databases.",
+      "Files: View, manage, and delete your uploaded files.",
       "Billing: View your subscription and payment details.",
-      "Note: Account deletion is not available to prevent abuse of our free tier.",
+      "Account deletion is available for paid plans (Pro and Enterprise) from your Profile page. Free plan accounts cannot be deleted to prevent abuse.",
     ],
   },
   "upgrade-plan": {
@@ -194,6 +209,7 @@ const articles: Record<string, { title: string; category: string; content: strin
       "Track your usage from the Settings page.",
       "Queries: Number of queries run this billing cycle.",
       "Databases: Number of connected databases.",
+      "Files: Number of uploaded files.",
       "Free plan: 25 queries per month, 1 database.",
       "Pro plan: 150 queries per month, 5 databases.",
       "Enterprise plan: Unlimited queries, unlimited databases.",
@@ -217,10 +233,10 @@ const articles: Record<string, { title: string; category: string; content: strin
     category: "Security",
     content: [
       "Security is our top priority at Erao.",
-      "Encryption at rest: All credentials encrypted with AES-256.",
-      "Encryption in transit: All connections use SSL/TLS.",
-      "No data storage: We never store your actual database data.",
-      "Read-only queries: Erao only runs SELECT queries. Write operations are never executed.",
+      "Encryption at rest: All credentials encrypted with AES-256. Uploaded files stored with encryption.",
+      "Encryption in transit: All connections and file transfers use SSL/TLS.",
+      "Minimal data storage: We never store your actual database data. Uploaded files are encrypted and can be deleted anytime.",
+      "Read-only queries: Erao only runs SELECT queries on databases. File queries run against an isolated copy of your data.",
       "We undergo regular security audits and penetration testing.",
     ],
   },
@@ -229,7 +245,7 @@ const articles: Record<string, { title: string; category: string; content: strin
     category: "Security",
     content: [
       "Erao uses industry-standard encryption throughout.",
-      "AES-256: Your database credentials are encrypted at rest.",
+      "AES-256: Your database credentials and uploaded files are encrypted at rest.",
       "TLS 1.3: All data in transit is encrypted.",
       "Key management: Encryption keys are stored separately from data.",
       "Secure infrastructure: Hosted on reliable cloud providers.",
@@ -241,8 +257,8 @@ const articles: Record<string, { title: string; category: string; content: strin
     category: "Security",
     content: [
       "Erao takes data protection seriously.",
-      "We never store your actual database data - only queries.",
-      "All credentials are encrypted with AES-256.",
+      "We never store your actual database data—only queries. Uploaded files are encrypted and deletable.",
+      "All credentials and files are encrypted with AES-256.",
       "All connections use SSL/TLS encryption.",
       "For security questions, contact javxohirdoniyorov@gmail.com.",
     ],

@@ -42,8 +42,12 @@ export default function PrivacyPage() {
                       <p className="text-sm text-gray-600">Connection strings and credentials encrypted using AES-256 encryption.</p>
                     </div>
                     <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <h4 className="font-medium mb-1">Uploaded Files</h4>
+                      <p className="text-sm text-gray-600">Files you upload (CSV, Excel, JSON, XML, Word, TXT) are stored with encryption at rest. You can delete your files at any time.</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
                       <h4 className="font-medium mb-1">Query History</h4>
-                      <p className="text-sm text-gray-600">The questions you ask and queries we generate. We do NOT store your actual data or query results.</p>
+                      <p className="text-sm text-gray-600">The questions you ask and queries we generate. We do NOT store your actual database data or query results.</p>
                     </div>
                     <div className="bg-white rounded-xl p-4 border border-gray-200">
                       <h4 className="font-medium mb-1">Usage Data</h4>
@@ -93,9 +97,9 @@ export default function PrivacyPage() {
                   </p>
                   <div className="grid md:grid-cols-2 gap-3">
                     {[
-                      { title: "AES-256 Encryption", desc: "All database credentials encrypted" },
-                      { title: "SSL/TLS", desc: "All connections use encryption" },
-                      { title: "No Data Storage", desc: "We never store your actual database data" },
+                      { title: "AES-256 Encryption", desc: "All database credentials and uploaded files encrypted" },
+                      { title: "SSL/TLS", desc: "All connections and file transfers use encryption" },
+                      { title: "Minimal Data Storage", desc: "We never store database data. Uploaded files are encrypted and deletable." },
                     ].map((item) => (
                       <div key={item.title} className="bg-white rounded-xl p-4 border border-gray-200">
                         <h4 className="font-medium mb-1">{item.title}</h4>
@@ -167,8 +171,9 @@ export default function PrivacyPage() {
                   <h2 className="text-xl font-semibold mb-3">Data Retention</h2>
                   <p className="text-gray-600 leading-relaxed">
                     We retain your account information as long as your account is active. Query history is
-                    retained based on your plan (7 days for Free, unlimited for paid plans). Account deletion
-                    is not available to prevent abuse of our free tier.
+                    retained based on your plan (7 days for Free, unlimited for paid plans). Uploaded files are
+                    retained until you delete them or your account is terminated. Account deletion
+                    is available for paid plans (Pro and Enterprise). Free plan accounts cannot be deleted to prevent abuse.
                   </p>
                 </div>
               </div>

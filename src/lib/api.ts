@@ -770,6 +770,12 @@ class ApiClient {
     });
   }
 
+  async deleteAccount(): Promise<ApiResponse<null>> {
+    return this.request<null>('/api/account', {
+      method: 'DELETE',
+    });
+  }
+
   // ========== Subscription endpoints ==========
   async getSubscriptionPlans(): Promise<ApiResponse<SubscriptionPlan[]>> {
     return this.request<SubscriptionPlan[]>('/api/subscriptions/plans');
@@ -796,7 +802,7 @@ class ApiClient {
   async uploadFile(file: File): Promise<FileUploadResponse> {
     // Client-side validation
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-    const ALLOWED_EXTENSIONS = ['.csv', '.xlsx', '.xls', '.json', '.tsv'];
+    const ALLOWED_EXTENSIONS = ['.csv', '.xlsx', '.json', '.tsv', '.docx', '.xml', '.txt'];
     const fileName = file.name.toLowerCase();
     const ext = fileName.substring(fileName.lastIndexOf('.'));
 

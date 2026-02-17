@@ -3225,7 +3225,7 @@ export default function AIPage() {
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileUpload}
-                accept=".xlsx,.xls,.docx,.doc,.csv,.xml,.json,.txt"
+                accept=".xlsx,.docx,.csv,.xml,.json,.txt,.tsv"
                 className="hidden"
               />
               {/* Database select button */}

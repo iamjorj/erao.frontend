@@ -49,6 +49,15 @@ const supportedDatabases = [
   { name: "Snowflake", logo: "/db-logos/snowflake.png" },
 ];
 
+const supportedFiles = [
+  { name: "CSV", logo: "/file-logos/csv.png", scale: "" },
+  { name: "Excel", logo: "/file-logos/excel.png", scale: "" },
+  { name: "JSON", logo: "/file-logos/json.svg", scale: "" },
+  { name: "XML", logo: "/file-logos/xml.svg", scale: "" },
+  { name: "Word", logo: "/file-logos/word.svg", scale: "scale-[1.35]" },
+  { name: "TXT", logo: "/file-logos/txt.png", scale: "" },
+];
+
 function DemoPreview() {
   const [activeTab, setActiveTab] = useState<"bar" | "line" | "pie" | "table">("bar");
 
@@ -286,13 +295,13 @@ export default function LandingPage() {
 
           {/* Main headline */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.1]">
-            Ask your database anything.
+            Ask your data anything.
             <span className="text-gray-400"> In plain English.</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl mx-auto">
-            Connect your database and get instant answers. No SQL required.
+            Connect a database or upload a file and get instant answers. No SQL required.
             Just ask like you&apos;d ask a colleague.
           </p>
 
@@ -335,10 +344,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Supported Databases */}
+      {/* Supported Databases & Files */}
       <section className="w-full border-y border-gray-100 bg-gray-50/50 py-12 sm:py-14">
         <div className="max-w-5xl mx-auto px-6">
-          <p className="text-center text-sm text-gray-500 mb-8">Works with 15+ databases you already use</p>
+          <p className="text-center text-sm text-gray-500 mb-8">Works with 15+ databases and popular file formats</p>
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-6 sm:gap-x-10 sm:gap-y-7">
             {supportedDatabases.map((db) => (
               <div key={db.name} className="flex flex-col items-center gap-2 group">
@@ -346,6 +355,22 @@ export default function LandingPage() {
                   <img src={db.logo} alt={db.name} className="w-full h-full object-contain" />
                 </div>
                 <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-600 transition-colors">{db.name}</span>
+              </div>
+            ))}
+          </div>
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-8">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 font-medium">+ File Uploads</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 sm:gap-x-12 sm:gap-y-7">
+            {supportedFiles.map((file) => (
+              <div key={file.name} className="flex flex-col items-center gap-2 group">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300">
+                  <img src={file.logo} alt={file.name} className={`w-full h-full object-contain ${file.scale}`} />
+                </div>
+                <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-600 transition-colors">{file.name}</span>
               </div>
             ))}
           </div>
@@ -387,7 +412,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Enterprise Security</h3>
             <p className="text-gray-600 text-sm">
-              Your data never leaves your database. All credentials encrypted with AES-256. SSL/TLS connections.
+              Your data stays secure. Database credentials encrypted with AES-256. Files processed and stored with encryption.
             </p>
           </div>
         </div>
@@ -445,10 +470,10 @@ export default function LandingPage() {
             <div className="w-full md:w-1/2 order-1 md:order-2">
               <div className="flex items-center gap-3 mb-3">
                 <span className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">1</span>
-                <h3 className="text-xl font-bold">Connect your database</h3>
+                <h3 className="text-xl font-bold">Connect a database or upload a file</h3>
               </div>
               <p className="text-gray-600 ml-12">
-                Add your connection details — host, port, credentials. We support 15+ databases. Your credentials are encrypted with AES-256.
+                Add your database connection details, or upload a CSV, Excel, JSON, or Word file. We support 15+ databases and 6 file formats. Everything is encrypted.
               </p>
             </div>
           </div>
@@ -670,7 +695,7 @@ export default function LandingPage() {
       <section className="w-full bg-black text-white py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Stop writing SQL. Start getting answers.
+            Stop struggling with data. Start getting answers.
           </h2>
           <p className="text-gray-400 mb-8 text-lg">
             Join 500+ teams who save hours every week with Erao.

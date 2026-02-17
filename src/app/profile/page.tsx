@@ -16,6 +16,9 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState("");
   const [darkMode, setDarkMode] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -269,6 +272,85 @@ export default function ProfilePage() {
             </svg>
             {signingOut ? "Signing out..." : "Sign out"}
           </button>
+        </section>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100 dark:border-[#1a1a1a] mb-8 sm:mb-10" />
+
+        {/* Delete Account */}
+        <section className="mb-8 sm:mb-10">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-2">Delete account</h2>
+          {user?.subscriptionTier === 0 || user?.subscriptionTier === "Starter" ? (
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Account deletion is only available for paid plans to prevent abuse of our free tier.
+              </p>
+              <button
+                onClick={() => router.push("/subscriptions")}
+                className="text-sm text-gray-900 dark:text-white underline underline-offset-2 hover:no-underline transition-colors"
+              >
+                Upgrade your plan
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              {deleteError && (
+                <div className="mb-3 px-3 py-2 bg-gray-50 dark:bg-[#1a1a1a] border-l-2 border-l-red-400 dark:border-l-red-500 text-gray-600 dark:text-gray-300 text-sm rounded-r-lg">
+                  {deleteError}
+                </div>
+              )}
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="h-10 px-5 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                >
+                  Delete my account
+                </button>
+              ) : (
+                <div className="p-4 border border-red-200 dark:border-red-900/50 rounded-lg bg-red-50/50 dark:bg-red-950/10">
+                  <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                    Are you sure? All your databases, conversations, files, and data will be permanently deleted.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={async () => {
+                        setDeleting(true);
+                        setDeleteError("");
+                        try {
+                          const response = await api.deleteAccount();
+                          if (response.success) {
+                            auth.clearTokens();
+                            router.push("/login");
+                          } else {
+                            setDeleteError(response.message || "Failed to delete account");
+                            setShowDeleteConfirm(false);
+                          }
+                        } catch {
+                          setDeleteError("Failed to delete account");
+                          setShowDeleteConfirm(false);
+                        } finally {
+                          setDeleting(false);
+                        }
+                      }}
+                      disabled={deleting}
+                      className="h-9 px-4 bg-red-600 dark:bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 transition-colors"
+                    >
+                      {deleting ? "Deleting..." : "Yes, delete my account"}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="h-9 px-4 border border-gray-200 dark:border-[#262626] text-sm text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Spacer for bottom nav */}

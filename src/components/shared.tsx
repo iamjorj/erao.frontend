@@ -382,7 +382,7 @@ export const Footer = () => (
             <span className="font-semibold text-lg sm:text-xl">Erao</span>
           </Link>
           <p className="text-sm text-gray-500">
-            AI-powered database intelligence.
+            AI-powered data intelligence.
           </p>
         </div>
 

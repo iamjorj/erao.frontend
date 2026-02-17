@@ -6,7 +6,7 @@ import { PageLayout } from "@/components/shared";
 const features = [
   {
     title: "Natural Language Queries",
-    description: "Ask questions in plain English. No SQL knowledge required. Our AI understands context and translates your questions into accurate database queries.",
+    description: "Ask questions in plain English. No SQL knowledge required. Our AI understands context and translates your questions into accurate queries — whether from a database or an uploaded file.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -23,8 +23,8 @@ const features = [
     ),
   },
   {
-    title: "Multi-Database Support",
-    description: "Connect 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, Snowflake, ClickHouse, MariaDB, CockroachDB, and more. Add your connection details and start querying in seconds.",
+    title: "Databases & File Uploads",
+    description: "Connect 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, Snowflake, and more. Or upload CSV, Excel, JSON, XML, Word, and TXT files. Start querying in seconds.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
@@ -42,7 +42,7 @@ const features = [
   },
   {
     title: "Export & Share",
-    description: "Export your results to CSV, Excel, or PDF. Share insights with teammates or stakeholders without giving them database access.",
+    description: "Export your results to CSV, Excel, or PDF. Share insights with teammates or stakeholders easily.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -51,7 +51,7 @@ const features = [
   },
   {
     title: "Enterprise Security",
-    description: "Your data never leaves your database. Credentials encrypted with AES-256. All connections use SSL/TLS encryption.",
+    description: "Database credentials encrypted with AES-256. Uploaded files stored with encryption. All connections use SSL/TLS.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -87,7 +87,7 @@ export default function FeaturesPage() {
           Everything you need to query your data
         </h1>
         <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto">
-          Erao turns your natural language questions into SQL queries, executes them, and presents the results beautifully.
+          Connect a database or upload a file. Ask in plain English. Get instant answers with beautiful visualizations.
         </p>
         <Link
           href="/register"
@@ -123,7 +123,7 @@ export default function FeaturesPage() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Connect</h3>
               <p className="text-sm text-gray-600">
-                Add your database connection details. We support 15+ databases including PostgreSQL, MySQL, MongoDB, Oracle, and more.
+                Add your database connection details or upload a file (CSV, Excel, JSON, Word, and more). We support 15+ databases.
               </p>
             </div>
             <div className="text-center">

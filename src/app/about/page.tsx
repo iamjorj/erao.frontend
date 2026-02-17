@@ -32,7 +32,7 @@ export default function AboutPage() {
             We&apos;re making data accessible to everyone
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed">
-            Erao was born from a simple frustration: why do you need to know SQL to ask your own database a question? We&apos;re building a world where anyone—not just engineers—can get instant insights from their data.
+            Erao was born from a simple frustration: why do you need to know SQL to ask your own database a question? And why can&apos;t you just upload a spreadsheet and start asking? We&apos;re building a world where anyone—not just engineers—can get instant insights from their data.
           </p>
         </div>
       </section>
@@ -58,7 +58,7 @@ export default function AboutPage() {
               Every day, thousands of business decisions are delayed because someone needs to ask a developer to write a SQL query. Product managers wait for usage stats. Sales teams wait for pipeline reports. Support teams wait for customer history.
             </p>
             <p>
-              We started Erao to fix this. By combining modern AI with a deep understanding of databases, we&apos;ve built a tool that lets anyone—regardless of technical background—have a conversation with their data.
+              We started Erao to fix this. By combining modern AI with a deep understanding of databases and file formats, we&apos;ve built a tool that lets anyone—regardless of technical background—connect a database or upload a file and have a conversation with their data.
             </p>
             <p>
               Today, teams use Erao to get instant answers to questions that used to take hours or days. And we&apos;re just getting started.

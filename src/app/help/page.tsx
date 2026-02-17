@@ -15,12 +15,13 @@ const categories = [
     articles: [
       { title: "Quick Start Guide", slug: "quick-start" },
       { title: "Connecting Your First Database", slug: "connect-database" },
+      { title: "Uploading Your First File", slug: "upload-file" },
       { title: "Running Your First Query", slug: "first-query" },
       { title: "Understanding Query Results", slug: "query-results" },
     ],
   },
   {
-    title: "Database Connections",
+    title: "Databases & Files",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
@@ -30,6 +31,7 @@ const categories = [
       { title: "Connecting PostgreSQL", slug: "connect-postgresql" },
       { title: "Connecting MySQL", slug: "connect-mysql" },
       { title: "Connecting MongoDB", slug: "connect-mongodb" },
+      { title: "Uploading Files (CSV, Excel, JSON)", slug: "upload-file" },
       { title: "Connection Troubleshooting", slug: "connection-troubleshooting" },
     ],
   },

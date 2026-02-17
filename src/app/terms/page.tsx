@@ -43,9 +43,9 @@ export default function TermsPage() {
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Description of Service</h2>
                   <p className="text-gray-600 leading-relaxed mb-4">
-                    Erao is a software-as-a-service platform that enables users to query databases using natural language.
-                    Our Service translates your questions into database queries, executes them securely, and presents
-                    the results in an accessible format.
+                    Erao is a software-as-a-service platform that enables users to query databases and uploaded files using natural language.
+                    Our Service translates your questions into queries, executes them securely against your connected database or uploaded file, and presents
+                    the results in an accessible format including tables, charts, and summaries.
                   </p>
                   <div className="bg-white rounded-xl p-4 border border-gray-200">
                     <p className="text-sm text-gray-500">
@@ -129,11 +129,12 @@ export default function TermsPage() {
               <div className="flex items-start gap-3 sm:gap-4">
                 <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">5</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Database Connections</h2>
+                  <h2 className="text-xl font-semibold mb-3">Database Connections & File Uploads</h2>
                   <p className="text-gray-600 leading-relaxed">
                     You are solely responsible for ensuring you have proper authorization to connect to and query
-                    any databases you use with our Service. Erao is not responsible for any unauthorized access
-                    to third-party databases. You must ensure that your use of the Service complies with any
+                    any databases you use with our Service. You are also responsible for ensuring you have the right
+                    to upload and analyze any files through our Service. Erao is not responsible for any unauthorized access
+                    to third-party databases or misuse of uploaded data. You must ensure that your use of the Service complies with any
                     applicable data protection laws and regulations.
                   </p>
                 </div>

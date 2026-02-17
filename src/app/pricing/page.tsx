@@ -58,11 +58,11 @@ const plans = [
 const faqs = [
   {
     question: "Can I try Erao for free?",
-    answer: "Yes! Our Free plan lets you connect 1 database and run 25 queries per month at no cost. No credit card required to get started.",
+    answer: "Yes! Our Free plan lets you connect 1 database, upload files, and run 25 queries per month at no cost. No credit card required to get started.",
   },
   {
     question: "Can I delete my account?",
-    answer: "No, accounts cannot be deleted. This policy prevents abuse of our free tier. If you have concerns about your data, please contact us.",
+    answer: "Account deletion is available for paid plans (Pro and Enterprise). Free plan accounts cannot be deleted to prevent abuse of our free tier. Upgrade to a paid plan to gain access to account deletion.",
   },
   {
     question: "What happens when I hit my query limit?",
@@ -73,12 +73,12 @@ const faqs = [
     answer: "Absolutely. You can upgrade or downgrade your plan at any time. When upgrading, you'll get immediate access to new features. When downgrading, the change takes effect at your next billing cycle.",
   },
   {
-    question: "What databases do you support?",
-    answer: "We currently support PostgreSQL, MySQL, and MongoDB. More database types are on our roadmap, including SQL Server, Oracle, and Snowflake.",
+    question: "What databases and file types do you support?",
+    answer: "We support 15+ databases including PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Snowflake, ClickHouse, and more. You can also upload CSV, Excel, JSON, XML, Word, and TXT files for instant analysis.",
   },
   {
     question: "Is my data secure?",
-    answer: "Yes. We never store your actual data—only the queries you run. All database credentials are encrypted with AES-256, and connections use SSL/TLS.",
+    answer: "Yes. We never store your actual database data—only the queries you run. All database credentials are encrypted with AES-256, connections use SSL/TLS, and uploaded files are stored with encryption.",
   },
   {
     question: "Do you offer refunds?",
