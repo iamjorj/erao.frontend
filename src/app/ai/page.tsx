@@ -784,6 +784,9 @@ export default function AIPage() {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState("");
+  const [uploadPhase, setUploadPhase] = useState<"uploading" | "processing">("uploading");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Chat input state
@@ -1272,10 +1275,16 @@ export default function AIPage() {
     if (!file) return;
 
     setIsUploadingFile(true);
+    setUploadProgress(0);
+    setUploadingFileName(file.name);
+    setUploadPhase("uploading");
     setError(null);
 
     try {
-      const response = await api.uploadFile(file);
+      const response = await api.uploadFile(file, (percent) => {
+        setUploadProgress(percent);
+        if (percent >= 100) setUploadPhase("processing");
+      });
       if (response.success && response.file) {
         setFiles((prev) => [response.file!, ...prev]);
         setSelectedFileId(response.file.id);
@@ -1294,6 +1303,8 @@ export default function AIPage() {
       }
     } finally {
       setIsUploadingFile(false);
+      setUploadProgress(0);
+      setUploadingFileName("");
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -2290,13 +2301,6 @@ export default function AIPage() {
                 {selectedConversation?.title || "New Chat"}
               </h1>
             </div>
-            {/* Upload indicator */}
-            {isUploadingFile && (
-              <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                <div className="w-3 h-3 border-2 border-gray-300 dark:border-[#262626] border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin" />
-                Uploading...
-              </div>
-            )}
           </div>
         </header>
 
@@ -3280,6 +3284,43 @@ export default function AIPage() {
             </form>
           </div>
         </div>
+        {/* Upload progress overlay */}
+        {isUploadingFile && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 w-80">
+            <div className="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#262626] rounded-xl shadow-lg px-4 py-3">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#262626] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {uploadingFileName}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {uploadPhase === "uploading" ? "Uploading..." : "Processing file..."}
+                  </p>
+                </div>
+                {uploadPhase === "uploading" && (
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums">
+                    {uploadProgress}%
+                  </span>
+                )}
+              </div>
+              <div className="h-1.5 bg-gray-100 dark:bg-[#262626] rounded-full overflow-hidden">
+                {uploadPhase === "uploading" ? (
+                  <div
+                    className="h-full bg-gray-900 dark:bg-white rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                ) : (
+                  <div className="h-full w-1/3 bg-gray-900 dark:bg-white rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Database Selection Modal */}

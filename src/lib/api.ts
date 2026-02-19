@@ -807,7 +807,7 @@ class ApiClient {
   }
 
   // ========== File endpoints ==========
-  async uploadFile(file: File): Promise<FileUploadResponse> {
+  async uploadFile(file: File, onProgress?: (percent: number) => void): Promise<FileUploadResponse> {
     // Client-side validation
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
     const ALLOWED_EXTENSIONS = ['.csv', '.xlsx', '.json', '.tsv', '.docx', '.xml', '.txt'];
@@ -821,30 +821,37 @@ class ApiClient {
       throw new ApiError(`Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`, 400, null);
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const headers: Record<string, string> = {};
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    }
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
 
-    const response = await fetch(`${this.baseUrl}/api/files/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(data);
+          } else {
+            reject(new ApiError(data.message || 'Failed to upload file', xhr.status, data));
+          }
+        } catch {
+          reject(new ApiError('Invalid server response', xhr.status, null));
+        }
+      };
+
+      xhr.onerror = () => reject(new ApiError('Network error during upload', 0, null));
+
+      xhr.open('POST', `${this.baseUrl}/api/files/upload`);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.send(formData);
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new ApiError(data.message || 'Failed to upload file', response.status, data);
-    }
-
-    return data;
   }
 
   async getFiles(): Promise<ApiResponse<FileListResponse>> {

@@ -265,6 +265,11 @@ body {
   50% { opacity: 0.3; }
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
 /* Range slider styling */
 input[type="range"].chart-slider {
   -webkit-appearance: none;
