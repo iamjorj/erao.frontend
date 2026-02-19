@@ -497,6 +497,8 @@ export interface VisualizationRecommendation {
 
 class ApiClient {
   private baseUrl: string;
+  private refreshing = false;
+  private refreshPromise: Promise<boolean> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -529,7 +531,13 @@ class ApiClient {
 
     // Handle 401 - try to refresh token (skip for auth endpoints)
     if (response.status === 401 && !skipAuthRefresh) {
-      const refreshed = await this.tryRefreshToken();
+      // Deduplicate concurrent refresh calls
+      if (!this.refreshing) {
+        this.refreshing = true;
+        this.refreshPromise = this.tryRefreshToken().finally(() => { this.refreshing = false; });
+      }
+
+      const refreshed = await this.refreshPromise;
       if (refreshed) {
         // Retry the request with new token
         const newToken = localStorage.getItem('accessToken');
