@@ -78,7 +78,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'What is the average order value?',
       'How many orders are pending fulfillment?',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     id: 'quickbooks',
@@ -88,8 +88,8 @@ export const connectorDefinitions: ConnectorDefinition[] = [
     color: '#2CA01C',
     connectorTypeIndex: 3,
     credentialFields: [
-      { key: 'clientId', label: 'Client ID', type: 'text', placeholder: 'Your OAuth Client ID' },
-      { key: 'clientSecret', label: 'Client Secret', type: 'password', placeholder: 'Your OAuth Client Secret' },
+      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'eyJ0eXAi...' },
+      { key: 'realmId', label: 'Realm ID (Company ID)', type: 'text', placeholder: '123456789' },
     ],
     suggestedQueries: [
       'What is my net income this quarter?',
@@ -98,7 +98,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'Compare revenue vs expenses by month',
       'Which customers owe the most?',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     id: 'hubspot',
@@ -108,7 +108,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
     color: '#FF7A59',
     connectorTypeIndex: 4,
     credentialFields: [
-      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'pat-xxxxxxxxxxxxx' },
+      { key: 'privateAppToken', label: 'Private App Token', type: 'password', placeholder: 'pat-na1-xxxxxxxxxxxxx' },
     ],
     suggestedQueries: [
       'How many deals are in each pipeline stage?',
@@ -117,7 +117,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'Which companies have the most open tickets?',
       'What is my average deal close time?',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     id: 'salesforce',
@@ -127,8 +127,8 @@ export const connectorDefinitions: ConnectorDefinition[] = [
     color: '#00A1E0',
     connectorTypeIndex: 5,
     credentialFields: [
-      { key: 'clientId', label: 'Client ID', type: 'text', placeholder: 'Your Connected App Client ID' },
-      { key: 'clientSecret', label: 'Client Secret', type: 'password', placeholder: 'Your Connected App Secret' },
+      { key: 'instanceUrl', label: 'Instance URL', type: 'url', placeholder: 'https://mycompany.salesforce.com' },
+      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: '00D...' },
     ],
     suggestedQueries: [
       'What is my pipeline value by stage?',
@@ -137,7 +137,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'Which accounts have the most open cases?',
       'What are my top opportunities by amount?',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     id: 'google-analytics',
@@ -147,8 +147,8 @@ export const connectorDefinitions: ConnectorDefinition[] = [
     color: '#F9AB00',
     connectorTypeIndex: 6,
     credentialFields: [
-      { key: 'clientId', label: 'Client ID', type: 'text', placeholder: 'Your OAuth Client ID' },
-      { key: 'clientSecret', label: 'Client Secret', type: 'password', placeholder: 'Your OAuth Client Secret' },
+      { key: 'propertyId', label: 'Property ID', type: 'text', placeholder: '123456789' },
+      { key: 'serviceAccountJson', label: 'Service Account JSON', type: 'password', placeholder: 'Paste the full JSON key file content' },
     ],
     suggestedQueries: [
       'What are my top traffic sources?',
@@ -157,7 +157,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'Which pages have the highest conversion rate?',
       'Compare organic vs paid traffic',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     id: 'notion',
@@ -167,7 +167,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
     color: '#000000',
     connectorTypeIndex: 7,
     credentialFields: [
-      { key: 'apiKey', label: 'Integration Token', type: 'password', placeholder: 'secret_xxxxxxxxxxxxx' },
+      { key: 'integrationToken', label: 'Integration Token', type: 'password', placeholder: 'secret_xxxxxxxxxxxxx' },
     ],
     suggestedQueries: [
       'How many pages are in each database?',
@@ -175,7 +175,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'Which databases have the most properties?',
       'List all archived pages',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     id: 'airtable',
@@ -185,7 +185,8 @@ export const connectorDefinitions: ConnectorDefinition[] = [
     color: '#18BFFF',
     connectorTypeIndex: 8,
     credentialFields: [
-      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'patxxxxxxxxxxxxx' },
+      { key: 'personalAccessToken', label: 'Personal Access Token', type: 'password', placeholder: 'patxxxxxxxxxxxxx' },
+      { key: 'baseId', label: 'Base ID', type: 'text', placeholder: 'appXXXXXXXXXXXXXX' },
     ],
     suggestedQueries: [
       'How many records are in each table?',
@@ -193,7 +194,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'Show me record counts by base',
       'List all tables with their field counts',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     id: 'google-sheets',
@@ -203,8 +204,8 @@ export const connectorDefinitions: ConnectorDefinition[] = [
     color: '#34A853',
     connectorTypeIndex: 9,
     credentialFields: [
-      { key: 'clientId', label: 'Client ID', type: 'text', placeholder: 'Your OAuth Client ID' },
-      { key: 'clientSecret', label: 'Client Secret', type: 'password', placeholder: 'Your OAuth Client Secret' },
+      { key: 'spreadsheetId', label: 'Spreadsheet ID', type: 'text', placeholder: '1BxiMVs0XRA...' },
+      { key: 'serviceAccountJson', label: 'Service Account JSON', type: 'password', placeholder: 'Paste the full JSON key file content' },
     ],
     suggestedQueries: [
       'Show me all sheets and their row counts',
@@ -212,7 +213,7 @@ export const connectorDefinitions: ConnectorDefinition[] = [
       'Which sheets have the most data?',
       'List all spreadsheet tabs',
     ],
-    status: 'coming_soon',
+    status: 'available',
   },
 ];
 
@@ -264,38 +265,45 @@ const credentialValidationRules: Record<string, Record<string, ValidationRule>> 
     },
   },
   quickbooks: {
-    clientId: { minLength: 10, message: 'Client ID seems too short' },
-    clientSecret: { minLength: 10, message: 'Client Secret seems too short' },
+    accessToken: { minLength: 10, message: 'Access token seems too short' },
+    realmId: { pattern: /^\d{5,}$/, message: 'Realm ID should be a numeric company ID' },
   },
   hubspot: {
-    apiKey: {
+    privateAppToken: {
       pattern: /^pat-(na1|eu1)-[a-fA-F0-9-]{10,}/,
       message: 'HubSpot token should start with pat-na1- or pat-eu1-',
     },
   },
   salesforce: {
-    clientId: { minLength: 10, message: 'Client ID seems too short' },
-    clientSecret: { minLength: 10, message: 'Client Secret seems too short' },
+    instanceUrl: {
+      pattern: /^https?:\/\/.+\.salesforce\.com/,
+      message: 'Instance URL should be like https://mycompany.salesforce.com',
+    },
+    accessToken: { minLength: 10, message: 'Access token seems too short' },
   },
   'google-analytics': {
-    clientId: { minLength: 10, message: 'Client ID seems too short' },
-    clientSecret: { minLength: 10, message: 'Client Secret seems too short' },
+    propertyId: { pattern: /^\d{5,}$/, message: 'Property ID should be a numeric GA4 property ID' },
+    serviceAccountJson: { minLength: 50, message: 'Service account JSON seems too short — paste the full key file content' },
   },
   notion: {
-    apiKey: {
+    integrationToken: {
       pattern: /^(secret_|ntn_)[a-zA-Z0-9]{10,}/,
       message: 'Notion token should start with secret_ or ntn_',
     },
   },
   airtable: {
-    apiKey: {
+    personalAccessToken: {
       pattern: /^pat[a-zA-Z0-9.]{10,}/,
       message: 'Airtable token should start with pat',
     },
+    baseId: {
+      pattern: /^app[a-zA-Z0-9]{10,}/,
+      message: 'Base ID should start with app',
+    },
   },
   'google-sheets': {
-    clientId: { minLength: 10, message: 'Client ID seems too short' },
-    clientSecret: { minLength: 10, message: 'Client Secret seems too short' },
+    spreadsheetId: { minLength: 10, message: 'Spreadsheet ID seems too short — find it in the URL between /d/ and /edit' },
+    serviceAccountJson: { minLength: 50, message: 'Service account JSON seems too short — paste the full key file content' },
   },
 };
 
