@@ -294,6 +294,10 @@ export interface AppConnector {
   lastSyncedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  syncStatus: number; // 0=Idle, 1=Syncing, 2=Completed, 3=Failed
+  syncErrorMessage: string | null;
+  hasSyncedData: boolean;
+  tableRowCounts: Record<string, number> | null;
 }
 
 export interface ConnectorMetadata {
@@ -944,10 +948,23 @@ class ApiClient {
     return this.request<AppConnector>(`/api/connectors/${id}`);
   }
 
+  async testConnector(payload: CreateAppConnectorPayload): Promise<ApiResponse<{ success: boolean; message: string; accountName?: string }>> {
+    return this.request<{ success: boolean; message: string; accountName?: string }>('/api/connectors/test', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async createConnector(payload: CreateAppConnectorPayload): Promise<ApiResponse<AppConnector>> {
     return this.request<AppConnector>('/api/connectors', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  }
+
+  async syncConnector(id: string): Promise<ApiResponse<AppConnector>> {
+    return this.request<AppConnector>(`/api/connectors/${id}/sync`, {
+      method: 'POST',
     });
   }
 

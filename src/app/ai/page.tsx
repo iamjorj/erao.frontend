@@ -1842,13 +1842,17 @@ export default function AIPage() {
 
   const handleDeleteConnector = async (connectorId: string) => {
     try {
-      await api.deleteConnector(connectorId);
-      setConnectors((prev) => prev.filter((c) => c.id !== connectorId));
-      if (selectedConnectorId === connectorId) {
-        setSelectedConnectorId(null);
+      const response = await api.deleteConnector(connectorId);
+      if (response.success) {
+        setConnectors((prev) => prev.filter((c) => c.id !== connectorId));
+        if (selectedConnectorId === connectorId) {
+          setSelectedConnectorId(null);
+        }
+      } else {
+        console.error("Delete connector failed:", response.message);
       }
     } catch (err) {
-      devError("Failed to delete connector:", err);
+      console.error("Failed to delete connector:", err);
     }
     setDeleteConfirm(null);
   };
@@ -3471,7 +3475,22 @@ export default function AIPage() {
             setShowConnectorSetup(connectorDefId);
           }}
           onDelete={async (id, name) => {
+            setShowConnectorModal(false);
             setDeleteConfirm({ type: 'connector', id, name });
+          }}
+          onSync={async (id) => {
+            // Optimistically set syncing status
+            setConnectors((prev) => prev.map((c) => c.id === id ? { ...c, syncStatus: 1, syncErrorMessage: null } : c));
+            try {
+              const response = await api.syncConnector(id);
+              if (response.success) {
+                setConnectors((prev) => prev.map((c) => c.id === id ? { ...response.data } : c));
+              } else {
+                setConnectors((prev) => prev.map((c) => c.id === id ? { ...c, syncStatus: 3, syncErrorMessage: response.message || 'Sync failed' } : c));
+              }
+            } catch {
+              setConnectors((prev) => prev.map((c) => c.id === id ? { ...c, syncStatus: 3, syncErrorMessage: 'Sync failed' } : c));
+            }
           }}
         />
       )}
@@ -3491,6 +3510,9 @@ export default function AIPage() {
               setMessages([]);
             }
             setShowConnectorSetup(null);
+          }}
+          onSyncUpdate={(updatedConnector) => {
+            setConnectors((prev) => prev.map((c) => c.id === updatedConnector.id ? updatedConnector : c));
           }}
         />
       )}
@@ -3770,6 +3792,7 @@ function ConnectorModal({
   onClose,
   onAddNew,
   onDelete,
+  onSync,
 }: {
   connectors: AppConnectorDto[];
   selectedConnectorId: string | null;
@@ -3777,6 +3800,7 @@ function ConnectorModal({
   onClose: () => void;
   onAddNew: (connectorDefId: string) => void;
   onDelete: (id: string, name: string) => void;
+  onSync: (id: string) => void;
 }) {
   const [showPicker, setShowPicker] = useState(connectors.length === 0);
 
@@ -3822,17 +3846,53 @@ function ConnectorModal({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{connector.name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{def?.category || 'App'}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{def?.category || 'App'}</span>
+                        {connector.syncStatus === 1 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-full">
+                            <svg className="w-2.5 h-2.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                            Syncing
+                          </span>
+                        )}
+                        {connector.syncStatus === 2 && (
+                          <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full">
+                            Synced
+                          </span>
+                        )}
+                        {connector.syncStatus === 3 && (
+                          <span className="text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-full">
+                            Failed
+                          </span>
+                        )}
+                      </div>
+                      {connector.tableRowCounts && Object.keys(connector.tableRowCounts).length > 0 && (
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                          {Object.entries(connector.tableRowCounts).map(([t, c]) => `${t}: ${c.toLocaleString()}`).join(' / ')}
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDelete(connector.id, connector.name); }}
-                      className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
-                      title="Delete"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {(connector.syncStatus === 0 || connector.syncStatus === 2 || connector.syncStatus === 3) && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onSync(connector.id); }}
+                          className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                          title={connector.syncStatus === 2 ? "Re-sync" : "Sync Data"}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(connector.id, connector.name); }}
+                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                        title="Delete"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -3905,16 +3965,21 @@ function ConnectorSetupModal({
   connectorDefId,
   onClose,
   onSuccess,
+  onSyncUpdate,
 }: {
   connectorDefId: string;
   onClose: () => void;
   onSuccess: (connector: AppConnectorDto) => void;
+  onSyncUpdate?: (connector: AppConnectorDto) => void;
 }) {
   const def = connectorDefinitions.find(c => c.id === connectorDefId);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [name, setName] = useState(def?.name || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<'idle' | 'testing' | 'saving' | 'syncing' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [testMessage, setTestMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   if (!def) return null;
 
@@ -3922,31 +3987,71 @@ function ConnectorSetupModal({
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setTestMessage(null);
+    setFieldErrors({});
 
-    // Validate all required fields
-    for (const field of def.credentialFields) {
-      if (!formData[field.key]?.trim()) {
-        setError(`${field.label} is required`);
+    // Validate all fields (required + format)
+    const { validateAllCredentials, validateCredentialField } = await import('@/lib/connectors');
+    const validationError = validateAllCredentials(def.id, def.credentialFields, formData);
+    if (validationError) {
+      setError(validationError);
+      const errors: Record<string, string> = {};
+      for (const field of def.credentialFields) {
+        const val = formData[field.key]?.trim();
+        if (!val) { errors[field.key] = 'Required'; continue; }
+        const err = validateCredentialField(def.id, field.key, val);
+        if (err) errors[field.key] = err;
+      }
+      setFieldErrors(errors);
+      setIsLoading(false);
+      return;
+    }
+
+    const payload = {
+      name: name.trim() || def.name,
+      connectorType: def.connectorTypeIndex,
+      credentials: formData,
+    };
+
+    try {
+      // Step 1: Test connection
+      setStep('testing');
+      const testResponse = await api.testConnector(payload);
+      if (!testResponse.success) {
+        setError(testResponse.message || 'Connection test failed');
+        setStep('idle');
         setIsLoading(false);
         return;
       }
-    }
+      setTestMessage(testResponse.data?.accountName
+        ? `Connected to ${testResponse.data.accountName}`
+        : testResponse.message || 'Connection successful');
 
-    try {
-      const response = await api.createConnector({
-        name: name.trim() || def.name,
-        connectorType: def.connectorTypeIndex,
-        credentials: formData,
-      });
-      if (response.success) {
-        onSuccess(response.data);
+      // Step 2: Save connector
+      setStep('saving');
+      const createResponse = await api.createConnector(payload);
+      if (createResponse.success) {
+        // Step 3: Auto-trigger sync in background
+        setStep('syncing');
+        api.syncConnector(createResponse.data.id).then((syncResponse) => {
+          if (syncResponse.success && onSyncUpdate) {
+            onSyncUpdate(syncResponse.data);
+          }
+        }).catch(() => {
+          // Sync failure is non-blocking — connector is already created
+        });
+        // Don't wait for sync to complete — return to chat immediately
+        setStep('done');
+        setTimeout(() => onSuccess({ ...createResponse.data, syncStatus: 1 }), 500);
       } else {
-        setError(response.message || 'Failed to create connector');
+        setError(createResponse.message || 'Failed to save connector');
+        setStep('idle');
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create connector');
+      setError(err instanceof ApiError ? err.message : 'Connection failed. Check your credentials.');
+      setStep('idle');
     } finally {
-      setIsLoading(false);
+      if (step !== 'done') setIsLoading(false);
     }
   };
 
@@ -3990,13 +4095,53 @@ function ConnectorSetupModal({
               <input
                 type={field.type === 'password' ? 'password' : 'text'}
                 value={formData[field.key] || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, [field.key]: e.target.value }));
+                  if (fieldErrors[field.key]) setFieldErrors(prev => { const n = { ...prev }; delete n[field.key]; return n; });
+                }}
                 placeholder={field.placeholder}
-                className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0e0e0e] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors font-mono"
+                className={`w-full h-10 px-3 rounded-lg border ${fieldErrors[field.key] ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-[#2a2a2a]'} bg-white dark:bg-[#0e0e0e] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors font-mono`}
                 autoComplete="off"
               />
+              {fieldErrors[field.key] && (
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1">{fieldErrors[field.key]}</p>
+              )}
             </div>
           ))}
+
+          {/* Status indicators */}
+          {step !== 'idle' && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                {step === 'testing' ? (
+                  <svg className="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                ) : testMessage ? (
+                  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                ) : null}
+                <span className={step === 'testing' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}>
+                  {step === 'testing' ? `Testing ${def.name} connection...` : testMessage}
+                </span>
+              </div>
+              {(step === 'saving' || step === 'syncing' || step === 'done') && (
+                <div className="flex items-center gap-2 text-sm">
+                  {step === 'saving' ? (
+                    <svg className="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  ) : (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  )}
+                  <span className={step === 'saving' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}>
+                    {step === 'saving' ? 'Saving connector...' : 'Connector saved!'}
+                  </span>
+                </div>
+              )}
+              {(step === 'syncing' || step === 'done') && (
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  <span className="text-blue-600 dark:text-blue-400">Syncing data in background...</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -4007,7 +4152,7 @@ function ConnectorSetupModal({
             disabled={isLoading}
             className="w-full h-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Connecting..." : "Connect"}
+            {step === 'testing' ? 'Testing connection...' : step === 'saving' ? 'Saving...' : step === 'syncing' || step === 'done' ? 'Connected!' : 'Connect'}
           </button>
         </form>
       </div>
