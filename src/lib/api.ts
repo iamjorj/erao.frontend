@@ -193,6 +193,8 @@ export interface Conversation {
   databaseConnectionName: string | null;
   fileDocumentId: string | null;
   fileDocumentName: string | null;
+  appConnectorId: string | null;
+  appConnectorName: string | null;
   createdAt: string;
   updatedAt: string;
   lastMessageAt: string | null;
@@ -206,6 +208,7 @@ export interface CreateConversationPayload {
   title?: string;
   databaseConnectionId?: string;
   fileDocumentId?: string;
+  appConnectorId?: string;
 }
 
 export interface UpdateConversationPayload {
@@ -280,6 +283,53 @@ export interface ChatResponse {
   tokensUsed: number;
   visualizationHint?: VisualizationHint;
   clarification?: ClarificationRequest;
+}
+
+// App Connector types
+export interface AppConnector {
+  id: string;
+  name: string;
+  connectorType: number;
+  isActive: boolean;
+  lastSyncedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConnectorMetadata {
+  connectorType: number;
+  name: string;
+  category: string;
+  description: string;
+  iconSlug: string;
+  isAvailable: boolean;
+  credentialFields: CredentialFieldDefinition[];
+  dataTables: string[];
+}
+
+export interface CredentialFieldDefinition {
+  key: string;
+  label: string;
+  type: string; // text | password | url
+  placeholder: string;
+  required: boolean;
+  helpText: string | null;
+}
+
+export interface CreateAppConnectorPayload {
+  name: string;
+  connectorType: number;
+  credentials: Record<string, string>;
+}
+
+// ConnectorType helpers
+const CONNECTOR_TYPE_MAP: Record<number, string> = {
+  0: 'Shopify', 1: 'Stripe', 2: 'WooCommerce', 3: 'QuickBooks Online',
+  4: 'HubSpot', 5: 'Salesforce', 6: 'Google Analytics', 7: 'Notion',
+  8: 'Airtable', 9: 'Google Sheets'
+};
+export function getConnectorTypeName(type: number): string {
+  return CONNECTOR_TYPE_MAP[type] || 'Unknown';
 }
 
 // Usage types
@@ -494,6 +544,10 @@ export interface VisualizationRecommendation {
   shouldAggregate: boolean;
   suggestedTitle: string | null;
 }
+
+// Legacy alias — use AppConnector instead
+export type AppConnectorDto = AppConnector;
+export type CreateConnectorPayload = CreateAppConnectorPayload;
 
 class ApiClient {
   private baseUrl: string;
@@ -872,6 +926,33 @@ class ApiClient {
 
   async deleteFile(fileId: string): Promise<ApiResponse<null>> {
     return this.request<null>(`/api/files/${fileId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ========== Connector endpoints ==========
+
+  async getConnectorMetadata(): Promise<ApiResponse<ConnectorMetadata[]>> {
+    return this.request<ConnectorMetadata[]>('/api/connectors/metadata', {}, true);
+  }
+
+  async getConnectors(): Promise<ApiResponse<AppConnector[]>> {
+    return this.request<AppConnector[]>('/api/connectors');
+  }
+
+  async getConnector(id: string): Promise<ApiResponse<AppConnector>> {
+    return this.request<AppConnector>(`/api/connectors/${id}`);
+  }
+
+  async createConnector(payload: CreateAppConnectorPayload): Promise<ApiResponse<AppConnector>> {
+    return this.request<AppConnector>('/api/connectors', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteConnector(id: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/api/connectors/${id}`, {
       method: 'DELETE',
     });
   }

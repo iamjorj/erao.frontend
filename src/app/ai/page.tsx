@@ -32,7 +32,9 @@ import {
   isProcessing,
   getTierName,
   ClarificationRequest,
+  AppConnectorDto,
 } from "@/lib/api";
+import { connectorDefinitions, getConnectorByTypeIndex } from "@/lib/connectors";
 import { DataChart, ChartType, detectChartType, ChartSettings, defaultChartSettings, ChartManipulation, AggregationType, getDefaultAggregationForColumn } from "@/components/DataChart";
 import { DataViewerModal } from "@/components/DataViewerModal";
 import { MarkdownResponse } from "@/components/MarkdownResponse";
@@ -789,6 +791,12 @@ export default function AIPage() {
   const [uploadPhase, setUploadPhase] = useState<"uploading" | "processing">("uploading");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Connector state
+  const [connectors, setConnectors] = useState<import("@/lib/api").AppConnectorDto[]>([]);
+  const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
+  const [showConnectorModal, setShowConnectorModal] = useState(false);
+  const [showConnectorSetup, setShowConnectorSetup] = useState<string | null>(null);
+
   // Chat input state
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -832,7 +840,7 @@ export default function AIPage() {
 
   // Delete confirmation modal state
   const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: 'conversation' | 'database';
+    type: 'conversation' | 'database' | 'connector';
     id: string;
     name: string;
   } | null>(null);
@@ -1167,6 +1175,7 @@ export default function AIPage() {
     loadConversations();
     loadDatabases();
     loadFiles();
+    loadConnectors();
   }, [router]);
 
   // Refresh conversations list only - no auto-selection logic
@@ -1204,12 +1213,18 @@ export default function AIPage() {
             const convResponse = await api.getConversation(savedId);
             if (convResponse.success) {
               setMessages(convResponse.data.messages);
-              if (convResponse.data.databaseConnectionId) {
+              if (convResponse.data.appConnectorId) {
+                setSelectedConnectorId(convResponse.data.appConnectorId);
+                setSelectedDatabaseId(null);
+                setSelectedFileId(null);
+              } else if (convResponse.data.databaseConnectionId) {
                 setSelectedDatabaseId(convResponse.data.databaseConnectionId);
                 setSelectedFileId(null);
+                setSelectedConnectorId(null);
               } else if (convResponse.data.fileDocumentId) {
                 setSelectedFileId(convResponse.data.fileDocumentId);
                 setSelectedDatabaseId(null);
+                setSelectedConnectorId(null);
               }
             }
           } catch {
@@ -1267,6 +1282,17 @@ export default function AIPage() {
       }
     } catch (err) {
       devError("Failed to load files:", err);
+    }
+  };
+
+  const loadConnectors = async () => {
+    try {
+      const response = await api.getConnectors();
+      if (response.success) {
+        setConnectors(response.data);
+      }
+    } catch (err) {
+      devError("Failed to load connectors:", err);
     }
   };
 
@@ -1382,13 +1408,19 @@ export default function AIPage() {
       const response = await api.getConversation(conversationId);
       if (response.success) {
         setMessages(response.data.messages);
-        // Set the appropriate data source (database or file)
-        if (response.data.databaseConnectionId) {
+        // Set the appropriate data source (database, file, or connector)
+        if (response.data.appConnectorId) {
+          setSelectedConnectorId(response.data.appConnectorId);
+          setSelectedDatabaseId(null);
+          setSelectedFileId(null);
+        } else if (response.data.databaseConnectionId) {
           setSelectedDatabaseId(response.data.databaseConnectionId);
           setSelectedFileId(null);
+          setSelectedConnectorId(null);
         } else if (response.data.fileDocumentId) {
           setSelectedFileId(response.data.fileDocumentId);
           setSelectedDatabaseId(null);
+          setSelectedConnectorId(null);
         }
       }
     } catch (err) {
@@ -1400,8 +1432,8 @@ export default function AIPage() {
   }, []);
 
   const createNewConversation = async () => {
-    // Need either a database or file selected
-    if (!selectedDatabaseId && !selectedFileId) {
+    // Need either a database, file, or connector selected
+    if (!selectedDatabaseId && !selectedFileId && !selectedConnectorId) {
       setShowDatabaseModal(true);
       return;
     }
@@ -1440,8 +1472,8 @@ export default function AIPage() {
     setIsSending(true);
     setError(null);
 
-    // Need either a database or file selected
-    if (!selectedDatabaseId && !selectedFileId) {
+    // Need either a database, file, or connector selected
+    if (!selectedDatabaseId && !selectedFileId && !selectedConnectorId) {
       setShowDatabaseModal(true);
       setIsSending(false);
       setInputValue(messageContent);
@@ -1467,6 +1499,7 @@ export default function AIPage() {
         const convResponse = await api.createConversation({
           databaseConnectionId: selectedDatabaseId || undefined,
           fileDocumentId: selectedFileId || undefined,
+          appConnectorId: selectedConnectorId || undefined,
         });
         if (convResponse.success) {
           conversationId = convResponse.data.id;
@@ -1807,11 +1840,26 @@ export default function AIPage() {
     setDeleteConfirm(null);
   };
 
+  const handleDeleteConnector = async (connectorId: string) => {
+    try {
+      await api.deleteConnector(connectorId);
+      setConnectors((prev) => prev.filter((c) => c.id !== connectorId));
+      if (selectedConnectorId === connectorId) {
+        setSelectedConnectorId(null);
+      }
+    } catch (err) {
+      devError("Failed to delete connector:", err);
+    }
+    setDeleteConfirm(null);
+  };
+
   const selectedConversation = conversations.find(
     (c) => c.id === selectedConversationId
   );
   const selectedDatabase = databases.find((d) => d.id === selectedDatabaseId);
   const selectedFile = files.find((f) => f.id === selectedFileId);
+  const selectedConnector = connectors.find((c) => c.id === selectedConnectorId);
+  const selectedConnectorDef = selectedConnector ? getConnectorByTypeIndex(selectedConnector.connectorType) : undefined;
 
   // True when the chat area should show the centered welcome/empty state.
   // False when messages exist, when we're loading messages, when actively sending,
@@ -1877,7 +1925,8 @@ export default function AIPage() {
                 !mobileSearchQuery ||
                 (chat.title || 'New Chat').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
                 (chat.databaseConnectionName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
-                (chat.fileDocumentName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase())
+                (chat.fileDocumentName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
+                (chat.appConnectorName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase())
               )
               .map((chat, idx) => (
                 <div
@@ -1910,9 +1959,9 @@ export default function AIPage() {
                       {formatRelativeTime(chat.updatedAt)}
                     </span>
                   </div>
-                  {(chat.databaseConnectionName || chat.fileDocumentName) && (
+                  {(chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName) && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">
-                      {chat.databaseConnectionName || chat.fileDocumentName}
+                      {chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName}
                     </p>
                   )}
                 </div>
@@ -2066,10 +2115,10 @@ export default function AIPage() {
                       </div>
                     )}
                     <div className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500 pr-6">
-                      {(chat.databaseConnectionName || chat.fileDocumentName) && (
+                      {(chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName) && (
                         <>
                           <span className="truncate max-w-[70px]">
-                            {chat.databaseConnectionName || chat.fileDocumentName}
+                            {chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName}
                           </span>
                           <span className="text-gray-300 dark:text-gray-600">·</span>
                         </>
@@ -3262,12 +3311,27 @@ export default function AIPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
+              {/* Connector select button */}
+              <button
+                type="button"
+                onClick={() => setShowConnectorModal(true)}
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  selectedConnector
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                }`}
+                title={selectedConnector ? selectedConnector.name : "Connect an app"}
+              >
+                <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </button>
 
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder={selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask about your data..."}
+                placeholder={selectedConnector ? `Ask about your ${selectedConnectorDef?.name || 'app'} data...` : selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask about your data..."}
                 disabled={isSending}
                 className="flex-1 min-w-0 ml-0.5 text-base sm:text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
                 enterKeyHint="send"
@@ -3330,7 +3394,8 @@ export default function AIPage() {
           selectedDatabaseId={selectedDatabaseId}
           onSelect={(id) => {
             setSelectedDatabaseId(id);
-            setSelectedFileId(null); // Clear file when database is selected
+            setSelectedFileId(null);
+            setSelectedConnectorId(null); // Clear connector when database is selected
             // Clear conversation if changing data source
             if (selectedConversationId) {
               setSelectedConversationId(null);
@@ -3385,6 +3450,51 @@ export default function AIPage() {
         />
       )}
 
+      {/* Connector Modal */}
+      {showConnectorModal && (
+        <ConnectorModal
+          connectors={connectors}
+          selectedConnectorId={selectedConnectorId}
+          onSelect={(id) => {
+            setSelectedConnectorId(id);
+            setSelectedDatabaseId(null);
+            setSelectedFileId(null);
+            if (selectedConversationId) {
+              setSelectedConversationId(null);
+              setMessages([]);
+            }
+            setShowConnectorModal(false);
+          }}
+          onClose={() => setShowConnectorModal(false)}
+          onAddNew={(connectorDefId) => {
+            setShowConnectorModal(false);
+            setShowConnectorSetup(connectorDefId);
+          }}
+          onDelete={async (id, name) => {
+            setDeleteConfirm({ type: 'connector', id, name });
+          }}
+        />
+      )}
+
+      {/* Connector Setup Modal */}
+      {showConnectorSetup && (
+        <ConnectorSetupModal
+          connectorDefId={showConnectorSetup}
+          onClose={() => setShowConnectorSetup(null)}
+          onSuccess={(connector) => {
+            setConnectors((prev) => [connector, ...prev]);
+            setSelectedConnectorId(connector.id);
+            setSelectedDatabaseId(null);
+            setSelectedFileId(null);
+            if (selectedConversationId) {
+              setSelectedConversationId(null);
+              setMessages([]);
+            }
+            setShowConnectorSetup(null);
+          }}
+        />
+      )}
+
       {/* Files Modal */}
       {showFilesModal && (
         <FilesModal
@@ -3392,7 +3502,8 @@ export default function AIPage() {
           selectedFileId={selectedFileId}
           onSelect={(id) => {
             setSelectedFileId(id || null);
-            setSelectedDatabaseId(null); // Clear database when file is selected
+            setSelectedDatabaseId(null);
+            setSelectedConnectorId(null); // Clear connector when file is selected
             // Clear conversation if changing data source
             if (selectedConversationId) {
               setSelectedConversationId(null);
@@ -3447,7 +3558,7 @@ export default function AIPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-base text-gray-900 dark:text-white">Delete {deleteConfirm.type === 'conversation' ? 'Chat' : 'Connection'}</h3>
+                <h3 className="font-semibold text-base text-gray-900 dark:text-white">Delete {deleteConfirm.type === 'conversation' ? 'Chat' : deleteConfirm.type === 'connector' ? 'Connector' : 'Connection'}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone</p>
               </div>
             </div>
@@ -3465,6 +3576,8 @@ export default function AIPage() {
                 onClick={() => {
                   if (deleteConfirm.type === 'conversation') {
                     handleDeleteConversation(deleteConfirm.id);
+                  } else if (deleteConfirm.type === 'connector') {
+                    handleDeleteConnector(deleteConfirm.id);
                   } else {
                     handleDeleteDatabase(deleteConfirm.id);
                   }
@@ -3566,7 +3679,8 @@ export default function AIPage() {
                     searchQuery === "" ||
                     (chat.title || "New Chat").toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (chat.databaseConnectionName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (chat.fileDocumentName || "").toLowerCase().includes(searchQuery.toLowerCase())
+                    (chat.fileDocumentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (chat.appConnectorName || "").toLowerCase().includes(searchQuery.toLowerCase())
                   );
 
                   if (filtered.length === 0) {
@@ -3593,10 +3707,10 @@ export default function AIPage() {
                         {chat.title || "New Chat"}
                       </p>
                       <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400 dark:text-gray-500">
-                        {(chat.databaseConnectionName || chat.fileDocumentName) && (
+                        {(chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName) && (
                           <>
                             <span className="truncate max-w-[150px]">
-                              {chat.databaseConnectionName || chat.fileDocumentName}
+                              {chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName}
                             </span>
                             <span>·</span>
                           </>
@@ -3618,6 +3732,285 @@ export default function AIPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Connector SVG icons (simple brand marks)
+const connectorLogoMap: Record<string, string> = {
+  shopify: "/connector-logos/shopify.png",
+  stripe: "/connector-logos/stripe.png",
+  woocommerce: "/connector-logos/woocommerce.png",
+  quickbooks: "/connector-logos/quickbooks.png",
+  hubspot: "/connector-logos/hubspot.png",
+  salesforce: "/connector-logos/salesforce.png",
+  "google-analytics": "/connector-logos/google-analytics.png",
+  notion: "/connector-logos/notion.png",
+  airtable: "/connector-logos/airtable.png",
+  "google-sheets": "/connector-logos/google-sheets.png",
+};
+
+function ConnectorIcon({ id, size = 32 }: { id: string; size?: number }) {
+  const src = connectorLogoMap[id];
+  if (src) {
+    return <img src={src} alt={id} width={size} height={size} style={{ width: size, height: size }} />;
+  }
+  return (
+    <svg style={{ width: size, height: size }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+  );
+}
+
+// Connector Selection Modal
+function ConnectorModal({
+  connectors,
+  selectedConnectorId,
+  onSelect,
+  onClose,
+  onAddNew,
+  onDelete,
+}: {
+  connectors: AppConnectorDto[];
+  selectedConnectorId: string | null;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+  onAddNew: (connectorDefId: string) => void;
+  onDelete: (id: string, name: string) => void;
+}) {
+  const [showPicker, setShowPicker] = useState(connectors.length === 0);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white dark:bg-[#161616] rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg sm:mx-4 shadow-2xl border border-transparent dark:border-[#262626]" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-[#262626]">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+            {showPicker ? "Connect an App" : "App Connectors"}
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {!showPicker && connectors.length > 0 && (
+          <>
+            {/* Existing connectors list */}
+            <div className="px-3 py-2 max-h-[200px] overflow-y-auto">
+              {connectors.map((connector) => {
+                const def = getConnectorByTypeIndex(connector.connectorType);
+                const isSelected = connector.id === selectedConnectorId;
+                return (
+                  <div
+                    key={connector.id}
+                    onClick={() => onSelect(connector.id)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer group transition-colors ${
+                      isSelected
+                        ? "bg-blue-50 dark:bg-blue-500/10"
+                        : "hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? "border-blue-600 dark:border-blue-400" : "border-gray-300 dark:border-gray-600"
+                    }`}>
+                      {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400" />}
+                    </div>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+                      <ConnectorIcon id={def?.id || ''} size={28} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{connector.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{def?.category || 'App'}</div>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDelete(connector.id, connector.name); }}
+                      className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                      title="Delete"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Footer */}
+            <div className="px-4 py-3 border-t border-gray-100 dark:border-[#262626]">
+              <button
+                onClick={() => setShowPicker(true)}
+                className="w-full h-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              >
+                Add Connector
+              </button>
+            </div>
+          </>
+        )}
+
+        {showPicker && (
+          <>
+            {connectors.length > 0 && (
+              <div className="px-4 pt-2">
+                <button onClick={() => setShowPicker(false)} className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to my connectors
+                </button>
+              </div>
+            )}
+            {/* Connector picker grid */}
+            <div className="p-4 grid grid-cols-2 gap-2.5 max-h-[400px] overflow-y-auto">
+              {connectorDefinitions.map((def) => {
+                const isAvailable = def.status === 'available';
+                return (
+                  <button
+                    key={def.id}
+                    onClick={() => isAvailable && onAddNew(def.id)}
+                    disabled={!isAvailable}
+                    className={`relative flex flex-col items-start gap-2 p-3.5 rounded-xl border text-left transition-all ${
+                      isAvailable
+                        ? "border-gray-200 dark:border-[#262626] hover:border-gray-300 dark:hover:border-[#3a3a3a] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer"
+                        : "border-gray-100 dark:border-[#1e1e1e] opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    {!isAvailable && (
+                      <span className="absolute top-2 right-2 text-[10px] font-medium bg-gray-100 dark:bg-[#262626] text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
+                        Soon
+                      </span>
+                    )}
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                      <ConnectorIcon id={def.id} size={36} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{def.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{def.category}</div>
+                    </div>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed line-clamp-2">{def.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Connector Setup Modal
+function ConnectorSetupModal({
+  connectorDefId,
+  onClose,
+  onSuccess,
+}: {
+  connectorDefId: string;
+  onClose: () => void;
+  onSuccess: (connector: AppConnectorDto) => void;
+}) {
+  const def = connectorDefinitions.find(c => c.id === connectorDefId);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [name, setName] = useState(def?.name || '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!def) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    // Validate all required fields
+    for (const field of def.credentialFields) {
+      if (!formData[field.key]?.trim()) {
+        setError(`${field.label} is required`);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    try {
+      const response = await api.createConnector({
+        name: name.trim() || def.name,
+        connectorType: def.connectorTypeIndex,
+        credentials: formData,
+      });
+      if (response.success) {
+        onSuccess(response.data);
+      } else {
+        setError(response.message || 'Failed to create connector');
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to create connector');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white dark:bg-[#161616] rounded-t-2xl sm:rounded-xl w-full sm:max-w-sm sm:mx-4 shadow-2xl border border-transparent dark:border-[#262626]" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-[#262626]">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${def.color}15` }}>
+            <ConnectorIcon id={def.id} size={32} />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Connect {def.name}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{def.category}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Connection Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={`My ${def.name} Store`}
+              className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0e0e0e] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+            />
+          </div>
+
+          {/* Dynamic credential fields */}
+          {def.credentialFields.map((field) => (
+            <div key={field.key}>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{field.label}</label>
+              <input
+                type={field.type === 'password' ? 'password' : 'text'}
+                value={formData[field.key] || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder={field.placeholder}
+                className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0e0e0e] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors font-mono"
+                autoComplete="off"
+              />
+            </div>
+          ))}
+
+          {error && (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-10 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Connecting..." : "Connect"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
