@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, memo } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
 import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts";
 
@@ -925,18 +925,11 @@ export const DataChart = memo(function DataChart({
   const isCategorical = chartConfig?.isCategorical ?? false;
   const dataCount = chartData.length;
 
-  // Compute effective chart height — expand for pie legend wrapping
+  // Compute effective chart height — legend is now rendered outside as HTML
   const chartHeight = useMemo(() => {
     if (fillContainer) return "100%";
-    const base = typeof baseChartHeight === 'number' ? baseChartHeight : 320;
-    if (chartType === 'pie' && pieData.length > 0 && settings.legendPosition !== 'hidden') {
-      const itemsPerRow = isMobile ? 2 : screenSize === 'tablet' ? 3 : 4;
-      const legendRows = Math.ceil(pieData.length / itemsPerRow);
-      const extraRows = Math.max(0, legendRows - 1);
-      return base + extraRows * 24;
-    }
-    return base;
-  }, [fillContainer, baseChartHeight, chartType, pieData.length, settings.legendPosition, isMobile, screenSize]);
+    return typeof baseChartHeight === 'number' ? baseChartHeight : 320;
+  }, [fillContainer, baseChartHeight]);
 
   // Manipulation callbacks
   const toggleCategory = useCallback((category: string) => {
@@ -1092,14 +1085,11 @@ export const DataChart = memo(function DataChart({
       return h;
     };
 
-    // Grid config — extra bottom space for legend when many series
-    const legendBottomExtra = settings.legendPosition === 'bottom'
-      ? mobile ? 25 : (dc.length > 5 ? 45 : 35)
-      : 15;
+    // Grid config — legend is now rendered as HTML outside the chart
     const grid = {
-      top: settings.legendPosition === 'top' && !mobile ? margins.top + 30 : margins.top + 10,
+      top: margins.top + 10,
       right: margins.right,
-      bottom: respBottom + legendBottomExtra,
+      bottom: respBottom + 15,
       left: margins.left + (mobile ? 35 : 50),
       containLabel: false,
     };
@@ -1149,20 +1139,9 @@ export const DataChart = memo(function DataChart({
       extraCssText: `border-radius:12px;box-shadow:${shadowCss};`,
     };
 
-    // Common legend — always scrollable to prevent overlap
+    // Hide ECharts built-in legend — custom scrollable HTML legend rendered outside the chart
     const legend = {
-      show: settings.legendPosition !== 'hidden',
-      type: 'scroll' as const,
-      top: settings.legendPosition === 'top' ? 0 : undefined,
-      bottom: settings.legendPosition === 'bottom' ? 0 : undefined,
-      textStyle: { color: tickColor, fontSize: mobile ? 9 : 12 },
-      itemWidth: mobile ? 12 : 25,
-      itemHeight: mobile ? 8 : 14,
-      itemGap: mobile ? 6 : 10,
-      formatter: (name: string) => truncateLabel(name, mobile ? 12 : 25),
-      pageTextStyle: { color: tickColor },
-      pageIconColor: tickColor,
-      pageIconInactiveColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+      show: false,
     };
 
     switch (chartType) {
@@ -1353,14 +1332,7 @@ export const DataChart = memo(function DataChart({
             },
           },
           legend: {
-            show: settings.legendPosition !== 'hidden',
-            orient: 'horizontal' as const,
-            left: 'center',
-            top: settings.legendPosition === 'top' ? 0 : undefined,
-            bottom: settings.legendPosition === 'bottom' ? 0 : undefined,
-            textStyle: { color: tickColor, fontSize: mobile ? 9 : 11 },
-            itemGap: mobile ? 10 : 14,
-            formatter: (name: string) => truncateLabel(name, mobile ? 12 : 20),
+            show: false,
           },
           series: [{
             type: 'pie' as const,
@@ -1457,6 +1429,49 @@ export const DataChart = memo(function DataChart({
 
   const infoText = getChartInfoText();
 
+  // ECharts instance ref for legend toggle
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chartRef = useRef<any>(null);
+  const [hiddenLegendItems, setHiddenLegendItems] = useState<Set<string>>(new Set());
+
+  // Extract legend items from chart config
+  const legendItems = useMemo(() => {
+    if (!chartOption) return [];
+    if (chartType === 'pie') {
+      // Pie: items come from series data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const seriesData = (chartOption as any).series?.[0]?.data as Array<{ name: string; itemStyle?: { color?: string } }> | undefined;
+      if (!seriesData) return [];
+      return seriesData.map((d, i) => ({
+        name: d.name,
+        color: d.itemStyle?.color || chartColors[i % chartColors.length],
+      }));
+    }
+    // Bar/Line/Area: items come from series
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const series = (chartOption as any).series as Array<{ name?: string; color?: string; lineStyle?: { color?: string }; itemStyle?: { color?: string; borderColor?: string } }> | undefined;
+    if (!series) return [];
+    return series.map((s, i) => ({
+      name: s.name || `Series ${i + 1}`,
+      // Prefer series.color or lineStyle.color (line/area use itemStyle.color for hollow dots, not the series color)
+      color: s.color || s.lineStyle?.color || s.itemStyle?.borderColor || s.itemStyle?.color || chartColors[i % chartColors.length],
+    }));
+  }, [chartOption, chartType, chartColors]);
+
+  // Toggle legend item visibility via ECharts action
+  const handleLegendToggle = useCallback((name: string) => {
+    const instance = chartRef.current?.getEchartsInstance?.();
+    if (instance) {
+      instance.dispatchAction({ type: 'legendToggleSelect', name });
+    }
+    setHiddenLegendItems(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }, []);
+
   // Pie empty state
   if (chartType === 'pie' && pieData.length === 0) {
     return (
@@ -1493,10 +1508,35 @@ export const DataChart = memo(function DataChart({
         </div>
       )}
 
+      {/* Custom scrollable legend — rendered above chart when top, below when bottom */}
+      {settings.legendPosition === 'top' && legendItems.length > 1 && (
+        <div className="overflow-x-auto overflow-y-hidden custom-scrollbar mb-1 sm:mb-2 -mx-1 px-1" style={{ scrollbarWidth: 'thin' }}>
+          <div className="flex items-center justify-center gap-2 sm:gap-3 whitespace-nowrap py-0.5 min-w-full">
+            {legendItems.map((item) => {
+              const isHidden = hiddenLegendItems.has(item.name);
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => handleLegendToggle(item.name)}
+                  className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] shrink-0 transition-opacity ${isHidden ? 'opacity-35' : ''}`}
+                >
+                  <span
+                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-gray-600 dark:text-gray-400">{truncateLabel(item.name, isMobile ? 14 : 25)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Chart container */}
       <div className="flex-1 min-h-0">
         {chartOption ? (
           <ReactECharts
+            ref={chartRef}
             option={{ ...chartOption, ...(isMobile ? { useCoarsePointer: true } : {}) }}
             style={{ height: typeof chartHeight === 'number' ? chartHeight : '100%', width: '100%' }}
             notMerge={true}
@@ -1505,6 +1545,30 @@ export const DataChart = memo(function DataChart({
           />
         ) : null}
       </div>
+
+      {/* Custom scrollable legend — rendered below chart when bottom */}
+      {settings.legendPosition === 'bottom' && legendItems.length > 1 && (
+        <div className="overflow-x-auto overflow-y-hidden custom-scrollbar mt-1 sm:mt-2 -mx-1 px-1" style={{ scrollbarWidth: 'thin' }}>
+          <div className="flex items-center justify-center gap-2 sm:gap-3 whitespace-nowrap py-0.5 min-w-full">
+            {legendItems.map((item) => {
+              const isHidden = hiddenLegendItems.has(item.name);
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => handleLegendToggle(item.name)}
+                  className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] shrink-0 transition-opacity ${isHidden ? 'opacity-35' : ''}`}
+                >
+                  <span
+                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-gray-600 dark:text-gray-400">{truncateLabel(item.name, isMobile ? 14 : 25)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 });

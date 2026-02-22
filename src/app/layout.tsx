@@ -26,11 +26,15 @@ export const metadata: Metadata = {
     siteName: "Erao",
     locale: "en_US",
     type: "website",
+    images: [
+      { url: "/favicon.png", width: 1024, height: 1024, alt: "Erao logo" },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Erao - Speak your language. Get your data.",
     description: "Query your databases with natural language. No SQL required.",
+    images: ["/favicon.png"],
   },
   robots: {
     index: true,
@@ -45,10 +49,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
       { url: "/favicon.png", type: "image/png", sizes: "1024x1024" },
       { url: "/favicon.png", type: "image/png", sizes: "192x192" },
       { url: "/favicon.png", type: "image/png", sizes: "32x32" },
     ],
+    shortcut: [{ url: "/favicon.ico" }],
     apple: [
       { url: "/favicon.png", type: "image/png", sizes: "180x180" },
     ],
@@ -66,7 +72,9 @@ const jsonLd = {
       url: "https://erao.digital",
       logo: {
         "@type": "ImageObject",
-        url: "https://erao.digital/logo.png",
+        url: "https://erao.digital/favicon.png",
+        width: 1024,
+        height: 1024,
       },
       sameAs: [],
       contactPoint: {
