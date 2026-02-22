@@ -41,6 +41,8 @@ import { MarkdownResponse } from "@/components/MarkdownResponse";
 import { FilterModal, FilterOperator, AdvancedFilter } from "@/components/FilterModal";
 import { ChartSettingsDropdown } from "@/components/ChartSettingsDropdown";
 import SettingsBottomNav from "@/components/SettingsBottomNav";
+import InsightCard from "@/components/InsightCard";
+import FollowUpChips from "@/components/FollowUpChips";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Helper to strip SQL/JSON/viz code blocks from AI response text
@@ -862,6 +864,8 @@ export default function AIPage() {
   const [chartViews, setChartViews] = useState<Record<string, ChartType>>({});
   const [expandedSql, setExpandedSql] = useState<Set<string>>(new Set());
   const [clarificationOptions, setClarificationOptions] = useState<Record<string, ClarificationRequest>>({});
+  const [messageInsights, setMessageInsights] = useState<Record<string, string>>({});
+  const [followUpQuestions, setFollowUpQuestions] = useState<Record<string, string[]>>({});
 
   // Quick Filters state - tracks active filters per table view (keyed by viewKey)
   // Format: { [viewKey]: { [columnName]: filterValue[] } }
@@ -1600,6 +1604,14 @@ export default function AIPage() {
           }));
         }
 
+        // Layer 3: Store insight and follow-up questions if returned
+        if (response.data.insight) {
+          setMessageInsights(prev => ({ ...prev, [response.data.assistantMessage.id]: response.data.insight! }));
+        }
+        if (response.data.followUpQuestions?.length) {
+          setFollowUpQuestions(prev => ({ ...prev, [response.data.assistantMessage.id]: response.data.followUpQuestions! }));
+        }
+
         // Check if user requested a specific chart type
         const requestedChartType = detectRequestedChartType(messageContent);
         if (requestedChartType && response.data.assistantMessage.queryResult) {
@@ -1774,6 +1786,16 @@ export default function AIPage() {
     // Send the option value as a new user message
     setInputValue(optionValue);
     // Use a small delay to let state update, then submit
+    setTimeout(() => {
+      const form = document.querySelector('form[data-chat-form]') as HTMLFormElement;
+      if (form) {
+        form.requestSubmit();
+      }
+    }, 50);
+  };
+
+  const handleFollowUpClick = (question: string) => {
+    setInputValue(question);
     setTimeout(() => {
       const form = document.querySelector('form[data-chat-form]') as HTMLFormElement;
       if (form) {
@@ -2497,29 +2519,8 @@ export default function AIPage() {
                                         </>
                                       )}
                                     </div>
-                                    {/* Toolbar: SQL, Filter, Settings, Expand */}
+                                    {/* Toolbar: Filter, Settings, Expand, SQL */}
                                     <div className="flex items-center gap-1.5 sm:gap-1 flex-shrink-0 relative ml-1.5 sm:ml-3 pl-1.5 sm:pl-3 border-l border-gray-200 dark:border-[#333]">
-                                      {/* SQL Button - only show on first table */}
-                                      {idx === 0 && message.sqlQuery && (
-                                        <button
-                                          onClick={() => setExpandedSql(prev => {
-                                            const next = new Set(prev);
-                                            if (next.has(message.id)) next.delete(message.id);
-                                            else next.add(message.id);
-                                            return next;
-                                          })}
-                                          className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
-                                            expandedSql.has(message.id)
-                                              ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
-                                              : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
-                                          }`}
-                                          title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
-                                        >
-                                          <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
-                                            <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
-                                          </svg>
-                                        </button>
-                                      )}
                                       {/* Filter Button - only for table view */}
                                       {currentView === "table" && (() => {
                                         const hasSimpleFilters = Object.values(tableFilters[viewKey] || {}).some(v => v?.length);
@@ -2625,6 +2626,27 @@ export default function AIPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                       </svg>
                                     </button>
+                                      {/* SQL Button - only show on first table (last in toolbar) */}
+                                      {idx === 0 && message.sqlQuery && (
+                                        <button
+                                          onClick={() => setExpandedSql(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(message.id)) next.delete(message.id);
+                                            else next.add(message.id);
+                                            return next;
+                                          })}
+                                          className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                            expandedSql.has(message.id)
+                                              ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
+                                              : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                          }`}
+                                          title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
+                                        >
+                                          <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                                            <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
+                                          </svg>
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
 
@@ -2852,29 +2874,8 @@ export default function AIPage() {
                                 </>
                               )}
                             </div>
-                              {/* Toolbar: SQL, Filter, Settings, Expand */}
+                              {/* Toolbar: Filter, Settings, Expand, SQL */}
                               <div className="flex items-center gap-1.5 sm:gap-1 flex-shrink-0 relative ml-1.5 sm:ml-3 pl-1.5 sm:pl-3 border-l border-gray-200 dark:border-[#333]">
-                                {/* SQL Button */}
-                                {message.sqlQuery && (
-                                  <button
-                                    onClick={() => setExpandedSql(prev => {
-                                      const next = new Set(prev);
-                                      if (next.has(message.id)) next.delete(message.id);
-                                      else next.add(message.id);
-                                      return next;
-                                    })}
-                                    className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
-                                      expandedSql.has(message.id)
-                                        ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
-                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
-                                    }`}
-                                    title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
-                                  >
-                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
-                                      <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
-                                    </svg>
-                                  </button>
-                                )}
                                 {/* Filter Button - only for table view */}
                                 {currentView === "table" && (() => {
                                   const hasSimpleFilters = Object.values(tableFilters[message.id] || {}).some(v => v?.length);
@@ -2980,6 +2981,27 @@ export default function AIPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                   </svg>
                                 </button>
+                                {/* SQL Button (last in toolbar) */}
+                                {message.sqlQuery && (
+                                  <button
+                                    onClick={() => setExpandedSql(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(message.id)) next.delete(message.id);
+                                      else next.add(message.id);
+                                      return next;
+                                    })}
+                                    className={`flex items-center justify-center w-9 h-9 sm:w-7 sm:h-7 rounded-md transition-colors ${
+                                      expandedSql.has(message.id)
+                                        ? 'text-gray-900 dark:text-white bg-gray-200 dark:bg-[#333]'
+                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#252525]'
+                                    }`}
+                                    title={expandedSql.has(message.id) ? "Hide SQL" : "View SQL"}
+                                  >
+                                    <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                                      <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.5" strokeLinecap="round"/>
+                                    </svg>
+                                  </button>
+                                )}
                               </div>
                           </div>
 
@@ -3030,7 +3052,17 @@ export default function AIPage() {
                         </div>
                       );
                     })()}
+                    {messageInsights[message.id] && (
+                      <InsightCard insight={messageInsights[message.id]} />
+                    )}
                     </div>
+                    {followUpQuestions[message.id]?.length > 0 && (
+                      <FollowUpChips
+                        questions={followUpQuestions[message.id]}
+                        onSelect={handleFollowUpClick}
+                        disabled={isSending}
+                      />
+                    )}
                     </div>
                   </div>
                 ) : (

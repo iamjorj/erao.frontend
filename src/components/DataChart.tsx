@@ -758,9 +758,7 @@ export const DataChart = memo(function DataChart({
       return noYears.length > 0 ? noYears : afterBooleans;
     })();
 
-    const scaleFilteredColumns = filterScaleMismatchColumns(data, allDataColumns);
-
-    const finalDataColumns = scaleFilteredColumns.filter(col => !currentManipulation.hiddenColumns.has(col));
+    const finalDataColumns = allDataColumns.filter(col => !currentManipulation.hiddenColumns.has(col));
 
     const allAvailableColumns = rawDataColumns;
 

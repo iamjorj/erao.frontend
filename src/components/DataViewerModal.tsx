@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useMemo, useEffect, useCallback } from "react";
+import React, { useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { FilterModal, AdvancedFilter } from "./FilterModal";
 import { ChartSettingsDropdown } from "./ChartSettingsDropdown";
@@ -332,14 +332,22 @@ export function DataViewerModal({
     groupByColumn: initialManipulation?.groupByColumn,
   }));
 
-  // Wrapper that syncs manipulation changes back to parent
-  const setManipulation: typeof setManipulationState = useCallback((value) => {
-    setManipulationState(prev => {
-      const next = typeof value === 'function' ? value(prev) : value;
-      onManipulationChange?.(next);
-      return next;
-    });
-  }, [onManipulationChange]);
+  // Simple setter — parent sync happens via useEffect below
+  const setManipulation = useCallback((value: React.SetStateAction<ChartManipulation>) => {
+    setManipulationState(value);
+  }, []);
+
+  // Sync manipulation changes back to parent outside the render cycle
+  const isInitialMountRef = useRef(true);
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    onManipulationChange?.(manipulation);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manipulation]);
+
   const manipulationRef = useRef<HTMLDivElement>(null);
 
   // Sync settings when initialChartSettings changes

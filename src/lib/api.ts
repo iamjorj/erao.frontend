@@ -283,6 +283,8 @@ export interface ChatResponse {
   tokensUsed: number;
   visualizationHint?: VisualizationHint;
   clarification?: ClarificationRequest;
+  insight?: string;
+  followUpQuestions?: string[];
 }
 
 // App Connector types
