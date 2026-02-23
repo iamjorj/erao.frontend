@@ -53,6 +53,8 @@ function stripCodeBlocks(content: string): string {
     .replace(/```json[\s\S]*?```/gi, "") // Remove JSON code blocks
     .replace(/```viz[\s\S]*?```/gi, "") // Remove viz code blocks
     .replace(/```clarification[\s\S]*?```/gi, "") // Remove clarification code blocks
+    .replace(/```(?:sql|json|viz|clarification)[\s\S]*$/gi, "") // Remove unclosed code blocks (no closing ```)
+    .replace(/\{"chart"\s*:\s*"[^"]*"\s*,\s*"group"\s*:[\s\S]*?"agg"\s*:\s*"[^"]*"\s*\}\s*\]\s*\}?\s*\}?/gi, "") // Remove inline viz JSON
     .replace(/\[Query Result:[\s\S]*$/gi, "") // Remove [Query Result: to end of string
     .replace(/\[DATA_CONTEXT:[\s\S]*?\]/gi, "") // Remove [DATA_CONTEXT: ...] tags (including multiline)
     .replace(/\[DATA_CONTEXT:[^\]]*$/gi, "") // Remove unclosed [DATA_CONTEXT: to end
