@@ -143,7 +143,7 @@ function hexToRgba(hex: string, alpha: number): string {
 type ColumnSemanticType = 'id' | 'score' | 'percentage' | 'count' | 'amount' | 'numeric' | 'junk' | 'boolean' | 'year';
 
 function detectColumnType(columnName: string, data?: Record<string, unknown>[]): ColumnSemanticType {
-  const name = columnName.toLowerCase();
+  const name = stripAggPrefix(columnName).toLowerCase();
 
   // Boolean/flag columns
   if (name.startsWith('is_') || name.startsWith('has_') || name.startsWith('can_') ||
@@ -436,45 +436,45 @@ function filterScaleMismatchColumns(data: Record<string, unknown>[], columns: st
   return filtered.length > 0 ? filtered : columns;
 }
 
+// Strip all leading aggregation prefixes from a column name
+function stripAggPrefix(name: string): string {
+  let result = name;
+  const spaceRe = /^(avg |average |total |count of |count |sum |min |max )/i;
+  const underRe = /^(avg_|total_|count_|sum_|min_|max_)/i;
+  // Strip repeatedly to handle nested prefixes like "Total Total ..." or "total_avg_..."
+  for (let i = 0; i < 5; i++) {
+    const prev = result;
+    // Space-separated prefixes
+    if (spaceRe.test(result)) {
+      result = result.replace(spaceRe, '').trim();
+    }
+    // Underscore-separated prefixes — also clean underscores to spaces
+    else if (underRe.test(result)) {
+      result = result.replace(underRe, '');
+      result = result.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+    }
+    if (result === prev) break;
+  }
+  return result || name;
+}
+
 // Build a display name for a column+aggregation
 function buildDisplayName(col: string, aggregation: AggregationType, detectedType?: ColumnSemanticType): string {
-  const lower = col.toLowerCase();
-
-  const alreadyPrefixed = lower.startsWith('avg ') || lower.startsWith('total ') ||
-    lower.startsWith('count ') || lower.startsWith('sum ') || lower.startsWith('min ') ||
-    lower.startsWith('max ') || lower.startsWith('count of ');
-  if (alreadyPrefixed) return col;
-
-  const underscorePrefixes: Record<string, AggregationType> = {
-    'avg_': 'AVG', 'total_': 'SUM', 'count_': 'COUNT', 'sum_': 'SUM',
-    'min_': 'MIN', 'max_': 'MAX',
-  };
-  for (const [prefix, prefixAgg] of Object.entries(underscorePrefixes)) {
-    if (lower.startsWith(prefix)) {
-      const rest = col.slice(prefix.length);
-      const cleanName = rest.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      if (aggregation === prefixAgg) {
-        const aggLabel = aggregation === 'AVG' ? 'Avg' : aggregation === 'SUM' ? 'Total' :
-          aggregation === 'COUNT' ? 'Count' : aggregation === 'MIN' ? 'Min' : 'Max';
-        return `${aggLabel} ${cleanName}`;
-      }
-      return col;
-    }
-  }
+  const cleanName = stripAggPrefix(col);
 
   if (detectedType === 'boolean') {
-    if (aggregation === 'COUNT') return `Count ${col}`;
-    if (aggregation === 'SUM') return col;
-    return col;
+    if (aggregation === 'COUNT') return `Count ${cleanName}`;
+    if (aggregation === 'SUM') return cleanName;
+    return cleanName;
   }
 
   switch (aggregation) {
-    case 'COUNT': return `Count ${col}`;
-    case 'AVG': return `Avg ${col}`;
-    case 'SUM': return `Total ${col}`;
-    case 'MIN': return `Min ${col}`;
-    case 'MAX': return `Max ${col}`;
-    default: return col;
+    case 'COUNT': return `Count ${cleanName}`;
+    case 'AVG': return `Avg ${cleanName}`;
+    case 'SUM': return `Total ${cleanName}`;
+    case 'MIN': return `Min ${cleanName}`;
+    case 'MAX': return `Max ${cleanName}`;
+    default: return cleanName;
   }
 }
 
