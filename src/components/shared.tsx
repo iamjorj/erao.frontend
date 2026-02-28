@@ -35,17 +35,8 @@ export const EmailButton = ({
 };
 
 // Logo icon component
-export const LogoIcon = ({ className = "w-12 h-12" }: { className?: string }) => (
-  <>
-    <Image
-      src="/logo-dark.png"
-      alt="Erao Logo"
-      width={200}
-      height={200}
-      quality={100}
-      priority
-      className={`${className} dark:hidden`}
-    />
+export const LogoIcon = ({ className = "w-12 h-12", forceDark = false }: { className?: string; forceDark?: boolean }) => (
+  forceDark ? (
     <Image
       src="/logo.png"
       alt="Erao Logo"
@@ -53,9 +44,30 @@ export const LogoIcon = ({ className = "w-12 h-12" }: { className?: string }) =>
       height={200}
       quality={100}
       priority
-      className={`${className} hidden dark:block`}
+      className={className}
     />
-  </>
+  ) : (
+    <>
+      <Image
+        src="/logo-dark.png"
+        alt="Erao Logo"
+        width={200}
+        height={200}
+        quality={100}
+        priority
+        className={`${className} dark:hidden`}
+      />
+      <Image
+        src="/logo.png"
+        alt="Erao Logo"
+        width={200}
+        height={200}
+        quality={100}
+        priority
+        className={`${className} hidden dark:block`}
+      />
+    </>
+  )
 );
 
 // Navigation dropdown data
@@ -96,41 +108,46 @@ const NavDropdown = ({
   items,
   isOpen,
   onMouseEnter,
-  onMouseLeave
+  onMouseLeave,
+  variant = "light",
 }: {
   label: string;
   items: { href: string; label: string; desc: string }[];
   isOpen: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
-}) => (
-  <div
-    className="relative"
-    onMouseEnter={onMouseEnter}
-    onMouseLeave={onMouseLeave}
-  >
-    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-black transition-colors py-2">
-      {label}
-      <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
-    {isOpen && (
-      <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="block px-4 py-3 hover:bg-gray-50 transition-colors"
-          >
-            <div className="text-sm font-medium text-gray-900">{item.label}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
-          </Link>
-        ))}
-      </div>
-    )}
-  </div>
-);
+  variant?: "dark" | "light";
+}) => {
+  const isDark = variant === "dark";
+  return (
+    <div
+      className="relative"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <button className={`flex items-center gap-1 text-sm transition-colors py-2 bg-transparent ${isDark ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"}`}>
+        {label}
+        <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className={`absolute top-full left-0 mt-1 w-56 rounded-xl py-2 z-50 backdrop-blur-xl ${isDark ? "bg-[#141414]/95 border border-white/10 shadow-2xl shadow-black/50" : "bg-white border border-gray-200 shadow-lg"}`}>
+          {items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`block px-4 py-3 transition-colors ${isDark ? "hover:bg-white/[0.06]" : "hover:bg-gray-50"}`}
+            >
+              <div className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-900"}`}>{item.label}</div>
+              <div className={`text-xs mt-0.5 ${isDark ? "text-gray-500" : "text-gray-500"}`}>{item.desc}</div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Mobile menu accordion item
 const MobileAccordion = ({
@@ -139,51 +156,57 @@ const MobileAccordion = ({
   isOpen,
   onToggle,
   onLinkClick,
+  variant = "light",
 }: {
   label: string;
   items: { href: string; label: string; desc: string }[];
   isOpen: boolean;
   onToggle: () => void;
   onLinkClick: () => void;
-}) => (
-  <div>
-    <button
-      onClick={onToggle}
-      className="w-full flex items-center justify-between py-2.5 text-left"
-    >
-      <span className="text-sm font-medium text-gray-900">{label}</span>
-      <svg
-        className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
+  variant?: "dark" | "light";
+}) => {
+  const isDark = variant === "dark";
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between py-2.5 text-left"
       >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
-    {isOpen && (
-      <div className="pb-2 pl-3 space-y-0.5">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onLinkClick}
-            className="block py-1.5 text-sm text-gray-500 hover:text-black transition-colors"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </div>
-    )}
-  </div>
-);
+        <span className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-900"}`}>{label}</span>
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${isDark ? "text-gray-500" : "text-gray-400"}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="pb-2 pl-3 space-y-0.5">
+          {items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onLinkClick}
+              className={`block py-1.5 text-sm transition-colors ${isDark ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-black"}`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Consistent navigation bar with dropdowns and mobile menu
-export const Navbar = ({ currentPage }: { currentPage?: string }) => {
+export const Navbar = ({ currentPage, variant = "light" }: { currentPage?: string; variant?: "dark" | "light" }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileAccordion, setMobileAccordion] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isDark = variant === "dark";
 
   // Close mobile menu on resize to desktop
   useEffect(() => {
@@ -230,10 +253,10 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 h-14 px-5 sm:px-6 flex items-center justify-between z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <nav className={`fixed top-0 left-0 right-0 h-14 px-5 sm:px-6 flex items-center justify-between z-50 backdrop-blur-md border-b ${isDark ? "bg-[#09090b]/80 border-[#1a1a1a]" : "bg-white/80 border-gray-100"}`}>
         <Link href="/" className="flex items-center gap-2">
-          <LogoIcon className="w-8 h-8 sm:w-10 sm:h-10" />
-          <span className="font-semibold text-base sm:text-lg">Erao</span>
+          <LogoIcon className="w-8 h-8 sm:w-10 sm:h-10" forceDark={isDark} />
+          <span className={`font-semibold text-base sm:text-lg ${isDark ? "text-white" : ""}`}>Erao</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -244,6 +267,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
             isOpen={openDropdown === 'product'}
             onMouseEnter={() => handleMouseEnter('product')}
             onMouseLeave={handleMouseLeave}
+            variant={variant}
           />
           <NavDropdown
             label={navDropdowns.resources.label}
@@ -251,6 +275,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
             isOpen={openDropdown === 'resources'}
             onMouseEnter={() => handleMouseEnter('resources')}
             onMouseLeave={handleMouseLeave}
+            variant={variant}
           />
           <NavDropdown
             label={navDropdowns.company.label}
@@ -258,6 +283,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
             isOpen={openDropdown === 'company'}
             onMouseEnter={() => handleMouseEnter('company')}
             onMouseLeave={handleMouseLeave}
+            variant={variant}
           />
           <NavDropdown
             label={navDropdowns.legal.label}
@@ -265,6 +291,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
             isOpen={openDropdown === 'legal'}
             onMouseEnter={() => handleMouseEnter('legal')}
             onMouseLeave={handleMouseLeave}
+            variant={variant}
           />
         </div>
 
@@ -272,13 +299,13 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
         <div className="hidden md:flex items-center gap-3">
           <Link
             href="/login"
-            className="text-sm text-gray-600 hover:text-black transition-colors px-3 py-2"
+            className={`text-sm transition-colors px-3 py-2 ${isDark ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"}`}
           >
             Log in
           </Link>
           <Link
             href="/register"
-            className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDark ? "bg-white text-black hover:bg-gray-200" : "bg-black text-white hover:bg-gray-800"}`}
           >
             Start Free
           </Link>
@@ -287,7 +314,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-1.5 -mr-1.5 text-gray-500 hover:text-black transition-colors"
+          className={`md:hidden p-1.5 -mr-1.5 transition-colors ${isDark ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-black"}`}
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? (
@@ -308,12 +335,12 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
         <div className="fixed inset-0 top-14 z-40 md:hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/10"
+            className={`absolute inset-0 ${isDark ? "bg-black/40" : "bg-black/10"}`}
             onClick={closeMobileMenu}
           />
 
           {/* Menu Panel */}
-          <div className="absolute top-0 left-0 right-0 bg-white shadow-sm max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
+          <div className={`absolute top-0 left-0 right-0 shadow-sm max-h-[calc(100dvh-3.5rem)] overflow-y-auto ${isDark ? "bg-[#09090b]" : "bg-white"}`}>
             <div className="px-5 py-1">
               {/* Navigation Accordions */}
               <MobileAccordion
@@ -322,6 +349,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
                 isOpen={mobileAccordion === 'product'}
                 onToggle={() => setMobileAccordion(mobileAccordion === 'product' ? null : 'product')}
                 onLinkClick={closeMobileMenu}
+                variant={variant}
               />
               <MobileAccordion
                 label={navDropdowns.resources.label}
@@ -329,6 +357,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
                 isOpen={mobileAccordion === 'resources'}
                 onToggle={() => setMobileAccordion(mobileAccordion === 'resources' ? null : 'resources')}
                 onLinkClick={closeMobileMenu}
+                variant={variant}
               />
               <MobileAccordion
                 label={navDropdowns.company.label}
@@ -336,6 +365,7 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
                 isOpen={mobileAccordion === 'company'}
                 onToggle={() => setMobileAccordion(mobileAccordion === 'company' ? null : 'company')}
                 onLinkClick={closeMobileMenu}
+                variant={variant}
               />
               <MobileAccordion
                 label={navDropdowns.legal.label}
@@ -343,21 +373,22 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
                 isOpen={mobileAccordion === 'legal'}
                 onToggle={() => setMobileAccordion(mobileAccordion === 'legal' ? null : 'legal')}
                 onLinkClick={closeMobileMenu}
+                variant={variant}
               />
 
               {/* Auth Buttons */}
-              <div className="pt-3 mt-1 border-t border-gray-100 flex items-center gap-3 pb-4">
+              <div className={`pt-3 mt-1 border-t flex items-center gap-3 pb-4 ${isDark ? "border-[#1a1a1a]" : "border-gray-100"}`}>
                 <Link
                   href="/login"
                   onClick={closeMobileMenu}
-                  className="flex-1 text-center py-2.5 text-sm text-gray-600 hover:text-black transition-colors font-medium border border-gray-200 rounded-lg"
+                  className={`flex-1 text-center py-2.5 text-sm font-medium rounded-lg transition-colors ${isDark ? "text-gray-300 hover:text-white border border-[#262626]" : "text-gray-600 hover:text-black border border-gray-200"}`}
                 >
                   Log in
                 </Link>
                 <Link
                   href="/register"
                   onClick={closeMobileMenu}
-                  className="flex-1 text-center bg-black text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                  className={`flex-1 text-center py-2.5 rounded-lg text-sm font-medium transition-colors ${isDark ? "bg-white text-black hover:bg-gray-200" : "bg-black text-white hover:bg-gray-800"}`}
                 >
                   Start Free
                 </Link>
@@ -371,84 +402,89 @@ export const Navbar = ({ currentPage }: { currentPage?: string }) => {
 };
 
 // Comprehensive footer with all links
-export const Footer = () => (
-  <footer className="w-full border-t border-gray-200 bg-white">
-    <div className="max-w-5xl mx-auto px-6 py-10 sm:py-12">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 mb-10 sm:mb-12">
-        {/* Brand */}
-        <div className="col-span-2 sm:col-span-3 md:col-span-1">
-          <Link href="/" className="flex items-center gap-2.5 mb-4">
-            <LogoIcon className="w-10 h-10 sm:w-12 sm:h-12" />
-            <span className="font-semibold text-lg sm:text-xl">Erao</span>
-          </Link>
-          <p className="text-sm text-gray-500">
-            AI-powered data intelligence.
-          </p>
+export const Footer = ({ variant = "light" }: { variant?: "dark" | "light" }) => {
+  const isDark = variant === "dark";
+  return (
+    <footer className={`w-full border-t ${isDark ? "border-[#1a1a1a] bg-[#09090b]" : "border-gray-200 bg-white"}`}>
+      <div className="max-w-5xl mx-auto px-6 py-10 sm:py-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 mb-10 sm:mb-12">
+          {/* Brand */}
+          <div className="col-span-2 sm:col-span-3 md:col-span-1">
+            <Link href="/" className="flex items-center gap-2.5 mb-4">
+              <LogoIcon className="w-10 h-10 sm:w-12 sm:h-12" forceDark={isDark} />
+              <span className={`font-semibold text-lg sm:text-xl ${isDark ? "text-white" : ""}`}>Erao</span>
+            </Link>
+            <p className={`text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              AI-powered data intelligence.
+            </p>
+          </div>
+
+          {/* Product */}
+          <div>
+            <h4 className={`font-semibold text-sm mb-3 sm:mb-4 ${isDark ? "text-gray-200" : ""}`}>Product</h4>
+            <ul className={`space-y-2 sm:space-y-3 text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              <li><Link href="/features" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Features</Link></li>
+              <li><Link href="/pricing" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Pricing</Link></li>
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <h4 className={`font-semibold text-sm mb-3 sm:mb-4 ${isDark ? "text-gray-200" : ""}`}>Resources</h4>
+            <ul className={`space-y-2 sm:space-y-3 text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              <li><Link href="/help" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Help Center</Link></li>
+              <li><Link href="/security" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Security</Link></li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h4 className={`font-semibold text-sm mb-3 sm:mb-4 ${isDark ? "text-gray-200" : ""}`}>Company</h4>
+            <ul className={`space-y-2 sm:space-y-3 text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              <li><Link href="/about" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>About</Link></li>
+              <li><Link href="/contact" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Contact</Link></li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className={`font-semibold text-sm mb-3 sm:mb-4 ${isDark ? "text-gray-200" : ""}`}>Legal</h4>
+            <ul className={`space-y-2 sm:space-y-3 text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              <li><Link href="/privacy" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Privacy</Link></li>
+              <li><Link href="/terms" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Terms</Link></li>
+            </ul>
+          </div>
         </div>
 
-        {/* Product */}
-        <div>
-          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Product</h4>
-          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
-            <li><Link href="/features" className="hover:text-black transition-colors">Features</Link></li>
-            <li><Link href="/pricing" className="hover:text-black transition-colors">Pricing</Link></li>
-          </ul>
-        </div>
-
-        {/* Resources */}
-        <div>
-          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Resources</h4>
-          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
-            <li><Link href="/help" className="hover:text-black transition-colors">Help Center</Link></li>
-            <li><Link href="/security" className="hover:text-black transition-colors">Security</Link></li>
-          </ul>
-        </div>
-
-        {/* Company */}
-        <div>
-          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Company</h4>
-          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
-            <li><Link href="/about" className="hover:text-black transition-colors">About</Link></li>
-            <li><Link href="/contact" className="hover:text-black transition-colors">Contact</Link></li>
-          </ul>
-        </div>
-
-        {/* Legal */}
-        <div>
-          <h4 className="font-semibold text-sm mb-3 sm:mb-4">Legal</h4>
-          <ul className="space-y-2 sm:space-y-3 text-sm text-gray-500">
-            <li><Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link></li>
-            <li><Link href="/terms" className="hover:text-black transition-colors">Terms</Link></li>
-          </ul>
+        {/* Bottom */}
+        <div className={`pt-6 sm:pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4 ${isDark ? "border-[#1a1a1a]" : "border-gray-200"}`}>
+          <p className={`text-sm text-center sm:text-left ${isDark ? "text-gray-600" : "text-gray-400"}`}>&copy; 2025 Erao. All rights reserved.</p>
+          <div className={`flex items-center gap-6 text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+            <Link href="/privacy" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Privacy</Link>
+            <Link href="/terms" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Terms</Link>
+            <Link href="/contact" className={`transition-colors ${isDark ? "hover:text-white" : "hover:text-black"}`}>Contact</Link>
+          </div>
         </div>
       </div>
-
-      {/* Bottom */}
-      <div className="pt-6 sm:pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-sm text-gray-400 text-center sm:text-left">© 2025 Erao. All rights reserved.</p>
-        <div className="flex items-center gap-6 text-sm text-gray-500">
-          <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
-          <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
-          <Link href="/contact" className="hover:text-black transition-colors">Contact</Link>
-        </div>
-      </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 // Page wrapper for consistent layout
 export const PageLayout = ({
   children,
-  currentPage
+  currentPage,
+  variant = "light",
 }: {
   children: React.ReactNode;
   currentPage?: string;
+  variant?: "dark" | "light";
 }) => (
-  <div className="min-h-screen bg-white text-gray-900 flex flex-col">
-    <Navbar currentPage={currentPage} />
+  <div className={`min-h-screen flex flex-col ${variant === "dark" ? "bg-[#09090b] text-gray-100" : "bg-white text-gray-900"}`}>
+    <Navbar currentPage={currentPage} variant={variant} />
     <main className="flex-1">
       {children}
     </main>
-    <Footer />
+    <Footer variant={variant} />
   </div>
 );

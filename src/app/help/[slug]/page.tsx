@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageLayout } from "@/components/shared";
@@ -283,13 +284,24 @@ export default function HelpArticlePage() {
   const slug = params.slug as string;
   const article = articles[slug];
 
+  // Dark scrollbar
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("landing-dark-scroll");
+    html.style.background = "#09090b";
+    return () => {
+      html.classList.remove("landing-dark-scroll");
+      html.style.background = "";
+    };
+  }, []);
+
   if (!article) {
     return (
-      <PageLayout currentPage="help">
-        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16 text-center">
-          <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Article Not Found</h1>
-          <p className="text-sm sm:text-base text-gray-600 mb-5 sm:mb-6">The article you&apos;re looking for doesn&apos;t exist.</p>
-          <Link href="/help" className="text-black underline">
+      <PageLayout currentPage="help" variant="dark">
+        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-100 mb-3 sm:mb-4">Article Not Found</h1>
+          <p className="text-sm sm:text-base text-gray-400 mb-5 sm:mb-6">The article you&apos;re looking for doesn&apos;t exist.</p>
+          <Link href="/help" className="text-blue-400 hover:text-blue-300 transition-colors">
             Back to Help Center
           </Link>
         </div>
@@ -298,41 +310,43 @@ export default function HelpArticlePage() {
   }
 
   return (
-    <PageLayout currentPage="help">
+    <PageLayout currentPage="help" variant="dark">
       <article className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        {/* Breadcrumb */}
         <div className="mb-6 sm:mb-8">
-          <Link href="/help" className="text-xs sm:text-sm text-gray-500 hover:text-black transition-colors">
+          <Link href="/help" className="text-xs sm:text-sm text-gray-500 hover:text-gray-300 transition-colors">
             Help Center
           </Link>
-          <span className="text-gray-400 mx-1.5 sm:mx-2">/</span>
+          <span className="text-gray-600 mx-1.5 sm:mx-2">/</span>
           <span className="text-xs sm:text-sm text-gray-500">{article.category}</span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold mb-5 sm:mb-6">{article.title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-100 mb-5 sm:mb-6">{article.title}</h1>
 
         <div className="space-y-4">
           {article.content.map((paragraph, index) => (
-            <p key={index} className="text-gray-600 leading-relaxed">
+            <p key={index} className="text-gray-400 leading-relaxed">
               {paragraph}
             </p>
           ))}
         </div>
 
-        <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-200">
+        {/* Feedback */}
+        <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-white/[0.06]">
           <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Was this article helpful?</p>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm hover:bg-gray-50 transition-colors">
+            <button className="px-3 sm:px-4 py-1.5 sm:py-2 border border-white/[0.08] rounded-lg text-xs sm:text-sm text-gray-300 hover:bg-white/[0.04] hover:border-white/10 transition-colors">
               Yes
             </button>
-            <button className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm hover:bg-gray-50 transition-colors">
+            <button className="px-3 sm:px-4 py-1.5 sm:py-2 border border-white/[0.08] rounded-lg text-xs sm:text-sm text-gray-300 hover:bg-white/[0.04] hover:border-white/10 transition-colors">
               No
             </button>
           </div>
         </div>
 
         <div className="mt-6 sm:mt-8">
-          <Link href="/help" className="text-xs sm:text-sm text-black font-medium hover:underline">
-            Back to Help Center
+          <Link href="/help" className="text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors">
+            &larr; Back to Help Center
           </Link>
         </div>
       </article>

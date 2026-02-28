@@ -1,20 +1,36 @@
 "use client";
 
+import { useEffect } from "react";
 import { PageLayout, EmailButton } from "@/components/shared";
 
 export default function PrivacyPage() {
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("landing-dark-scroll");
+    html.style.background = "#09090b";
+    return () => {
+      html.classList.remove("landing-dark-scroll");
+      html.style.background = "";
+    };
+  }, []);
+
   return (
-    <PageLayout currentPage="privacy">
+    <PageLayout currentPage="privacy" variant="dark">
       <article className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
-        <div className="border-b border-gray-200 pb-6 sm:pb-8 mb-8 sm:mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-3">Privacy Policy</h1>
+        <div
+          className="border-b border-white/[0.06] pb-6 sm:pb-8 mb-8 sm:mb-10"
+          style={{ animation: "fadeUp 0.5s ease-out both" }}
+        >
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-100 mb-2 sm:mb-3">
+            Privacy Policy
+          </h1>
           <p className="text-sm sm:text-base text-gray-500">Last updated: January 28, 2025</p>
         </div>
 
         {/* Introduction */}
-        <div className="prose prose-gray max-w-none">
-          <p className="text-lg text-gray-600 mb-10">
+        <div className="max-w-none">
+          <p className="text-lg text-gray-400 mb-10 leading-relaxed">
             At Erao, we take your privacy seriously. This Privacy Policy explains how we collect, use,
             disclose, and safeguard your information when you use our service. Please read this policy
             carefully to understand our practices.
@@ -23,35 +39,35 @@ export default function PrivacyPage() {
           {/* Content */}
           <div className="space-y-12">
             {/* Section 1 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">1</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">1</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Information We Collect</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Information We Collect</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">
                     We collect information that you provide directly to us and information generated through
                     your use of our Service:
                   </p>
                   <div className="space-y-3">
-                    <div className="bg-white rounded-xl p-4 border border-gray-200">
-                      <h4 className="font-medium mb-1">Account Information</h4>
-                      <p className="text-sm text-gray-600">Email address, name, and password when you create an account.</p>
+                    <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
+                      <h4 className="font-medium text-gray-200 mb-1">Account Information</h4>
+                      <p className="text-sm text-gray-400">Email address, name, and password when you create an account.</p>
                     </div>
-                    <div className="bg-white rounded-xl p-4 border border-gray-200">
-                      <h4 className="font-medium mb-1">Database Credentials</h4>
-                      <p className="text-sm text-gray-600">Connection strings and credentials encrypted using AES-256 encryption.</p>
+                    <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
+                      <h4 className="font-medium text-gray-200 mb-1">Database Credentials</h4>
+                      <p className="text-sm text-gray-400">Connection strings and credentials encrypted using AES-256 encryption.</p>
                     </div>
-                    <div className="bg-white rounded-xl p-4 border border-gray-200">
-                      <h4 className="font-medium mb-1">Uploaded Files</h4>
-                      <p className="text-sm text-gray-600">Files you upload (CSV, Excel, JSON, XML, Word, TXT) are stored with encryption at rest. You can delete your files at any time.</p>
+                    <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
+                      <h4 className="font-medium text-gray-200 mb-1">Uploaded Files</h4>
+                      <p className="text-sm text-gray-400">Files you upload (CSV, Excel, JSON, XML, Word, TXT) are stored with encryption at rest. You can delete your files at any time.</p>
                     </div>
-                    <div className="bg-white rounded-xl p-4 border border-gray-200">
-                      <h4 className="font-medium mb-1">Query History</h4>
-                      <p className="text-sm text-gray-600">The questions you ask and queries we generate. We do NOT store your actual database data or query results.</p>
+                    <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
+                      <h4 className="font-medium text-gray-200 mb-1">Query History</h4>
+                      <p className="text-sm text-gray-400">The questions you ask and queries we generate. We do NOT store your actual database data or query results.</p>
                     </div>
-                    <div className="bg-white rounded-xl p-4 border border-gray-200">
-                      <h4 className="font-medium mb-1">Usage Data</h4>
-                      <p className="text-sm text-gray-600">Information about how you use our service, including features used and time spent.</p>
+                    <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
+                      <h4 className="font-medium text-gray-200 mb-1">Usage Data</h4>
+                      <p className="text-sm text-gray-400">Information about how you use our service, including features used and time spent.</p>
                     </div>
                   </div>
                 </div>
@@ -59,12 +75,12 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 2 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">2</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">2</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">How We Use Your Information</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">We use the information we collect to:</p>
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">How We Use Your Information</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">We use the information we collect to:</p>
                   <ul className="space-y-3">
                     {[
                       "Provide, maintain, and improve our services",
@@ -75,10 +91,10 @@ export default function PrivacyPage() {
                       "Detect, investigate, and prevent fraudulent or illegal activities",
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span className="text-gray-600">{item}</span>
+                        <span className="text-gray-400">{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -87,12 +103,12 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 3 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">3</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">3</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Data Security</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Data Security</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">
                     We implement industry-standard security measures to protect your data:
                   </p>
                   <div className="grid md:grid-cols-2 gap-3">
@@ -101,9 +117,9 @@ export default function PrivacyPage() {
                       { title: "SSL/TLS", desc: "All connections and file transfers use encryption" },
                       { title: "Minimal Data Storage", desc: "We never store database data. Uploaded files are encrypted and deletable." },
                     ].map((item) => (
-                      <div key={item.title} className="bg-white rounded-xl p-4 border border-gray-200">
-                        <h4 className="font-medium mb-1">{item.title}</h4>
-                        <p className="text-sm text-gray-600">{item.desc}</p>
+                      <div key={item.title} className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
+                        <h4 className="font-medium text-gray-200 mb-1">{item.title}</h4>
+                        <p className="text-sm text-gray-400">{item.desc}</p>
                       </div>
                     ))}
                   </div>
@@ -112,12 +128,12 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 4 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">4</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">4</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Data Sharing</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Data Sharing</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">
                     We do not sell, trade, or otherwise transfer your personal information to third parties except:
                   </p>
                   <ul className="space-y-3">
@@ -127,8 +143,8 @@ export default function PrivacyPage() {
                       "In connection with a business transfer (merger, acquisition)",
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 bg-black rounded-full mt-2 flex-shrink-0" />
-                        <span className="text-gray-600">{item}</span>
+                        <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-2 flex-shrink-0" />
+                        <span className="text-gray-400">{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -137,12 +153,12 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 5 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">5</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">5</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Your Rights</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">You have the right to:</p>
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Your Rights</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">You have the right to:</p>
                   <div className="grid md:grid-cols-2 gap-3">
                     {[
                       "Access your personal information",
@@ -151,11 +167,11 @@ export default function PrivacyPage() {
                       "Opt out of marketing communications",
                       "Request information about data processing",
                     ].map((item) => (
-                      <div key={item} className="flex items-center gap-2 bg-white rounded-lg p-3 border border-gray-200">
-                        <svg className="w-4 h-4 text-black flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div key={item} className="flex items-center gap-2 bg-white/[0.02] rounded-lg p-3 border border-white/[0.06]">
+                        <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span className="text-sm text-gray-600">{item}</span>
+                        <span className="text-sm text-gray-400">{item}</span>
                       </div>
                     ))}
                   </div>
@@ -164,12 +180,12 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 6 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">6</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">6</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Data Retention</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Data Retention</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     We retain your account information as long as your account is active. Query history is
                     retained based on your plan (7 days for Free, unlimited for paid plans). Uploaded files are
                     retained until you delete them or your account is terminated. Account deletion
@@ -180,12 +196,12 @@ export default function PrivacyPage() {
             </section>
 
             {/* Section 7 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">7</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">7</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Changes to This Policy</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Changes to This Policy</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     We may update this Privacy Policy from time to time. We will notify you of any changes by
                     posting the new policy on this page and updating the &quot;Last updated&quot; date. We encourage
                     you to review this page periodically for any changes.
@@ -196,9 +212,9 @@ export default function PrivacyPage() {
           </div>
 
           {/* Contact Section */}
-          <div className="mt-12 sm:mt-16 bg-black text-white rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center">
-            <h2 className="text-xl font-semibold mb-3">Questions about Privacy?</h2>
-            <p className="text-gray-400 mb-6">
+          <div className="mt-12 sm:mt-16 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 text-center">
+            <h2 className="text-xl font-semibold text-gray-100 mb-3">Questions about Privacy?</h2>
+            <p className="text-gray-500 mb-6">
               If you have any questions about this Privacy Policy, please contact us.
             </p>
             <EmailButton variant="secondary">
@@ -207,6 +223,19 @@ export default function PrivacyPage() {
           </div>
         </div>
       </article>
+
+      <style jsx>{`
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </PageLayout>
   );
 }

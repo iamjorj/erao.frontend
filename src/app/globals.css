@@ -339,3 +339,78 @@ input[type="range"].chart-slider::-moz-range-track {
 .dark input[type="range"].chart-slider::-moz-range-track {
   background: #333;
 }
+
+/* === Landing page specific === */
+
+/* Grid background */
+.landing-grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Radial fade mask for grid */
+.landing-grid-fade {
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 100%);
+}
+
+/* Gradient hero text */
+.text-gradient-hero {
+  background: linear-gradient(to right, #f9fafb 0%, #9ca3af 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-blue { box-shadow: 0 0 80px 20px rgba(59,130,246,0.15); }
+.glow-purple { box-shadow: 0 0 80px 20px rgba(139,92,246,0.15); }
+.glow-green { box-shadow: 0 0 80px 20px rgba(16,185,129,0.15); }
+
+/* Radial glow behind sections */
+.radial-glow-blue {
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.08) 0%, transparent 70%);
+}
+.radial-glow-purple {
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139,92,246,0.08) 0%, transparent 70%);
+}
+
+/* Browser frame mockup */
+.browser-frame {
+  background: #141414;
+  border: 1px solid #262626;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.browser-frame-bar {
+  background: #1a1a1a;
+  border-bottom: 1px solid #262626;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Landing scrollbar override */
+.landing-dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.landing-dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Page-level scrollbar for dark landing pages */
+html.landing-dark-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+html.landing-dark-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+html.landing-dark-scroll::-webkit-scrollbar-track {
+  background: #09090b;
+}
+html.landing-dark-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.1) #09090b;
+}

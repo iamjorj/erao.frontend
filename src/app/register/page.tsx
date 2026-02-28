@@ -2,10 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
+import { motion } from "framer-motion";
 import { api, auth, ApiError } from "@/lib/api";
 import { LogoIcon } from "@/components/shared";
+
+/* ------------------------------------------------------------------ */
+/*  ANIMATION VARIANTS                                                 */
+/* ------------------------------------------------------------------ */
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20, filter: "blur(8px)" },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+};
+
+const stagger = {
+  visible: {
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  PAGE                                                               */
+/* ------------------------------------------------------------------ */
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,6 +35,17 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Dark scrollbar
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("landing-dark-scroll");
+    html.style.background = "#09090b";
+    return () => {
+      html.classList.remove("landing-dark-scroll");
+      html.style.background = "";
+    };
+  }, []);
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -106,45 +137,69 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="h-dvh bg-white text-gray-900 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <div className="h-dvh bg-[#09090b] text-gray-100 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+      {/* Subtle radial glow behind form */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[500px] bg-violet-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
+
       {/* Back Button */}
       <Link
         href="/"
-        className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 19l-7-7 7-7" />
         </svg>
         Back
       </Link>
 
-      <div className="w-full max-w-[400px] flex flex-col items-center gap-6 sm:gap-8">
+      <motion.div
+        className="relative w-full max-w-[400px] flex flex-col items-center gap-6 sm:gap-8"
+        initial="hidden"
+        animate="visible"
+        variants={stagger}
+      >
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <LogoIcon className="w-12 h-12" />
-          <span className="font-bold text-2xl tracking-tight">Erao</span>
-        </Link>
+        <motion.div variants={fadeUp} transition={{ duration: 0.5 }}>
+          <Link href="/" className="flex items-center gap-2.5">
+            <LogoIcon className="w-10 h-10" forceDark />
+            <span className="font-semibold text-xl tracking-tight text-gray-100">Erao</span>
+          </Link>
+        </motion.div>
 
         {/* Form Container */}
         <div className="w-full flex flex-col gap-6">
-          {/* Header - LEFT ALIGNED */}
-          <div className="flex flex-col gap-1">
-            <h1 className="text-base font-semibold">Create your account</h1>
-            <p className="text-base text-gray-500">
+          {/* Header */}
+          <motion.div
+            className="flex flex-col gap-1.5"
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+          >
+            <h1 className="text-lg font-semibold tracking-tight text-gray-100">Create your account</h1>
+            <p className="text-sm text-gray-500">
               Start querying your databases in natural language
             </p>
-          </div>
+          </motion.div>
 
           {error && (
-            <div className="bg-gray-50 border-l-2 border-l-red-400 text-gray-600 text-sm px-4 py-3 rounded-r-lg">
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-red-500/[0.08] border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <motion.form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4"
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+          >
             {/* Full Name Field */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="fullName" className="text-sm font-medium">
+              <label htmlFor="fullName" className="text-sm font-medium text-gray-300">
                 Full name
               </label>
               <input
@@ -154,13 +209,13 @@ export default function RegisterPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your name"
                 required
-                className="h-10 bg-[#f5f5f5] rounded-[10px] px-3 text-sm outline-none placeholder:text-gray-400 hover:bg-[#efefef] focus:bg-white focus:ring-1 focus:ring-black transition-colors"
+                className="h-10 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 text-sm text-gray-100 outline-none placeholder:text-gray-600 hover:border-white/[0.1] focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/25 transition-all duration-200"
               />
             </div>
 
             {/* Email Field */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="email" className="text-sm font-medium">
+              <label htmlFor="email" className="text-sm font-medium text-gray-300">
                 Email
               </label>
               <input
@@ -170,13 +225,13 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
-                className="h-10 bg-[#f5f5f5] rounded-[10px] px-3 text-sm outline-none placeholder:text-gray-400 hover:bg-[#efefef] focus:bg-white focus:ring-1 focus:ring-black transition-colors"
+                className="h-10 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 text-sm text-gray-100 outline-none placeholder:text-gray-600 hover:border-white/[0.1] focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/25 transition-all duration-200"
               />
             </div>
 
             {/* Password Field */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="password" className="text-sm font-medium">
+              <label htmlFor="password" className="text-sm font-medium text-gray-300">
                 Password
               </label>
               <input
@@ -186,7 +241,7 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Create a password"
                 required
-                className="h-10 bg-[#f5f5f5] rounded-[10px] px-3 text-sm outline-none placeholder:text-gray-400 hover:bg-[#efefef] focus:bg-white focus:ring-1 focus:ring-black transition-colors"
+                className="h-10 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 text-sm text-gray-100 outline-none placeholder:text-gray-600 hover:border-white/[0.1] focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/25 transition-all duration-200"
               />
             </div>
 
@@ -194,28 +249,50 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="h-11 bg-black text-white rounded-[10px] text-sm font-medium hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="h-11 bg-gray-100 text-gray-900 rounded-xl text-sm font-medium hover:bg-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-1"
             >
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Creating account...
+                </span>
+              ) : (
+                "Create account"
+              )}
             </button>
-          </form>
+          </motion.form>
 
           {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-sm text-gray-400">or</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
+          <motion.div
+            className="flex items-center gap-3"
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex-1 h-px bg-white/[0.06]" />
+            <span className="text-xs text-gray-600 uppercase tracking-wider">or</span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </motion.div>
 
-          {/* Custom Google Sign Up Button */}
-          <button
+          {/* Google Sign Up Button */}
+          <motion.button
             type="button"
             onClick={() => googleLogin()}
             disabled={googleLoading}
-            className="h-11 w-full border border-gray-300 rounded-[10px] flex items-center justify-center gap-3 text-sm font-medium hover:bg-[#f5f5f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-11 w-full bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center justify-center gap-3 text-sm font-medium text-gray-300 hover:bg-white/[0.07] hover:border-white/[0.1] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
           >
             {googleLoading ? (
-              "Creating account..."
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Creating account...
+              </span>
             ) : (
               <>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -227,17 +304,21 @@ export default function RegisterPage() {
                 Sign up with Google
               </>
             )}
-          </button>
+          </motion.button>
 
-          {/* Footer - ALL BLACK TEXT */}
-          <div className="flex items-center justify-center gap-1 text-base">
-            <span>Already have an account?</span>
-            <Link href="/login" className="font-semibold hover:underline">
+          {/* Footer */}
+          <motion.div
+            className="flex items-center justify-center gap-1.5 text-sm"
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="text-gray-500">Already have an account?</span>
+            <Link href="/login" className="text-gray-200 font-medium hover:text-white transition-colors duration-200">
               Sign in
             </Link>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,20 +1,36 @@
 "use client";
 
+import { useEffect } from "react";
 import { PageLayout, EmailButton } from "@/components/shared";
 
 export default function TermsPage() {
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("landing-dark-scroll");
+    html.style.background = "#09090b";
+    return () => {
+      html.classList.remove("landing-dark-scroll");
+      html.style.background = "";
+    };
+  }, []);
+
   return (
-    <PageLayout currentPage="terms">
+    <PageLayout currentPage="terms" variant="dark">
       <article className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
-        <div className="border-b border-gray-200 pb-6 sm:pb-8 mb-8 sm:mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-3">Terms of Service</h1>
+        <div
+          className="border-b border-white/[0.06] pb-6 sm:pb-8 mb-8 sm:mb-10"
+          style={{ animation: "fadeUp 0.5s ease-out both" }}
+        >
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-100 mb-2 sm:mb-3">
+            Terms of Service
+          </h1>
           <p className="text-sm sm:text-base text-gray-500">Last updated: January 28, 2025</p>
         </div>
 
         {/* Introduction */}
-        <div className="prose prose-gray max-w-none">
-          <p className="text-lg text-gray-600 mb-10">
+        <div className="max-w-none">
+          <p className="text-lg text-gray-400 mb-10 leading-relaxed">
             Welcome to Erao. These Terms of Service govern your use of our platform and services.
             By accessing or using Erao, you agree to be bound by these terms. Please read them carefully.
           </p>
@@ -22,12 +38,12 @@ export default function TermsPage() {
           {/* Terms Content */}
           <div className="space-y-12">
             {/* Section 1 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">1</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">1</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Acceptance of Terms</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Acceptance of Terms</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     By creating an account or using our Service, you acknowledge that you have read, understood,
                     and agree to be bound by these Terms. If you do not agree to these Terms, you may not access
                     or use the Service. These Terms apply to all visitors, users, and others who access the Service.
@@ -37,17 +53,17 @@ export default function TermsPage() {
             </section>
 
             {/* Section 2 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">2</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">2</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Description of Service</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Description of Service</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">
                     Erao is a software-as-a-service platform that enables users to query databases and uploaded files using natural language.
                     Our Service translates your questions into queries, executes them securely against your connected database or uploaded file, and presents
                     the results in an accessible format including tables, charts, and summaries.
                   </p>
-                  <div className="bg-white rounded-xl p-4 border border-gray-200">
+                  <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
                     <p className="text-sm text-gray-500">
                       The Service is provided on an &quot;as available&quot; basis. We reserve the right to modify, suspend,
                       or discontinue any aspect of the Service at any time.
@@ -58,38 +74,38 @@ export default function TermsPage() {
             </section>
 
             {/* Section 3 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">3</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">3</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">User Accounts</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">User Accounts</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">
                     To access certain features, you must create an account. When you create an account, you agree to:
                   </p>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-gray-600">Provide accurate, current, and complete information</span>
+                      <span className="text-gray-400">Provide accurate, current, and complete information</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-gray-600">Maintain the confidentiality of your account credentials</span>
+                      <span className="text-gray-400">Maintain the confidentiality of your account credentials</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-gray-600">Accept responsibility for all activities under your account</span>
+                      <span className="text-gray-400">Accept responsibility for all activities under your account</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-gray-600">Notify us immediately of any unauthorized access</span>
+                      <span className="text-gray-400">Notify us immediately of any unauthorized access</span>
                     </li>
                   </ul>
                 </div>
@@ -97,12 +113,12 @@ export default function TermsPage() {
             </section>
 
             {/* Section 4 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">4</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">4</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Acceptable Use</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">You agree not to use the Service to:</p>
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Acceptable Use</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">You agree not to use the Service to:</p>
                   <div className="grid md:grid-cols-2 gap-3">
                     {[
                       "Violate any applicable laws or regulations",
@@ -112,11 +128,11 @@ export default function TermsPage() {
                       "Use the Service for malicious purposes",
                       "Reverse engineer or extract source code",
                     ].map((item) => (
-                      <div key={item} className="flex items-start gap-2 bg-white rounded-lg p-3 border border-gray-200">
-                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div key={item} className="flex items-start gap-2 bg-white/[0.02] rounded-lg p-3 border border-white/[0.06]">
+                        <svg className="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        <span className="text-sm text-gray-600">{item}</span>
+                        <span className="text-sm text-gray-400">{item}</span>
                       </div>
                     ))}
                   </div>
@@ -125,12 +141,12 @@ export default function TermsPage() {
             </section>
 
             {/* Section 5 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">5</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">5</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Database Connections & File Uploads</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Database Connections & File Uploads</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     You are solely responsible for ensuring you have proper authorization to connect to and query
                     any databases you use with our Service. You are also responsible for ensuring you have the right
                     to upload and analyze any files through our Service. Erao is not responsible for any unauthorized access
@@ -142,12 +158,12 @@ export default function TermsPage() {
             </section>
 
             {/* Section 6 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">6</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">6</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Payment and Billing</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">For paid subscription plans:</p>
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Payment and Billing</h2>
+                  <p className="text-gray-400 leading-relaxed mb-4">For paid subscription plans:</p>
                   <div className="space-y-2">
                     {[
                       "Fees are billed in advance on a monthly or annual basis",
@@ -155,8 +171,8 @@ export default function TermsPage() {
                       "We may change pricing with 30 days advance notice",
                       "You are responsible for all applicable taxes",
                     ].map((item) => (
-                      <div key={item} className="flex items-center gap-3 text-gray-600">
-                        <div className="w-1.5 h-1.5 bg-black rounded-full" />
+                      <div key={item} className="flex items-center gap-3 text-gray-400">
+                        <div className="w-1.5 h-1.5 bg-gray-500 rounded-full" />
                         <span>{item}</span>
                       </div>
                     ))}
@@ -166,12 +182,12 @@ export default function TermsPage() {
             </section>
 
             {/* Section 7 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">7</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">7</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Intellectual Property</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Intellectual Property</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     The Service and its original content, features, and functionality are owned by Erao and are
                     protected by international copyright, trademark, patent, trade secret, and other intellectual
                     property laws. You may not copy, modify, distribute, sell, or lease any part of our Service
@@ -182,12 +198,12 @@ export default function TermsPage() {
             </section>
 
             {/* Section 8 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">8</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">8</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Limitation of Liability</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Limitation of Liability</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     To the maximum extent permitted by applicable law, Erao shall not be liable for any indirect,
                     incidental, special, consequential, or punitive damages, including but not limited to loss of
                     profits, data, use, goodwill, or other intangible losses, resulting from your access to or
@@ -198,12 +214,12 @@ export default function TermsPage() {
             </section>
 
             {/* Section 9 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">9</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">9</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Termination</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Termination</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     We may terminate or suspend your account and access to the Service immediately, without prior
                     notice or liability, for any reason, including if you breach these Terms. Upon termination,
                     your right to use the Service will cease immediately. You may terminate your account at any
@@ -214,12 +230,12 @@ export default function TermsPage() {
             </section>
 
             {/* Section 10 */}
-            <section className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
+            <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-black text-white rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold">10</span>
+                <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-white/10 text-gray-300 rounded-lg flex items-center justify-center text-xs sm:text-sm font-semibold">10</span>
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Changes to Terms</h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Changes to Terms</h2>
+                  <p className="text-gray-400 leading-relaxed">
                     We reserve the right to modify or replace these Terms at any time at our sole discretion.
                     If a revision is material, we will provide at least 30 days notice prior to any new terms
                     taking effect. Your continued use of the Service after changes constitutes acceptance of the
@@ -231,9 +247,9 @@ export default function TermsPage() {
           </div>
 
           {/* Contact Section */}
-          <div className="mt-12 sm:mt-16 bg-black text-white rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center">
-            <h2 className="text-xl font-semibold mb-3">Questions about these Terms?</h2>
-            <p className="text-gray-400 mb-6">
+          <div className="mt-12 sm:mt-16 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 text-center">
+            <h2 className="text-xl font-semibold text-gray-100 mb-3">Questions about these Terms?</h2>
+            <p className="text-gray-500 mb-6">
               If you have any questions about these Terms of Service, please contact us.
             </p>
             <EmailButton variant="secondary">
@@ -242,6 +258,19 @@ export default function TermsPage() {
           </div>
         </div>
       </article>
+
+      <style jsx>{`
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </PageLayout>
   );
 }

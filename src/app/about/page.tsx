@@ -1,104 +1,434 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { PageLayout, EmailButton } from "@/components/shared";
+import { motion } from "framer-motion";
+import { PageLayout, SUPPORT_EMAIL } from "@/components/shared";
+
+/* ------------------------------------------------------------------ */
+/*  ANIMATION VARIANTS                                                 */
+/* ------------------------------------------------------------------ */
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const fadeBlur = {
+  hidden: { opacity: 0, filter: "blur(8px)" },
+  visible: { opacity: 1, filter: "blur(0px)" },
+};
+
+const stagger = {
+  visible: {
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const staggerSlow = {
+  visible: {
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  ACCENT COLORS                                                      */
+/* ------------------------------------------------------------------ */
+
+const accentColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+  blue: {
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/20",
+    text: "text-blue-400",
+    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]",
+  },
+  purple: {
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    text: "text-violet-400",
+    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]",
+  },
+  emerald: {
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    text: "text-emerald-400",
+    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]",
+  },
+  amber: {
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    text: "text-amber-400",
+    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(245,158,11,0.3)]",
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  DATA                                                               */
+/* ------------------------------------------------------------------ */
 
 const values = [
   {
     title: "Simplicity First",
-    description: "We believe powerful tools don't have to be complicated. Every feature we build must make your life easier, not harder.",
+    description:
+      "We believe powerful tools don't have to be complicated. Every feature we build must make your life easier, not harder.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+      </svg>
+    ),
+    accentColor: "blue",
   },
   {
     title: "Privacy by Design",
-    description: "Your data is yours. We never store your actual data—only the queries you run. Security isn't an afterthought; it's built into everything we do.",
+    description:
+      "Your data is yours. We never store your actual data — only the queries you run. Security isn't an afterthought; it's built into everything we do.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+    ),
+    accentColor: "emerald",
   },
   {
     title: "Speed Matters",
-    description: "Waiting for answers slows down decisions. We're obsessed with making Erao fast—from connection to query to result.",
+    description:
+      "Waiting for answers slows down decisions. We're obsessed with making Erao fast — from connection to query to result.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+      </svg>
+    ),
+    accentColor: "purple",
   },
   {
     title: "Transparency",
-    description: "No hidden fees, no surprise charges, no data selling. What you see is what you get.",
+    description:
+      "No hidden fees, no surprise charges, no data selling. What you see is what you get.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+    accentColor: "amber",
   },
 ];
 
-export default function AboutPage() {
+const stats = [
+  { label: "Databases Supported", value: "15+" },
+  { label: "File Formats", value: "6" },
+  { label: "Data Encryption", value: "AES-256" },
+  { label: "Uptime", value: "99.9%" },
+];
+
+/* ------------------------------------------------------------------ */
+/*  SECTION DIVIDER                                                    */
+/* ------------------------------------------------------------------ */
+
+function SectionDivider({ variant = "blue" }: { variant?: "blue" | "purple" | "neutral" }) {
+  const colors = {
+    blue: "from-transparent via-blue-500/20 to-transparent",
+    purple: "from-transparent via-violet-500/20 to-transparent",
+    neutral: "from-transparent via-white/[0.06] to-transparent",
+  };
   return (
-    <PageLayout currentPage="about">
-      {/* Hero */}
-      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-14 sm:pb-20">
-        <div className="max-w-3xl">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
-            We&apos;re making data accessible to everyone
-          </h1>
-          <p className="text-lg text-gray-600 leading-relaxed">
-            Erao was born from a simple frustration: why do you need to know SQL to ask your own database a question? And why can&apos;t you just upload a spreadsheet and start asking? We&apos;re building a world where anyone—not just engineers—can get instant insights from their data.
-          </p>
-        </div>
+    <div className="relative z-10 w-full max-w-3xl mx-auto px-6">
+      <div className={`h-px bg-gradient-to-r ${colors[variant]}`} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  PAGE                                                               */
+/* ------------------------------------------------------------------ */
+
+export default function AboutPage() {
+  // Dark scrollbar
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("landing-dark-scroll");
+    html.style.background = "#09090b";
+    return () => {
+      html.classList.remove("landing-dark-scroll");
+      html.style.background = "";
+    };
+  }, []);
+
+  return (
+    <PageLayout currentPage="about" variant="dark">
+      {/* ===== HERO ===== */}
+      <section className="relative z-10 w-full pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
+        {/* Radial glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-violet-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+
+        <motion.div
+          className="max-w-4xl mx-auto px-6 relative"
+          initial="hidden"
+          animate="visible"
+          variants={stagger}
+        >
+          {/* Pill badge */}
+          <motion.div
+            variants={fadeBlur}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2.5 rounded-full px-4 py-1.5 mb-8 border border-white/10 bg-white/[0.04] backdrop-blur-md"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+            </span>
+            <span className="text-sm text-gray-300 font-medium">About Erao</span>
+          </motion.div>
+
+          {/* Headline */}
+          <motion.h1
+            variants={fadeUp}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="font-semibold tracking-tighter leading-[1.08] mb-6 text-balance max-w-3xl"
+            style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 3.75rem)" }}
+          >
+            We&apos;re making data
+            <br />
+            <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
+              accessible to everyone
+            </span>
+          </motion.h1>
+
+          {/* Subheadline */}
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="text-lg md:text-xl text-gray-400 max-w-2xl leading-relaxed"
+          >
+            Erao was born from a simple frustration: why do you need to know SQL to ask your own database a question? And why can&apos;t you just upload a spreadsheet and start asking? We&apos;re building a world where anyone — not just engineers — can get instant insights from their data.
+          </motion.p>
+        </motion.div>
       </section>
 
-      {/* Mission */}
-      <section className="w-full bg-gray-50 py-14 sm:py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Our Mission</h2>
-            <p className="text-lg text-gray-600">
-              To eliminate the gap between asking a question and getting an answer from your data. No SQL. No waiting. No middlemen.
-            </p>
-          </div>
-        </div>
-      </section>
+      <SectionDivider variant="purple" />
 
-      {/* Story */}
-      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
-        <div className="max-w-3xl">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Our Story</h2>
-          <div className="space-y-4 text-gray-600">
-            <p>
-              Every day, thousands of business decisions are delayed because someone needs to ask a developer to write a SQL query. Product managers wait for usage stats. Sales teams wait for pipeline reports. Support teams wait for customer history.
-            </p>
-            <p>
-              We started Erao to fix this. By combining modern AI with a deep understanding of databases and file formats, we&apos;ve built a tool that lets anyone—regardless of technical background—connect a database or upload a file and have a conversation with their data.
-            </p>
-            <p>
-              Today, teams use Erao to get instant answers to questions that used to take hours or days. And we&apos;re just getting started.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section className="w-full bg-gray-50 py-14 sm:py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-center mb-8 sm:mb-12">What We Believe</h2>
-          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-            {values.map((value) => (
-              <div key={value.title} className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6">
-                <h3 className="text-lg font-semibold mb-2">{value.title}</h3>
-                <p className="text-sm text-gray-600">{value.description}</p>
-              </div>
+      {/* ===== STATS ===== */}
+      <section className="relative z-10 w-full py-20 md:py-24">
+        <motion.div
+          className="max-w-5xl mx-auto px-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={staggerSlow}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats.map((stat) => (
+              <motion.div
+                key={stat.label}
+                variants={fadeUp}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="text-center rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8"
+              >
+                <p className="text-2xl sm:text-3xl font-semibold tracking-tighter text-gray-100 mb-1">
+                  {stat.value}
+                </p>
+                <p className="text-sm text-gray-500">{stat.label}</p>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* Contact */}
-      <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-14 sm:py-20 text-center">
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Get in Touch</h2>
-        <p className="text-sm sm:text-base text-gray-600 mb-5 sm:mb-6">
-          Questions? Feedback? We&apos;d love to hear from you.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-          <EmailButton variant="outline">
-            Email Us
-          </EmailButton>
-          <Link
-            href="/contact"
-            className="bg-black text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+      <SectionDivider variant="blue" />
+
+      {/* ===== MISSION ===== */}
+      <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
+        {/* Subtle glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-blue-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
+
+        <motion.div
+          className="max-w-3xl mx-auto px-6 text-center relative"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={stagger}
+        >
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-sm font-medium text-blue-400/80 tracking-wide uppercase mb-3"
           >
-            Contact Page
-          </Link>
-        </div>
+            Our Mission
+          </motion.p>
+          <motion.h2
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter mb-6 text-balance"
+          >
+            Eliminate the gap between question and answer
+          </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-lg text-gray-400 leading-relaxed text-balance"
+          >
+            To eliminate the gap between asking a question and getting an answer from your data. No SQL. No waiting. No middlemen.
+          </motion.p>
+        </motion.div>
+      </section>
+
+      <SectionDivider variant="neutral" />
+
+      {/* ===== STORY ===== */}
+      <section className="relative z-10 w-full py-24 md:py-32">
+        <motion.div
+          className="max-w-5xl mx-auto px-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={stagger}
+        >
+          <div className="max-w-3xl">
+            <motion.p
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="text-sm font-medium text-violet-400/80 tracking-wide uppercase mb-3"
+            >
+              Our Story
+            </motion.p>
+            <motion.h2
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+              className="text-2xl sm:text-3xl font-semibold tracking-tighter mb-8 text-balance"
+            >
+              From frustration to solution
+            </motion.h2>
+            <div className="space-y-5">
+              <motion.p
+                variants={fadeUp}
+                transition={{ duration: 0.5 }}
+                className="text-gray-400 leading-relaxed"
+              >
+                Every day, thousands of business decisions are delayed because someone needs to ask a developer to write a SQL query. Product managers wait for usage stats. Sales teams wait for pipeline reports. Support teams wait for customer history.
+              </motion.p>
+              <motion.p
+                variants={fadeUp}
+                transition={{ duration: 0.5 }}
+                className="text-gray-400 leading-relaxed"
+              >
+                We started Erao to fix this. By combining modern AI with a deep understanding of databases and file formats, we&apos;ve built a tool that lets anyone — regardless of technical background — connect a database or upload a file and have a conversation with their data.
+              </motion.p>
+              <motion.p
+                variants={fadeUp}
+                transition={{ duration: 0.5 }}
+                className="text-gray-400 leading-relaxed"
+              >
+                Today, teams use Erao to get instant answers to questions that used to take hours or days. And we&apos;re just getting started.
+              </motion.p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      <SectionDivider variant="purple" />
+
+      {/* ===== VALUES ===== */}
+      <section className="relative z-10 w-full py-24 md:py-32">
+        <motion.div
+          className="max-w-5xl mx-auto px-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={stagger}
+        >
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-sm font-medium text-blue-400/80 tracking-wide uppercase text-center mb-3"
+          >
+            Our Values
+          </motion.p>
+          <motion.h2
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-16 text-balance"
+          >
+            What we believe
+          </motion.h2>
+
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
+            variants={staggerSlow}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+          >
+            {values.map((value) => {
+              const accent = accentColors[value.accentColor];
+              return (
+                <motion.div
+                  key={value.title}
+                  variants={fadeUp}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  className={`group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04] ${accent.glow}`}
+                >
+                  {/* Icon */}
+                  <div
+                    className={`w-10 h-10 rounded-xl ${accent.bg} border ${accent.border} ${accent.text} flex items-center justify-center mb-5`}
+                  >
+                    {value.icon}
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-100 mb-2 tracking-tight">{value.title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">{value.description}</p>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </motion.div>
+      </section>
+
+      <SectionDivider variant="blue" />
+
+      {/* ===== CONTACT ===== */}
+      <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
+        {/* Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+
+        <motion.div
+          className="max-w-3xl mx-auto px-6 text-center relative"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={stagger}
+        >
+          <motion.h2
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter mb-4 text-balance"
+          >
+            Get in touch
+          </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-gray-400 mb-10 text-lg text-balance"
+          >
+            Questions? Feedback? We&apos;d love to hear from you.
+          </motion.p>
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Link
+              href="/contact"
+              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+            >
+              Contact Page
+            </Link>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+            >
+              Email Us
+            </a>
+          </motion.div>
+        </motion.div>
       </section>
     </PageLayout>
   );

@@ -1,35 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { Navbar, Footer } from "@/components/shared";
 import { auth } from "@/lib/api";
 
-function ContactSalesButton({ variant = "outline" }: { variant?: "outline" | "filled" }) {
-  return (
-    <Link
-      href="/contact"
-      className={`block w-full py-3 text-center rounded-xl text-sm font-medium transition-colors ${
-        variant === "filled"
-          ? "bg-black text-white hover:bg-gray-800"
-          : "border border-gray-300 hover:bg-gray-50"
-      }`}
-    >
-      Contact Sales
-    </Link>
-  );
-}
-
-const demoData = [
-  { name: "Acme Corp", revenue: 42500 },
-  { name: "TechStart Inc", revenue: 38200 },
-  { name: "DataFlow Labs", revenue: 31800 },
-  { name: "CloudNine", revenue: 28400 },
-  { name: "Quantum", revenue: 24100 },
-];
-
-const maxRevenue = Math.max(...demoData.map(d => d.revenue));
+/* ------------------------------------------------------------------ */
+/*  DATA                                                               */
+/* ------------------------------------------------------------------ */
 
 const supportedDatabases = [
   { name: "PostgreSQL", logo: "/db-logos/postgresql.png" },
@@ -58,206 +39,337 @@ const supportedFiles = [
   { name: "TXT", logo: "/file-logos/txt.png", scale: "" },
 ];
 
-function DemoPreview() {
-  const [activeTab, setActiveTab] = useState<"bar" | "line" | "pie" | "table">("bar");
+/* ------------------------------------------------------------------ */
+/*  ANIMATION VARIANTS                                                 */
+/* ------------------------------------------------------------------ */
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const fadeScale = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1 },
+};
+
+const fadeBlur = {
+  hidden: { opacity: 0, filter: "blur(8px)" },
+  visible: { opacity: 1, filter: "blur(0px)" },
+};
+
+const stagger = {
+  visible: {
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const staggerSlow = {
+  visible: {
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  FEATURES DATA                                                      */
+/* ------------------------------------------------------------------ */
+
+const features = [
+  {
+    title: "Natural Language Queries",
+    desc: "Ask questions in plain English. No SQL, no code. Just type what you want to know and get instant answers from your data.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    ),
+    gridClass: "md:col-span-1 md:row-span-1",
+    accentColor: "blue",
+  },
+  {
+    title: "15+ Database Support",
+    desc: "PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Snowflake, ClickHouse, and more. Connect any database in seconds.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+      </svg>
+    ),
+    gridClass: "md:col-span-1 md:row-span-1",
+    accentColor: "purple",
+  },
+  {
+    title: "File Analysis",
+    desc: "Upload CSV, Excel, JSON, XML, Word, or TXT files. Erao parses and analyzes them instantly — supports files with 500M+ rows.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    ),
+    gridClass: "md:col-span-1 md:row-span-1",
+    accentColor: "emerald",
+  },
+  {
+    title: "Smart Visualizations",
+    desc: "AI automatically picks the best chart type. Bar, line, pie, area charts and tables — all rendered beautifully with ECharts. Export to CSV, Excel, or PDF.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    gridClass: "md:col-span-2 md:row-span-1",
+    accentColor: "blue",
+  },
+  {
+    title: "Enterprise Security",
+    desc: "AES-256 encryption for all credentials. Your data never leaves your database — we only send queries, never store results.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+    ),
+    gridClass: "md:col-span-1 md:row-span-1",
+    accentColor: "emerald",
+  },
+];
+
+const accentColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+  blue: {
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/20",
+    text: "text-blue-400",
+    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]",
+  },
+  purple: {
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    text: "text-violet-400",
+    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]",
+  },
+  emerald: {
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    text: "text-emerald-400",
+    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]",
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  STEPS DATA                                                         */
+/* ------------------------------------------------------------------ */
+
+const steps = [
+  {
+    num: "01",
+    title: "Connect",
+    desc: "Add your database credentials or upload a file. We support 15+ databases and 6 file formats. Everything is encrypted with AES-256.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+      </svg>
+    ),
+  },
+  {
+    num: "02",
+    title: "Ask",
+    desc: "Type your question in plain English. Erao's AI understands your schema, generates the query, and returns results — no SQL exposed.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+      </svg>
+    ),
+  },
+  {
+    num: "03",
+    title: "Visualize",
+    desc: "Get beautiful charts, tables, and summaries instantly. Export to CSV, Excel, or PDF. Share insights with your team.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+      </svg>
+    ),
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  PRICING DATA                                                       */
+/* ------------------------------------------------------------------ */
+
+const pricingPlans = [
+  {
+    name: "Free",
+    subtitle: "For trying out Erao",
+    price: "$0",
+    features: [
+      "1 database connection",
+      "1 file upload",
+      "10 queries per month",
+      "Basic visualizations",
+      "Community support",
+    ],
+    cta: "Get Started",
+    ctaHref: "/register",
+    highlighted: false,
+  },
+  {
+    name: "Pro",
+    subtitle: "For power users and small teams",
+    price: "$49",
+    features: [
+      "5 database connections",
+      "10 file uploads",
+      "100 queries per month",
+      "Advanced visualizations",
+      "Priority support",
+      "Export to CSV, Excel, PDF",
+    ],
+    cta: "Start Free Trial",
+    ctaHref: "/register",
+    highlighted: true,
+  },
+  {
+    name: "Enterprise",
+    subtitle: "For large organizations",
+    price: "$299",
+    features: [
+      "Unlimited connections",
+      "Unlimited file uploads",
+      "Unlimited queries",
+      "Custom AI models",
+      "Dedicated support",
+      "SSO & audit logs",
+      "On-premise deployment",
+    ],
+    cta: "Contact Sales",
+    ctaHref: "/contact",
+    highlighted: false,
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  MOCK CHAT UI (Product Showcase)                                    */
+/* ------------------------------------------------------------------ */
+
+function MockChatUI() {
   return (
-    <div className="bg-gradient-to-b from-gray-100 to-gray-50 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 md:p-3 shadow-2xl shadow-gray-200/50">
-      <div className="bg-white rounded-lg sm:rounded-xl overflow-hidden border border-gray-200">
-        {/* Window chrome */}
-        <div className="bg-gray-50 border-b border-gray-200 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3">
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FF5F57]" />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FFBD2E]" />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#28C840]" />
+    <div className="flex h-full w-full bg-[#09090b]">
+      {/* Sidebar */}
+      <div className="hidden sm:flex w-[200px] lg:w-[220px] flex-col border-r border-white/[0.06] bg-[#0c0c0e] flex-shrink-0">
+        {/* Sidebar header */}
+        <div className="p-3 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <span className="text-[10px] font-semibold text-blue-400">E</span>
+            </div>
+            <span className="text-xs font-medium text-gray-300">Erao AI</span>
           </div>
-          <div className="flex items-center gap-2 ml-1">
-            <span className="text-xs sm:text-sm text-gray-500">production_db</span>
+        </div>
+        {/* Conversations */}
+        <div className="flex-1 p-2 space-y-0.5 overflow-hidden">
+          <div className="px-2.5 py-2 rounded-lg bg-white/[0.06] border border-white/[0.06]">
+            <p className="text-[11px] text-gray-200 truncate">Revenue by region Q4</p>
+            <p className="text-[9px] text-gray-500 mt-0.5">2 min ago</p>
+          </div>
+          <div className="px-2.5 py-2 rounded-lg hover:bg-white/[0.03] transition-colors">
+            <p className="text-[11px] text-gray-400 truncate">Top customers analysis</p>
+            <p className="text-[9px] text-gray-600 mt-0.5">1 hour ago</p>
+          </div>
+          <div className="px-2.5 py-2 rounded-lg hover:bg-white/[0.03] transition-colors">
+            <p className="text-[11px] text-gray-400 truncate">Churn prediction model</p>
+            <p className="text-[9px] text-gray-600 mt-0.5">Yesterday</p>
+          </div>
+          <div className="px-2.5 py-2 rounded-lg hover:bg-white/[0.03] transition-colors">
+            <p className="text-[11px] text-gray-400 truncate">Monthly sales report</p>
+            <p className="text-[9px] text-gray-600 mt-0.5">2 days ago</p>
+          </div>
+        </div>
+        {/* Sidebar footer */}
+        <div className="p-3 border-t border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-violet-500 flex items-center justify-center">
+              <span className="text-[8px] font-semibold text-white">JD</span>
+            </div>
+            <span className="text-[10px] text-gray-400">John Doe</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Chat header */}
+        <div className="px-4 py-2.5 border-b border-white/[0.06] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-xs text-gray-300 font-medium">PostgreSQL — analytics_db</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="px-2 py-0.5 rounded text-[9px] text-gray-500 bg-white/[0.04]">Schema</div>
+            <div className="px-2 py-0.5 rounded text-[9px] text-gray-500 bg-white/[0.04]">Export</div>
           </div>
         </div>
 
-        <div className="p-3 sm:p-5 md:p-6 space-y-4">
+        {/* Messages area */}
+        <div className="flex-1 overflow-hidden px-4 py-4 space-y-4">
           {/* User message */}
           <div className="flex justify-end">
-            <div className="bg-gray-900 text-white px-4 py-2.5 rounded-2xl rounded-br-md max-w-[85%] sm:max-w-md">
-              <p className="text-xs sm:text-sm">Show me our top 5 customers by revenue this quarter</p>
+            <div className="max-w-[70%] px-3 py-2 rounded-2xl rounded-br-md bg-blue-500/15 border border-blue-500/20">
+              <p className="text-[11px] text-gray-200 leading-relaxed">Show me total revenue by region for Q4 2025</p>
             </div>
           </div>
 
-          {/* AI response */}
-          <div className="flex justify-start">
-            <div className="w-full max-w-full sm:max-w-[90%]">
-              {/* Chart type tabs */}
-              <div className="flex items-center gap-1 mb-3 bg-gray-100 rounded-lg p-1 w-fit">
-                {(["bar", "line", "pie", "table"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                      activeTab === tab
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    {tab === "bar" && (
-                      <span className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                        Bar
-                      </span>
-                    )}
-                    {tab === "line" && (
-                      <span className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" /></svg>
-                        Line
-                      </span>
-                    )}
-                    {tab === "pie" && (
-                      <span className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
-                        Pie
-                      </span>
-                    )}
-                    {tab === "table" && (
-                      <span className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        Table
-                      </span>
-                    )}
-                  </button>
-                ))}
+          {/* AI message with chart */}
+          <div className="flex gap-2">
+            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+            </div>
+            <div className="max-w-[85%] space-y-2.5">
+              <p className="text-[11px] text-gray-300 leading-relaxed">Here&apos;s the revenue breakdown by region for Q4 2025:</p>
+
+              {/* Mock chart */}
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-medium text-gray-400">Revenue by Region — Q4 2025</span>
+                  <span className="text-[9px] text-gray-500">Bar Chart</span>
+                </div>
+                {/* Bars */}
+                <div className="space-y-2">
+                  {[
+                    { label: "North America", value: 82, amount: "$2.4M", color: "bg-blue-500" },
+                    { label: "Europe", value: 65, amount: "$1.9M", color: "bg-blue-400" },
+                    { label: "Asia Pacific", value: 48, amount: "$1.4M", color: "bg-violet-400" },
+                    { label: "Latin America", value: 28, amount: "$820K", color: "bg-violet-500" },
+                  ].map((bar) => (
+                    <div key={bar.label} className="flex items-center gap-2">
+                      <span className="text-[9px] text-gray-500 w-20 text-right flex-shrink-0 truncate">{bar.label}</span>
+                      <div className="flex-1 h-4 bg-white/[0.04] rounded-sm overflow-hidden">
+                        <div
+                          className={`h-full ${bar.color} rounded-sm`}
+                          style={{ width: `${bar.value}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-gray-400 w-10 flex-shrink-0">{bar.amount}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Chart / Table content */}
-              <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                {activeTab === "table" ? (
-                  <table className="w-full text-xs sm:text-sm">
-                    <thead className="bg-gray-100/80">
-                      <tr>
-                        <th className="text-left px-3 sm:px-4 py-2.5 text-gray-500 font-medium text-xs uppercase tracking-wider">#</th>
-                        <th className="text-left px-3 sm:px-4 py-2.5 text-gray-500 font-medium text-xs uppercase tracking-wider">Customer</th>
-                        <th className="text-right px-3 sm:px-4 py-2.5 text-gray-500 font-medium text-xs uppercase tracking-wider">Revenue</th>
-                        <th className="text-right px-3 sm:px-4 py-2.5 text-gray-500 font-medium text-xs uppercase tracking-wider hidden sm:table-cell">Share</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {demoData.map((row, i) => (
-                        <tr key={row.name} className="hover:bg-gray-50/50">
-                          <td className="px-3 sm:px-4 py-2.5 text-gray-400 text-xs">{i + 1}</td>
-                          <td className="px-3 sm:px-4 py-2.5 font-medium text-gray-900">{row.name}</td>
-                          <td className="text-right px-3 sm:px-4 py-2.5 font-semibold text-gray-900">${row.revenue.toLocaleString()}</td>
-                          <td className="text-right px-3 sm:px-4 py-2.5 text-gray-500 hidden sm:table-cell">{(row.revenue / demoData.reduce((s, d) => s + d.revenue, 0) * 100).toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : activeTab === "bar" ? (
-                  <div className="p-4 sm:p-5">
-                    <div className="space-y-3">
-                      {demoData.map((row) => (
-                        <div key={row.name} className="flex items-center gap-3">
-                          <span className="text-xs sm:text-sm text-gray-600 w-20 sm:w-28 text-right truncate flex-shrink-0">{row.name}</span>
-                          <div className="flex-1 h-8 sm:h-9 bg-gray-100 rounded-md overflow-hidden relative">
-                            <div
-                              className="h-full bg-gray-900 rounded-md transition-all duration-700"
-                              style={{ width: `${(row.revenue / maxRevenue) * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-xs sm:text-sm font-semibold text-gray-900 w-16 sm:w-20 text-right flex-shrink-0">${(row.revenue / 1000).toFixed(1)}k</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : activeTab === "line" ? (
-                  <div className="p-4 sm:p-5">
-                    <svg viewBox="0 0 400 180" className="w-full h-auto">
-                      {/* Grid lines */}
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <line key={i} x1="50" y1={20 + i * 35} x2="380" y2={20 + i * 35} stroke="#f0f0f0" strokeWidth="1" />
-                      ))}
-                      {/* Y-axis labels */}
-                      <text x="45" y="25" textAnchor="end" className="text-[10px]" fill="#9ca3af">$45k</text>
-                      <text x="45" y="60" textAnchor="end" className="text-[10px]" fill="#9ca3af">$35k</text>
-                      <text x="45" y="95" textAnchor="end" className="text-[10px]" fill="#9ca3af">$25k</text>
-                      <text x="45" y="130" textAnchor="end" className="text-[10px]" fill="#9ca3af">$15k</text>
-                      {/* Line */}
-                      <polyline
-                        fill="none"
-                        stroke="#111"
-                        strokeWidth="2.5"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                        points={demoData.map((d, i) => {
-                          const x = 75 + i * 75;
-                          const y = 160 - ((d.revenue - 15000) / 30000) * 140;
-                          return `${x},${y}`;
-                        }).join(" ")}
-                      />
-                      {/* Dots + labels */}
-                      {demoData.map((d, i) => {
-                        const x = 75 + i * 75;
-                        const y = 160 - ((d.revenue - 15000) / 30000) * 140;
-                        return (
-                          <g key={d.name}>
-                            <circle cx={x} cy={y} r="4" fill="#111" />
-                            <circle cx={x} cy={y} r="2" fill="white" />
-                            <text x={x} y="175" textAnchor="middle" className="text-[9px]" fill="#9ca3af">{d.name.split(" ")[0]}</text>
-                          </g>
-                        );
-                      })}
-                    </svg>
-                  </div>
-                ) : (
-                  /* Pie chart */
-                  <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                    <svg viewBox="0 0 200 200" className="w-36 h-36 sm:w-44 sm:h-44 flex-shrink-0">
-                      {(() => {
-                        const total = demoData.reduce((s, d) => s + d.revenue, 0);
-                        const colors = ["#111827", "#374151", "#6b7280", "#9ca3af", "#d1d5db"];
-                        let cumAngle = 0;
-                        return demoData.map((d, i) => {
-                          const angle = (d.revenue / total) * 360;
-                          const startAngle = cumAngle;
-                          cumAngle += angle;
-                          const startRad = (startAngle - 90) * Math.PI / 180;
-                          const endRad = (cumAngle - 90) * Math.PI / 180;
-                          const largeArc = angle > 180 ? 1 : 0;
-                          const x1 = 100 + 85 * Math.cos(startRad);
-                          const y1 = 100 + 85 * Math.sin(startRad);
-                          const x2 = 100 + 85 * Math.cos(endRad);
-                          const y2 = 100 + 85 * Math.sin(endRad);
-                          return (
-                            <path
-                              key={d.name}
-                              d={`M100,100 L${x1},${y1} A85,85 0 ${largeArc},1 ${x2},${y2} Z`}
-                              fill={colors[i]}
-                            />
-                          );
-                        });
-                      })()}
-                      <circle cx="100" cy="100" r="40" fill="white" />
-                    </svg>
-                    <div className="space-y-2">
-                      {demoData.map((d, i) => {
-                        const total = demoData.reduce((s, r) => s + r.revenue, 0);
-                        const colors = ["bg-gray-900", "bg-gray-700", "bg-gray-500", "bg-gray-400", "bg-gray-300"];
-                        return (
-                          <div key={d.name} className="flex items-center gap-2">
-                            <div className={`w-2.5 h-2.5 rounded-full ${colors[i]}`} />
-                            <span className="text-xs text-gray-600">{d.name}</span>
-                            <span className="text-xs font-medium text-gray-900 ml-auto">{(d.revenue / total * 100).toFixed(0)}%</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* AI summary */}
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                North America leads with <span className="text-blue-400">$2.4M</span> (37% of total). Europe follows at <span className="text-blue-400">$1.9M</span>. Total Q4 revenue: <span className="text-emerald-400">$6.52M</span> — up 12% from Q3.
+              </p>
+            </div>
+          </div>
+        </div>
 
-              {/* Row count */}
-              <div className="flex items-center justify-between mt-2 px-1">
-                <span className="text-[10px] sm:text-xs text-gray-400">5 rows returned in 0.12s</span>
-                <span className="text-[10px] sm:text-xs text-gray-400">Q1 2026</span>
-              </div>
+        {/* Input area */}
+        <div className="px-4 py-3 border-t border-white/[0.06]">
+          <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2">
+            <span className="text-[11px] text-gray-500 flex-1">Ask about your data...</span>
+            <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
             </div>
           </div>
         </div>
@@ -265,6 +377,39 @@ function DemoPreview() {
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  SECTION DIVIDER                                                    */
+/* ------------------------------------------------------------------ */
+
+function SectionDivider({ variant = "blue" }: { variant?: "blue" | "purple" | "neutral" }) {
+  const colors = {
+    blue: "from-transparent via-blue-500/20 to-transparent",
+    purple: "from-transparent via-violet-500/20 to-transparent",
+    neutral: "from-transparent via-white/[0.06] to-transparent",
+  };
+  return (
+    <div className="relative z-10 w-full max-w-3xl mx-auto px-6">
+      <div className={`h-px bg-gradient-to-r ${colors[variant]}`} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CHECK ICON                                                         */
+/* ------------------------------------------------------------------ */
+
+function CheckIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  MAIN PAGE                                                          */
+/* ------------------------------------------------------------------ */
 
 export default function LandingPage() {
   const router = useRouter();
@@ -275,442 +420,615 @@ export default function LandingPage() {
     }
   }, [router]);
 
+  // Force dark scrollbar on html for this page
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("landing-dark-scroll");
+    html.style.background = "#09090b";
+    return () => {
+      html.classList.remove("landing-dark-scroll");
+      html.style.background = "";
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {/* Navigation with dropdowns */}
-      <Navbar />
+    <div className="min-h-screen bg-[#09090b] text-gray-100 relative landing-dark">
+      {/* Grid background layer */}
+      <div className="landing-grid-bg landing-grid-fade fixed inset-0 pointer-events-none z-0" />
 
-      {/* Hero Section */}
-      <section className="w-full max-w-5xl mx-auto px-6 pt-16 pb-20 md:pt-24 md:pb-28">
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Social proof badge */}
-          <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-4 py-1.5 mb-6">
-            <div className="flex -space-x-2">
-              <div className="w-6 h-6 rounded-full bg-gray-900 border-2 border-white" />
-              <div className="w-6 h-6 rounded-full bg-gray-700 border-2 border-white" />
-              <div className="w-6 h-6 rounded-full bg-gray-500 border-2 border-white" />
-            </div>
-            <span className="text-sm text-gray-600">Trusted by 500+ data teams</span>
-          </div>
+      <Navbar variant="dark" />
 
-          {/* Main headline */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.1]">
+      {/* ===== HERO ===== */}
+      <section className="relative z-10 w-full pt-20 pb-24 md:pt-28 md:pb-32 overflow-hidden">
+        {/* Hero radial glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-blue-500/[0.07] rounded-full blur-[120px] pointer-events-none" />
+
+        <motion.div
+          className="max-w-4xl mx-auto px-6 text-center relative"
+          initial="hidden"
+          animate="visible"
+          variants={stagger}
+        >
+          {/* Pill badge */}
+          <motion.div
+            variants={fadeBlur}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2.5 rounded-full px-4 py-1.5 mb-10 border border-white/10 bg-white/[0.04] backdrop-blur-md"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+            </span>
+            <span className="text-sm text-gray-300 font-medium">AI-Powered Data Intelligence</span>
+            <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </motion.div>
+
+          {/* Headline */}
+          <motion.h1
+            variants={fadeUp}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="font-semibold tracking-tighter leading-[1.05] mb-8 text-balance"
+            style={{ fontSize: "clamp(2.5rem, 6vw + 1rem, 4.5rem)" }}
+          >
             Ask your data anything.
-            <span className="text-gray-400"> In plain English.</span>
-          </h1>
+            <br />
+            <span className="text-gradient-hero">Get instant answers.</span>
+          </motion.h1>
 
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl mx-auto">
-            Connect a database or upload a file and get instant answers. No SQL required.
-            Just ask like you&apos;d ask a colleague.
-          </p>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="text-lg md:text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed text-balance"
+          >
+            Connect any database or upload a file. Ask questions in plain English.
+            No SQL required — just answers, charts, and insights in seconds.
+          </motion.p>
 
-          {/* Primary CTA */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          {/* CTA */}
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
             <Link
               href="/register"
-              className="w-full sm:w-auto bg-black text-white px-8 py-3.5 rounded-xl text-base font-medium hover:bg-gray-800 transition-colors"
+              className="group relative w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
-              Start Free
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                Start Free
+                <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </span>
             </Link>
-          </div>
+            <Link
+              href="/features"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+            >
+              See Features
+            </Link>
+          </motion.div>
 
           {/* Trust indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8 text-xs sm:text-sm text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              Free forever
-            </span>
-            <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              2 min setup
-            </span>
-            <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              Encrypted
-            </span>
-          </div>
-        </div>
-
-        {/* Interactive product demo */}
-        <div className="mt-12 sm:mt-16 relative">
-          <DemoPreview />
-        </div>
-      </section>
-
-      {/* Supported Databases & Files */}
-      <section className="w-full border-y border-gray-100 bg-gray-50/50 py-12 sm:py-14">
-        <div className="max-w-5xl mx-auto px-6">
-          <p className="text-center text-sm text-gray-500 mb-8">Works with 15+ databases and popular file formats</p>
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-6 sm:gap-x-10 sm:gap-y-7">
-            {supportedDatabases.map((db) => (
-              <div key={db.name} className="flex flex-col items-center gap-2 group">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-200">
-                  <img src={db.logo} alt={db.name} className="w-full h-full object-contain" />
-                </div>
-                <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-600 transition-colors">{db.name}</span>
-              </div>
-            ))}
-          </div>
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-8">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400 font-medium">+ File Uploads</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 sm:gap-x-12 sm:gap-y-7">
-            {supportedFiles.map((file) => (
-              <div key={file.name} className="flex flex-col items-center gap-2 group">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300">
-                  <img src={file.logo} alt={file.name} className={`w-full h-full object-contain ${file.scale}`} />
-                </div>
-                <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-600 transition-colors">{file.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 3 Value Props */}
-      <section className="w-full max-w-5xl mx-auto px-6 py-20">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="text-center md:text-left">
-            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4 mx-auto md:mx-0">
-              <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Natural Language</h3>
-            <p className="text-gray-600 text-sm">
-              Ask questions like &quot;What were sales last week?&quot; and get instant answers. No SQL knowledge needed.
-            </p>
-          </div>
-
-          <div className="text-center md:text-left">
-            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4 mx-auto md:mx-0">
-              <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Instant Answers</h3>
-            <p className="text-gray-600 text-sm">
-              Get formatted tables, charts, and summaries in seconds. Stop waiting on your data team.
-            </p>
-          </div>
-
-          <div className="text-center md:text-left">
-            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4 mx-auto md:mx-0">
-              <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Enterprise Security</h3>
-            <p className="text-gray-600 text-sm">
-              Your data stays secure. Database credentials encrypted with AES-256. Files processed and stored with encryption.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="w-full bg-gray-50 py-20">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Up and running in 2 minutes</h2>
-            <p className="text-gray-600">No complex setup. No learning curve.</p>
-          </div>
-
-          {/* Step 1 — Connect */}
-          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-14 mb-16 md:mb-20">
-            <div className="w-full md:w-1/2 order-2 md:order-1">
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                  <span className="text-xs text-gray-400 ml-2">Add Database</span>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <span className="text-xs text-gray-400 w-16 shrink-0">Type</span>
-                    <div className="flex items-center gap-2">
-                      <img src="/db-logos/postgresql.png" alt="" className="w-5 h-5 object-contain" />
-                      <span className="text-sm font-medium">PostgreSQL</span>
-                      <svg className="w-3.5 h-3.5 text-gray-400 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <span className="text-xs text-gray-400 w-16 shrink-0">Host</span>
-                    <span className="text-sm text-gray-600">db.mycompany.com</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <span className="text-xs text-gray-400 w-16 shrink-0">Port</span>
-                    <span className="text-sm text-gray-600">5432</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <span className="text-xs text-gray-400 w-16 shrink-0">Database</span>
-                    <span className="text-sm text-gray-600">production</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-1.5 text-xs text-green-600">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                      Connection verified
-                    </div>
-                    <div className="bg-black text-white text-xs font-medium px-4 py-2 rounded-lg">Save</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="w-full md:w-1/2 order-1 md:order-2">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">1</span>
-                <h3 className="text-xl font-bold">Connect a database or upload a file</h3>
-              </div>
-              <p className="text-gray-600 ml-12">
-                Add your database connection details, or upload a CSV, Excel, JSON, or Word file. We support 15+ databases and 6 file formats. Everything is encrypted.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 2 — Ask */}
-          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-14 mb-16 md:mb-20">
-            <div className="w-full md:w-1/2">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">2</span>
-                <h3 className="text-xl font-bold">Ask, and get data back</h3>
-              </div>
-              <p className="text-gray-600 ml-12">
-                Type your question in plain English. Erao handles everything behind the scenes and returns the data directly — no SQL exposed.
-              </p>
-            </div>
-            <div className="w-full md:w-1/2">
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                  <span className="text-xs text-gray-400 ml-2">Chat</span>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-end">
-                    <div className="bg-gray-900 text-white text-sm px-4 py-2.5 rounded-2xl rounded-br-md max-w-[85%]">
-                      Who are my top 3 customers this quarter?
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-[10px] font-bold text-gray-500">AI</span>
-                    </div>
-                    <div className="bg-gray-50 px-4 py-3 rounded-2xl rounded-bl-md flex-1">
-                      <p className="text-sm text-gray-700 mb-2.5">Here are your top 3 customers by revenue this quarter:</p>
-                      <div className="space-y-1.5">
-                        {[
-                          { rank: 1, name: "Acme Corp", val: "$42.5k" },
-                          { rank: 2, name: "TechStart Inc", val: "$38.2k" },
-                          { rank: 3, name: "DataFlow Labs", val: "$31.8k" },
-                        ].map((r) => (
-                          <div key={r.rank} className="flex items-center gap-2.5 bg-white rounded-lg px-3 py-1.5 border border-gray-100">
-                            <span className="text-[10px] font-bold text-gray-400 w-4">{r.rank}</span>
-                            <span className="text-xs font-medium text-gray-800 flex-1">{r.name}</span>
-                            <span className="text-xs font-semibold text-gray-900">{r.val}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border border-gray-100 rounded-xl p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-8 bg-gray-50 rounded-lg flex items-center px-3">
-                        <span className="text-xs text-gray-400">Ask about production...</span>
-                      </div>
-                      <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center">
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14m-7-7l7 7-7 7" /></svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 3 — Results */}
-          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-14">
-            <div className="w-full md:w-1/2 order-2 md:order-1">
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                  <span className="text-xs text-gray-400 ml-2">Results</span>
-                </div>
-                <div className="flex gap-2 mb-4">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white rounded-lg text-xs font-medium">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6m6 0v-3a2 2 0 00-2-2h-2a2 2 0 00-2 2v3" /></svg>
-                    Chart
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 rounded-lg text-xs border border-gray-200">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                    Table
-                  </div>
-                  <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-gray-500 rounded-lg text-xs border border-gray-200">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Export
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { month: "Sep", value: 82 },
-                    { month: "Oct", value: 68 },
-                    { month: "Nov", value: 91 },
-                    { month: "Dec", value: 75 },
-                    { month: "Jan", value: 96 },
-                    { month: "Feb", value: 100 },
-                  ].map((d) => (
-                    <div key={d.month} className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500 w-7 shrink-0">{d.month}</span>
-                      <div className="flex-1 h-5 bg-gray-50 rounded-full overflow-hidden">
-                        <div className="h-full bg-black rounded-full" style={{ width: `${d.value}%` }} />
-                      </div>
-                      <span className="text-xs font-medium text-gray-700 w-10 text-right">${(d.value * 1.2).toFixed(0)}k</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                  <span className="text-[10px] text-gray-400">6 rows returned in 0.08s</span>
-                  <span className="text-[10px] text-green-600 font-medium flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                    +18% vs last period
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="w-full md:w-1/2 order-1 md:order-2">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">3</span>
-                <h3 className="text-xl font-bold">Visualize as beautiful charts</h3>
-              </div>
-              <p className="text-gray-600 ml-12">
-                Switch between bar charts, line graphs, pie charts, and tables. Export to CSV, Excel, or PDF with one click.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="w-full max-w-5xl mx-auto px-6 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
-          <p className="text-gray-600">Start free, upgrade when you need more.</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {/* Free */}
-          <div className="border border-gray-200 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold mb-1">Free</h3>
-            <p className="text-sm text-gray-500 mb-4">For trying out Erao</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">$0</span>
-              <span className="text-gray-500">/month</span>
-            </div>
-            <ul className="space-y-3 mb-6">
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                1 database connection
-              </li>
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                10 queries/month
-              </li>
-            </ul>
-            <ContactSalesButton />
-          </div>
-
-          {/* Pro */}
-          <div className="border-2 border-black rounded-2xl p-6 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-medium">
-              Most Popular
-            </div>
-            <h3 className="text-lg font-semibold mb-1">Pro</h3>
-            <p className="text-sm text-gray-500 mb-4">For power users</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">$49</span>
-              <span className="text-gray-500">/month</span>
-            </div>
-            <ul className="space-y-3 mb-6">
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                5 database connections
-              </li>
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                100 queries/month
-              </li>
-            </ul>
-            <ContactSalesButton variant="filled" />
-          </div>
-
-          {/* Enterprise */}
-          <div className="border border-gray-200 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold mb-1">Enterprise</h3>
-            <p className="text-sm text-gray-500 mb-4">For large organizations</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">$299</span>
-              <span className="text-gray-500">/month</span>
-            </div>
-            <ul className="space-y-3 mb-6">
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Unlimited connections
-              </li>
-              <li className="flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5 text-black flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Unlimited queries
-              </li>
-            </ul>
-            <ContactSalesButton />
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="w-full bg-black text-white py-20">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Stop struggling with data. Start getting answers.
-          </h2>
-          <p className="text-gray-400 mb-8 text-lg">
-            Join 500+ teams who save hours every week with Erao.
-          </p>
-          <Link
-            href="/register"
-            className="inline-block bg-white text-black px-8 py-3.5 rounded-xl text-base font-medium hover:bg-gray-100 transition-colors"
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 mt-12 text-sm text-gray-500"
           >
-            Start Free
-          </Link>
+            {["Free forever", "2 min setup", "AES-256 encrypted"].map((t) => (
+              <span key={t} className="flex items-center gap-2">
+                <CheckIcon className="w-3.5 h-3.5 text-emerald-500/70" />
+                <span>{t}</span>
+              </span>
+            ))}
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* ===== PRODUCT SHOWCASE (Browser Frame) ===== */}
+      <section className="relative z-10 w-full max-w-5xl mx-auto px-6 pb-20 md:pb-24">
+        <motion.div
+          initial={{ opacity: 0, y: 50, scale: 0.96 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="relative"
+        >
+          {/* Glow behind browser frame */}
+          <div className="absolute -inset-4 bg-blue-500/[0.06] rounded-3xl blur-[60px] pointer-events-none" />
+
+          <div className="relative browser-frame glow-blue">
+            <div className="browser-frame-bar">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-[#FF5F57]/80" />
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E]/80" />
+                <div className="w-3 h-3 rounded-full bg-[#28C840]/80" />
+              </div>
+              <div className="flex-1 mx-4">
+                <div className="bg-[#0a0a0a] rounded-md px-3 py-1.5 text-xs text-gray-500 max-w-xs mx-auto text-center flex items-center justify-center gap-1.5">
+                  <svg className="w-3 h-3 text-emerald-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  erao.digital/ai
+                </div>
+              </div>
+              <div className="w-[52px]" />
+            </div>
+
+            {/* Chat mockup inside browser frame */}
+            <div className="relative aspect-[16/9] overflow-hidden">
+              {/* Real screenshot — loads if file exists */}
+              <Image
+                src="/screenshots/chat-demo.png"
+                alt="Erao AI Chat Interface"
+                fill
+                className="object-cover object-top"
+                priority
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+              {/* Fallback: fully built mock chat UI */}
+              <div className="absolute inset-0">
+                <MockChatUI />
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-gray-500 mt-8 max-w-lg mx-auto">
+            Ask questions in natural language — get charts, tables, and insights instantly.
+          </p>
+        </motion.div>
+      </section>
+
+      <SectionDivider variant="neutral" />
+
+      {/* ===== LOGO STRIP ===== */}
+      <section className="relative z-10 w-full py-16 md:py-20">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={stagger}
+          className="max-w-6xl mx-auto px-6"
+        >
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-center text-sm text-gray-500 mb-12 font-medium tracking-wide uppercase"
+          >
+            Works with 15+ databases and popular file formats
+          </motion.p>
+
+          {/* Database logos — two rows on mobile, one row on desktop */}
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-5 sm:gap-x-7 sm:gap-y-6"
+          >
+            {supportedDatabases.map((db) => (
+              <div
+                key={db.name}
+                className="group flex flex-col items-center gap-2 cursor-default"
+              >
+                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] p-2 opacity-70 group-hover:opacity-100 group-hover:border-white/15 group-hover:bg-white/[0.08] transition-all duration-300">
+                  <img src={db.logo} alt={db.name} className="w-full h-full object-contain brightness-110" />
+                </div>
+                <span className="text-[10px] text-gray-500 group-hover:text-gray-300 transition-colors duration-300">{db.name}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-6 my-12">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+            <span className="text-xs text-gray-500 font-medium tracking-wider uppercase">File Uploads</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          </div>
+
+          {/* File format logos */}
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5 sm:gap-x-12"
+          >
+            {supportedFiles.map((file) => (
+              <div
+                key={file.name}
+                className="group flex flex-col items-center gap-2 cursor-default"
+              >
+                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] p-2 opacity-70 group-hover:opacity-100 group-hover:border-white/15 group-hover:bg-white/[0.08] transition-all duration-300">
+                  <img src={file.logo} alt={file.name} className={`w-full h-full object-contain brightness-110 ${file.scale}`} />
+                </div>
+                <span className="text-[10px] text-gray-500 group-hover:text-gray-300 transition-colors duration-300">{file.name}</span>
+              </div>
+            ))}
+          </motion.div>
+        </motion.div>
+      </section>
+
+      <SectionDivider variant="blue" />
+
+      {/* ===== FEATURES BENTO GRID ===== */}
+      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-20 md:py-28">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={stagger}
+          className="text-center mb-14"
+        >
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-sm font-medium text-blue-400/80 mb-4 tracking-wide uppercase"
+          >
+            Features
+          </motion.p>
+          <motion.h2
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="font-semibold tracking-tighter mb-6 text-balance leading-[1.1]"
+            style={{ fontSize: "clamp(1.875rem, 4vw + 0.5rem, 3rem)" }}
+          >
+            Everything you need to
+            <br />
+            <span className="text-gradient-hero">understand your data</span>
+          </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-gray-400 text-lg max-w-xl mx-auto leading-relaxed"
+          >
+            From databases to file uploads, Erao turns raw data into actionable insights.
+          </motion.p>
+        </motion.div>
+
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={staggerSlow}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
+          {features.map((f, i) => {
+            const accent = accentColors[f.accentColor];
+            return (
+              <motion.div
+                key={f.title}
+                variants={fadeScale}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className={`group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 md:p-8 transition-all duration-500 hover:border-white/10 hover:bg-white/[0.04] ${accent.glow} ${f.gridClass}`}
+              >
+                {/* Subtle gradient overlay on hover */}
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/[0.02] to-transparent" />
+
+                <div className="relative">
+                  {/* Icon */}
+                  <div className={`w-10 h-10 rounded-xl ${accent.bg} border ${accent.border} flex items-center justify-center ${accent.text} mb-5 transition-transform duration-300 group-hover:scale-105`}>
+                    {f.icon}
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-gray-100 mb-3 tracking-tight">{f.title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed max-w-lg">{f.desc}</p>
+
+                  {/* Database logos for DB card */}
+                  {i === 1 && (
+                    <div className="flex items-center gap-2.5 mt-5 flex-wrap">
+                      {supportedDatabases.slice(0, 6).map((db) => (
+                        <div key={db.name} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center p-1 hover:bg-white/[0.08] transition-colors">
+                          <img src={db.logo} alt={db.name} className="w-full h-full object-contain opacity-60 hover:opacity-100 transition-opacity" />
+                        </div>
+                      ))}
+                      <span className="text-xs text-gray-500">+{supportedDatabases.length - 6} more</span>
+                    </div>
+                  )}
+
+                  {/* File badges for File Analysis card */}
+                  {i === 2 && (
+                    <div className="flex items-center gap-2 mt-5 flex-wrap">
+                      {supportedFiles.map((file) => (
+                        <span key={file.name} className="px-2.5 py-1 text-xs text-gray-400 bg-white/[0.04] border border-white/[0.06] rounded-lg hover:bg-white/[0.08] hover:text-gray-300 transition-all">
+                          {file.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Mini chart preview for Smart Visualizations card */}
+                  {i === 3 && (
+                    <div className="flex items-end gap-1.5 mt-5 h-12">
+                      {[40, 65, 45, 80, 55, 70, 90, 60, 75, 50, 85, 68].map((h, idx) => (
+                        <div
+                          key={idx}
+                          className="flex-1 rounded-t bg-gradient-to-t from-blue-500/30 to-blue-400/10 transition-all duration-300 group-hover:from-blue-500/50 group-hover:to-blue-400/20"
+                          style={{ height: `${h}%` }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </section>
+
+      <SectionDivider variant="purple" />
+
+      {/* ===== HOW IT WORKS ===== */}
+      <section className="relative z-10 w-full py-20 md:py-28 overflow-hidden">
+        {/* Background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-violet-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto px-6 relative">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={stagger}
+            className="text-center mb-16"
+          >
+            <motion.p
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="text-sm font-medium text-violet-400/80 mb-4 tracking-wide uppercase"
+            >
+              How It Works
+            </motion.p>
+            <motion.h2
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+              className="font-semibold tracking-tighter mb-6 text-balance leading-[1.1]"
+              style={{ fontSize: "clamp(1.875rem, 4vw + 0.5rem, 3rem)" }}
+            >
+              Up and running in
+              <br />
+              <span className="text-gradient-hero">under 2 minutes</span>
+            </motion.h2>
+            <motion.p
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="text-gray-400 text-lg max-w-lg mx-auto leading-relaxed"
+            >
+              No complex setup. No learning curve. Just connect and ask.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={staggerSlow}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 relative"
+          >
+            {/* Connecting line (desktop only) */}
+            <div className="hidden md:block absolute top-[52px] left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px">
+              <div className="w-full h-full bg-gradient-to-r from-blue-500/20 via-violet-500/20 to-emerald-500/20" />
+              {/* Animated dot on the line */}
+              <div className="absolute top-1/2 left-0 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-400/60 animate-pulse" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-violet-400/60 animate-pulse" />
+              <div className="absolute top-1/2 right-0 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-pulse" />
+            </div>
+
+            {steps.map((step, i) => {
+              const gradients = [
+                "from-blue-500 to-blue-600",
+                "from-violet-500 to-violet-600",
+                "from-emerald-500 to-emerald-600",
+              ];
+              const glowColors = [
+                "shadow-blue-500/20",
+                "shadow-violet-500/20",
+                "shadow-emerald-500/20",
+              ];
+              return (
+                <motion.div
+                  key={step.num}
+                  variants={fadeUp}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="group text-center relative"
+                >
+                  {/* Step number badge */}
+                  <div className={`relative w-[52px] h-[52px] rounded-2xl bg-gradient-to-br ${gradients[i]} flex items-center justify-center mx-auto mb-6 shadow-lg ${glowColors[i]} transition-shadow duration-300 group-hover:shadow-xl`}>
+                    <span className="text-sm font-semibold text-white">{step.num}</span>
+                    {/* Ring effect */}
+                    <div className={`absolute -inset-1.5 rounded-2xl border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  </div>
+
+                  {/* Icon */}
+                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-gray-400 mx-auto mb-4 group-hover:border-white/10 group-hover:text-gray-300 transition-all duration-300">
+                    {step.icon}
+                  </div>
+
+                  <h3 className="text-xl font-semibold text-gray-100 mb-3 tracking-tight">{step.title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">{step.desc}</p>
+                </motion.div>
+              );
+            })}
+          </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <Footer />
+      <SectionDivider variant="neutral" />
+
+      {/* ===== PRICING ===== */}
+      <section className="relative z-10 w-full py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={stagger}
+            className="text-center mb-14"
+          >
+            <motion.p
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="text-sm font-medium text-blue-400/80 mb-4 tracking-wide uppercase"
+            >
+              Pricing
+            </motion.p>
+            <motion.h2
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+              className="font-semibold tracking-tighter mb-6 text-balance leading-[1.1]"
+              style={{ fontSize: "clamp(1.875rem, 4vw + 0.5rem, 3rem)" }}
+            >
+              Simple, transparent pricing
+            </motion.h2>
+            <motion.p
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="text-gray-400 text-lg max-w-lg mx-auto leading-relaxed"
+            >
+              Start free. Upgrade when you need more power.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={staggerSlow}
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto items-start"
+          >
+            {pricingPlans.map((plan) => (
+              <motion.div
+                key={plan.name}
+                variants={fadeUp}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className={`group relative rounded-2xl p-7 transition-all duration-500 ${
+                  plan.highlighted
+                    ? "bg-white/[0.04] border-2 border-blue-500/30 shadow-[0_0_60px_-15px_rgba(59,130,246,0.2)] hover:shadow-[0_0_80px_-15px_rgba(59,130,246,0.3)] hover:border-blue-500/40"
+                    : "bg-white/[0.02] border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.04]"
+                }`}
+              >
+                {/* Popular badge */}
+                {plan.highlighted && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-blue-500 text-white shadow-lg shadow-blue-500/30">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                      </svg>
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-100 mb-1">{plan.name}</h3>
+                  <p className="text-sm text-gray-500">{plan.subtitle}</p>
+                </div>
+
+                <div className="mb-8">
+                  <span className="text-4xl font-semibold tracking-tight text-gray-100">{plan.price}</span>
+                  <span className="text-gray-500 text-sm ml-1">/month</span>
+                </div>
+
+                <ul className="space-y-3.5 mb-8">
+                  {plan.features.map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-sm">
+                      <CheckIcon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${plan.highlighted ? "text-blue-400" : "text-gray-500"}`} />
+                      <span className="text-gray-300">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={plan.ctaHref}
+                  className={`block w-full py-3 text-center rounded-full text-sm font-medium transition-all duration-300 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
+                    plan.highlighted
+                      ? "bg-white text-[#09090b] hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] focus-visible:ring-white/50"
+                      : "border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white focus-visible:ring-white/30"
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      <SectionDivider variant="blue" />
+
+      {/* ===== FINAL CTA ===== */}
+      <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
+        {/* Multi-layered glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-blue-500/[0.06] rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/3 -translate-y-1/2 w-[300px] h-[300px] bg-violet-500/[0.04] rounded-full blur-[80px] pointer-events-none" />
+
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={stagger}
+          className="max-w-3xl mx-auto px-6 text-center relative"
+        >
+          <motion.h2
+            variants={fadeBlur}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="font-semibold tracking-tighter mb-8 text-balance leading-[1.1]"
+            style={{ fontSize: "clamp(1.875rem, 4vw + 0.5rem, 3rem)" }}
+          >
+            Stop struggling with data.
+            <br />
+            <span className="text-gradient-hero">Start getting answers.</span>
+          </motion.h2>
+
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-gray-400 mb-12 text-lg leading-relaxed max-w-lg mx-auto"
+          >
+            Join hundreds of teams who save hours every week with Erao.
+            Start with the free plan — no credit card required.
+          </motion.p>
+
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Link
+              href="/register"
+              className="group relative w-full sm:w-auto bg-white text-[#09090b] px-10 py-4 rounded-full text-base font-medium transition-all duration-300 hover:shadow-[0_0_50px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                Start Free Today
+                <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </span>
+            </Link>
+            <Link
+              href="/contact"
+              className="w-full sm:w-auto px-10 py-4 rounded-full text-base font-medium border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+            >
+              Talk to Sales
+            </Link>
+          </motion.div>
+
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 mt-10 text-sm text-gray-500"
+          >
+            {["No credit card required", "Free plan forever", "Cancel anytime"].map((t) => (
+              <span key={t} className="flex items-center gap-2">
+                <CheckIcon className="w-3.5 h-3.5 text-emerald-500/70" />
+                <span>{t}</span>
+              </span>
+            ))}
+          </motion.div>
+        </motion.div>
+      </section>
+
+      <Footer variant="dark" />
     </div>
   );
 }
