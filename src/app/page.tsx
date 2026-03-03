@@ -555,21 +555,14 @@ export default function LandingPage() {
 
             {/* Chat mockup inside browser frame */}
             <div className="relative aspect-[16/9] overflow-hidden">
-              {/* Real screenshot — loads if file exists */}
+              {/* Real screenshot */}
               <Image
                 src="/screenshots/chat-demo.png"
                 alt="Erao AI Chat Interface"
                 fill
-                className="object-cover object-top"
+                className="object-cover object-top z-10"
                 priority
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
               />
-              {/* Fallback: fully built mock chat UI */}
-              <div className="absolute inset-0">
-                <MockChatUI />
-              </div>
             </div>
           </div>
 

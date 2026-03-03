@@ -226,6 +226,8 @@ export interface Message {
   sqlQuery: string | null;
   queryResult: QueryResult | string | null; // Can be JSON string or parsed object
   tokensUsed: number;
+  insight?: string | null;
+  followUpQuestions?: string[] | null;
   createdAt: string;
 }
 

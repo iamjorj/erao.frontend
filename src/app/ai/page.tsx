@@ -870,6 +870,18 @@ export default function AIPage() {
   const [messageInsights, setMessageInsights] = useState<Record<string, string>>({});
   const [followUpQuestions, setFollowUpQuestions] = useState<Record<string, string[]>>({});
 
+  // Populate insights & follow-ups from loaded messages (persisted in DB)
+  useEffect(() => {
+    const insights: Record<string, string> = {};
+    const followUps: Record<string, string[]> = {};
+    for (const msg of messages) {
+      if (msg.insight) insights[msg.id] = msg.insight;
+      if (msg.followUpQuestions?.length) followUps[msg.id] = msg.followUpQuestions;
+    }
+    if (Object.keys(insights).length) setMessageInsights(prev => ({ ...insights, ...prev }));
+    if (Object.keys(followUps).length) setFollowUpQuestions(prev => ({ ...followUps, ...prev }));
+  }, [messages]);
+
   // Quick Filters state - tracks active filters per table view (keyed by viewKey)
   // Format: { [viewKey]: { [columnName]: filterValue[] } }
   const [tableFilters, setTableFilters] = useState<Record<string, Record<string, unknown[]>>>({});
