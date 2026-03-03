@@ -32,28 +32,13 @@ const staggerSlow = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  ACCENT COLORS                                                      */
+/*  NEUTRAL ACCENT (single style for all cards)                        */
 /* ------------------------------------------------------------------ */
 
-const accentColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-  blue: {
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-    text: "text-blue-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]",
-  },
-  purple: {
-    bg: "bg-violet-500/10",
-    border: "border-violet-500/20",
-    text: "text-violet-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]",
-  },
-  emerald: {
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    text: "text-emerald-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]",
-  },
+const neutralAccent = {
+  bg: "bg-white/[0.06]",
+  border: "border-white/[0.08]",
+  text: "text-gray-400",
 };
 
 /* ------------------------------------------------------------------ */
@@ -74,7 +59,6 @@ const features = [
         />
       </svg>
     ),
-    accentColor: "blue",
     gridClass: "md:col-span-1",
   },
   {
@@ -90,7 +74,6 @@ const features = [
         />
       </svg>
     ),
-    accentColor: "purple",
     gridClass: "md:col-span-1",
   },
   {
@@ -106,7 +89,6 @@ const features = [
         />
       </svg>
     ),
-    accentColor: "emerald",
     gridClass: "md:col-span-1",
   },
   {
@@ -118,8 +100,7 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    accentColor: "blue",
-    gridClass: "md:col-span-2",
+    gridClass: "md:col-span-1",
   },
   {
     title: "Export & Share",
@@ -130,7 +111,6 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
       </svg>
     ),
-    accentColor: "purple",
     gridClass: "md:col-span-1",
   },
   {
@@ -146,7 +126,6 @@ const features = [
         />
       </svg>
     ),
-    accentColor: "emerald",
     gridClass: "md:col-span-1",
   },
 ];
@@ -202,21 +181,18 @@ const useCases = [
     description:
       "Track user engagement, analyze feature adoption, and make data-driven decisions without waiting for engineering.",
     examples: ["User signups this week", "Most used features by cohort", "Churn analysis by plan"],
-    accentColor: "blue",
   },
   {
     title: "For Sales Teams",
     description:
       "Get real-time pipeline insights, track performance, and identify opportunities without complex reporting tools.",
     examples: ["Deals closed this month", "Top performing reps", "Revenue by region"],
-    accentColor: "purple",
   },
   {
     title: "For Support Teams",
     description:
       "Find customer information instantly, track ticket trends, and identify common issues to improve service.",
     examples: ["Customer's recent orders", "Open tickets by priority", "Average resolution time"],
-    accentColor: "emerald",
   },
 ];
 
@@ -224,15 +200,10 @@ const useCases = [
 /*  SECTION DIVIDER                                                    */
 /* ------------------------------------------------------------------ */
 
-function SectionDivider({ variant = "blue" }: { variant?: "blue" | "purple" | "neutral" }) {
-  const colors = {
-    blue: "from-transparent via-blue-500/20 to-transparent",
-    purple: "from-transparent via-violet-500/20 to-transparent",
-    neutral: "from-transparent via-white/[0.06] to-transparent",
-  };
+function SectionDivider() {
   return (
     <div className="relative z-10 w-full max-w-3xl mx-auto px-6">
-      <div className={`h-px bg-gradient-to-r ${colors[variant]}`} />
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
     </div>
   );
 }
@@ -256,9 +227,9 @@ export default function FeaturesPage() {
   return (
     <PageLayout currentPage="features" variant="dark">
       {/* ===== HERO ===== */}
-      <section className="relative z-10 w-full pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
+      <section className="relative z-10 w-full pt-20 pb-24 md:pt-32 md:pb-36 overflow-hidden">
         {/* Radial glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-blue-500/[0.06] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
 
         <motion.div
           className="max-w-4xl mx-auto px-6 text-center relative"
@@ -273,10 +244,10 @@ export default function FeaturesPage() {
             className="inline-flex items-center gap-2.5 rounded-full px-4 py-1.5 mb-8 border border-white/10 bg-white/[0.04] backdrop-blur-md"
           >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-400" />
             </span>
-            <span className="text-sm text-gray-300 font-medium">Platform Features</span>
+            <span className="text-sm text-gray-400 font-medium">Platform Features</span>
           </motion.div>
 
           {/* Headline */}
@@ -288,7 +259,7 @@ export default function FeaturesPage() {
           >
             Everything you need to
             <br />
-            <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="text-gray-100">
               query your data
             </span>
           </motion.h1>
@@ -297,7 +268,7 @@ export default function FeaturesPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-balance"
+            className="text-lg md:text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed text-balance"
           >
             Connect a database or upload a file. Ask in plain English.
             Get instant answers with beautiful visualizations.
@@ -311,13 +282,13 @@ export default function FeaturesPage() {
           >
             <Link
               href="/register"
-              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Start Free
             </Link>
             <Link
               href="/pricing"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 active:scale-[0.98] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               View Pricing
             </Link>
@@ -325,12 +296,12 @@ export default function FeaturesPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="blue" />
+      <SectionDivider />
 
       {/* ===== FEATURES GRID ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32">
+      <section className="relative z-10 w-full py-28 md:py-36">
         <motion.div
-          className="max-w-5xl mx-auto px-6"
+          className="max-w-5xl mx-auto px-6 relative"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
@@ -340,21 +311,21 @@ export default function FeaturesPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-blue-400/80 tracking-wide uppercase text-center mb-3"
+            className="text-sm font-medium text-gray-500 tracking-wide uppercase text-center mb-3"
           >
             Capabilities
           </motion.p>
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-4 text-balance"
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-4 text-balance text-gray-100"
           >
             Powerful features, simple experience
           </motion.h2>
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-gray-400 text-center mb-16 max-w-2xl mx-auto text-balance"
+            className="text-gray-400 text-center mb-16 max-w-2xl mx-auto text-balance leading-relaxed"
           >
             Everything you need to turn raw data into actionable insights, without writing a single line of code.
           </motion.p>
@@ -367,36 +338,34 @@ export default function FeaturesPage() {
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
           >
-            {features.map((feature) => {
-              const accent = accentColors[feature.accentColor];
-              return (
+            {features.map((feature) => (
                 <motion.div
                   key={feature.title}
                   variants={fadeUp}
                   transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className={`group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04] ${accent.glow} ${feature.gridClass}`}
+                  className={`group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04] ${feature.gridClass}`}
                 >
-                  {/* Icon */}
-                  <div
-                    className={`w-10 h-10 rounded-xl ${accent.bg} border ${accent.border} ${accent.text} flex items-center justify-center mb-5`}
-                  >
-                    {feature.icon}
+                  <div className="mb-5">
+                    <div
+                      className={`w-10 h-10 rounded-xl ${neutralAccent.bg} border ${neutralAccent.border} ${neutralAccent.text} flex items-center justify-center transition-all duration-300`}
+                    >
+                      {feature.icon}
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-100 mb-2 tracking-tight">
+                  <h3 className="text-lg font-semibold text-gray-100 mb-2.5 tracking-tight">
                     {feature.title}
                   </h3>
                   <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
                 </motion.div>
-              );
-            })}
+            ))}
           </motion.div>
         </motion.div>
       </section>
 
-      <SectionDivider variant="neutral" />
+      <SectionDivider />
 
       {/* ===== HOW IT WORKS ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32">
+      <section className="relative z-10 w-full py-28 md:py-36">
         <motion.div
           className="max-w-5xl mx-auto px-6"
           initial="hidden"
@@ -408,55 +377,66 @@ export default function FeaturesPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-blue-400/80 tracking-wide uppercase text-center mb-3"
+            className="text-sm font-medium text-gray-500 tracking-wide uppercase text-center mb-3"
           >
             How It Works
           </motion.p>
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-16 text-balance"
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-6 text-balance text-gray-100"
           >
             Three steps to insights
           </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-gray-400 text-center mb-16 max-w-xl mx-auto text-balance leading-relaxed"
+          >
+            From raw data to answers in under two minutes. No SQL, no waiting.
+          </motion.p>
 
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 relative"
             variants={staggerSlow}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
           >
+            {/* Connecting lines between icons (desktop only) */}
+            <div className="hidden sm:block absolute top-[52px] left-[calc(16.67%+40px)] right-[calc(50%+40px)] h-px bg-gradient-to-r from-white/[0.06] to-white/[0.08]" />
+            <div className="hidden sm:block absolute top-[52px] left-[calc(50%+40px)] right-[calc(16.67%+40px)] h-px bg-gradient-to-r from-white/[0.08] to-white/[0.06]" />
+
             {steps.map((step) => (
-              <motion.div
-                key={step.num}
-                variants={fadeUp}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="text-center"
-              >
-                {/* Step number */}
-                <div className="relative mx-auto mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto">
-                    <span className="text-blue-400">{step.icon}</span>
+                <motion.div
+                  key={step.num}
+                  variants={fadeUp}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  className="group text-center relative z-10"
+                >
+                  {/* Step icon */}
+                  <div className="relative mx-auto mb-6">
+                    <div className={`w-14 h-14 rounded-2xl ${neutralAccent.bg} border ${neutralAccent.border} flex items-center justify-center mx-auto transition-all duration-300`}>
+                      <span className={neutralAccent.text}>{step.icon}</span>
+                    </div>
+                    <span className={`absolute -top-2 -right-2 w-6 h-6 rounded-full ${neutralAccent.bg} border ${neutralAccent.border} flex items-center justify-center text-[10px] font-semibold text-gray-300`}>
+                      {step.num}
+                    </span>
                   </div>
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-[10px] font-semibold text-blue-400">
-                    {step.num}
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-100 mb-2 tracking-tight">{step.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">{step.desc}</p>
-              </motion.div>
+                  <h3 className="text-lg font-semibold text-gray-100 mb-2 tracking-tight">{step.title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">{step.desc}</p>
+                </motion.div>
             ))}
           </motion.div>
         </motion.div>
       </section>
 
-      <SectionDivider variant="purple" />
+      <SectionDivider />
 
       {/* ===== USE CASES ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32">
+      <section className="relative z-10 w-full py-28 md:py-36">
         <motion.div
-          className="max-w-5xl mx-auto px-6"
+          className="max-w-5xl mx-auto px-6 relative"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
@@ -466,21 +446,21 @@ export default function FeaturesPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-violet-400/80 tracking-wide uppercase text-center mb-3"
+            className="text-sm font-medium text-gray-500 tracking-wide uppercase text-center mb-3"
           >
             Use Cases
           </motion.p>
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-4 text-balance"
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-4 text-balance text-gray-100"
           >
             Built for every team
           </motion.h2>
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-gray-400 text-center mb-16 max-w-2xl mx-auto text-balance"
+            className="text-gray-400 text-center mb-16 max-w-2xl mx-auto text-balance leading-relaxed"
           >
             From product managers to sales reps, anyone can get insights from your data.
           </motion.p>
@@ -492,39 +472,38 @@ export default function FeaturesPage() {
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
           >
-            {useCases.map((useCase) => {
-              const accent = accentColors[useCase.accentColor];
-              return (
+            {useCases.map((useCase) => (
                 <motion.div
                   key={useCase.title}
                   variants={fadeUp}
                   transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                   className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04]"
                 >
-                  <h3 className="text-lg font-semibold text-gray-100 mb-2 tracking-tight">{useCase.title}</h3>
-                  <p className="text-sm text-gray-400 mb-5 leading-relaxed">{useCase.description}</p>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-white/[0.06] text-gray-400 border border-white/[0.08] mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                    {useCase.title}
+                  </div>
+                  <p className="text-sm text-gray-400 mb-6 leading-relaxed">{useCase.description}</p>
                   <div className="space-y-2.5">
                     {useCase.examples.map((example) => (
-                      <div key={example} className="flex items-center gap-2 text-sm">
-                        <span className={`w-1 h-1 rounded-full ${accent.bg.replace('/10', '/40')} flex-shrink-0`} />
-                        <span className="text-gray-500">{example}</span>
+                      <div key={example} className="flex items-center gap-2.5 text-sm">
+                        <svg className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                        <span className="text-gray-500 group-hover:text-gray-400 transition-colors duration-200">{example}</span>
                       </div>
                     ))}
                   </div>
                 </motion.div>
-              );
-            })}
+            ))}
           </motion.div>
         </motion.div>
       </section>
 
-      <SectionDivider variant="blue" />
+      <SectionDivider />
 
       {/* ===== CTA ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
-        {/* Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
-
+      <section className="relative z-10 w-full py-28 md:py-36 overflow-hidden">
         <motion.div
           className="max-w-3xl mx-auto px-6 text-center relative"
           initial="hidden"
@@ -535,14 +514,14 @@ export default function FeaturesPage() {
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter mb-4 text-balance"
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter mb-4 text-balance text-gray-100"
           >
             Ready to talk to your data?
           </motion.h2>
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-gray-400 mb-10 text-lg text-balance"
+            className="text-gray-400 mb-10 text-lg text-balance leading-relaxed"
           >
             Start free and see results in under 2 minutes.
           </motion.p>
@@ -553,13 +532,13 @@ export default function FeaturesPage() {
           >
             <Link
               href="/register"
-              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Start Free
             </Link>
             <Link
               href="/pricing"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 active:scale-[0.98] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               View Pricing
             </Link>

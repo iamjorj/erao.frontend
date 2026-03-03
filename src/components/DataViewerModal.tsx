@@ -42,13 +42,14 @@ function formatCellValue(value: unknown): string {
 
 // Dark mode detection hook
 function useDarkMode(): boolean {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== 'undefined' ? document.documentElement.classList.contains("dark") : false
+  );
 
   useEffect(() => {
     const checkDarkMode = () => {
       setIsDark(document.documentElement.classList.contains("dark"));
     };
-    checkDarkMode();
 
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
@@ -175,11 +176,11 @@ function FullscreenVirtualTable({
         <div style={{ minWidth: `${totalTableWidth}px` }}>
           {/* Header */}
           <div className={`flex items-stretch sticky top-0 z-10 border-b ${
-            isDark ? "bg-[#141414] border-[#2a2a2a]" : "bg-white border-gray-200/80"
+            isDark ? "bg-[#0f0f11] border-white/[0.06]" : "bg-white border-gray-200/80"
           }`}>
             <div
               className={`flex items-center justify-center text-[10px] font-medium flex-shrink-0 border-r ${
-                isDark ? "text-gray-500 border-[#2a2a2a]" : "text-gray-400 border-gray-100"
+                isDark ? "text-gray-500 border-white/[0.06]" : "text-gray-400 border-gray-100"
               }`}
               style={{ width: ROW_NUM_WIDTH }}
             >
@@ -194,7 +195,7 @@ function FullscreenVirtualTable({
                 <button
                   onClick={() => handleSort(col)}
                   className={`flex items-center gap-1 w-full h-full px-3 py-2.5 text-left cursor-pointer transition-colors ${
-                    isDark ? "hover:bg-[#1e1e1e]" : "hover:bg-gray-50"
+                    isDark ? "hover:bg-white/[0.04]" : "hover:bg-gray-50"
                   }`}
                 >
                   <span className={`text-[11px] font-semibold uppercase tracking-wider truncate ${
@@ -218,7 +219,7 @@ function FullscreenVirtualTable({
                 </button>
                 <div
                   onMouseDown={(e) => handleResizeStart(col, e)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full cursor-col-resize bg-gray-200 dark:bg-[#333] opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:!bg-blue-400 dark:hover:!bg-blue-500 active:!bg-blue-500 transition-all z-20"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full cursor-col-resize bg-gray-200 dark:bg-white/[0.1] opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:!bg-blue-400 dark:hover:!bg-blue-500 active:!bg-blue-500 transition-all duration-200 z-20"
                 />
               </div>
             ))}
@@ -238,9 +239,9 @@ function FullscreenVirtualTable({
                   key={virtualRow.index}
                   className={`flex items-stretch absolute w-full border-b transition-colors ${
                     virtualRow.index % 2 === 0
-                      ? isDark ? "bg-[#141414] border-[#1e1e1e]" : "bg-white border-gray-50"
-                      : isDark ? "bg-[#181818] border-[#1e1e1e]" : "bg-gray-50/40 border-gray-50"
-                  } ${isDark ? "hover:bg-[#1a1f2e]" : "hover:bg-blue-50/40"}`}
+                      ? isDark ? "bg-[#0f0f11] border-white/[0.04]" : "bg-white border-gray-50"
+                      : isDark ? "bg-white/[0.02] border-white/[0.04]" : "bg-gray-50/40 border-gray-50"
+                  } ${isDark ? "hover:bg-white/[0.04]" : "hover:bg-blue-50/40"}`}
                   style={{
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
@@ -248,7 +249,7 @@ function FullscreenVirtualTable({
                 >
                   <div
                     className={`flex items-center justify-center text-[10px] tabular-nums flex-shrink-0 border-r ${
-                      isDark ? "text-gray-600 border-[#1e1e1e]" : "text-gray-300 border-gray-100/60"
+                      isDark ? "text-gray-600 border-white/[0.04]" : "text-gray-300 border-gray-100/60"
                     }`}
                     style={{ width: ROW_NUM_WIDTH }}
                   >
@@ -283,7 +284,7 @@ function FullscreenVirtualTable({
 
       {/* Footer */}
       <div className={`flex items-center justify-end px-3 py-2 border-t ${
-        isDark ? "border-[#2a2a2a] bg-[#141414]" : "border-gray-100 bg-white"
+        isDark ? "border-white/[0.06] bg-[#0f0f11]" : "border-gray-100 bg-white"
       }`}>
         <span className={`text-[11px] tabular-nums ${isDark ? "text-gray-500" : "text-gray-400"}`}>
           {rows.length.toLocaleString()} rows
@@ -708,13 +709,13 @@ export function DataViewerModal({
         className={`
           w-full h-full
           flex flex-col overflow-hidden transition-colors
-          ${isDark ? "bg-[#0a0a0a]" : "bg-white"}
+          ${isDark ? "bg-[#09090b]" : "bg-white"}
         `}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - compact */}
         {!chartOnlyMode && <div className={`flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b flex-shrink-0 ${
-          isDark ? "border-[#222]" : "border-gray-200"
+          isDark ? "border-white/[0.06]" : "border-gray-200"
         }`}>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <h2 className={`text-sm sm:text-base font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
@@ -729,7 +730,7 @@ export function DataViewerModal({
               onClick={handleExportCSV}
               className={`flex items-center gap-1.5 px-2 py-1.5 text-xs rounded-md transition-colors ${
                 isDark
-                  ? "text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
+                  ? "text-gray-400 hover:text-white hover:bg-white/[0.05]"
                   : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
               }`}
             >
@@ -741,7 +742,7 @@ export function DataViewerModal({
             <button
               onClick={onClose}
               className={`w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center rounded-md transition-colors ${
-                isDark ? "text-gray-400 hover:bg-[#1a1a1a]" : "text-gray-400 hover:bg-gray-100"
+                isDark ? "text-gray-400 hover:bg-white/[0.05]" : "text-gray-400 hover:bg-gray-100"
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -754,7 +755,7 @@ export function DataViewerModal({
         {/* View Toggle with Toolbar */}
         {!chartOnlyMode && <>
         <div className={`flex items-center justify-between px-2 sm:px-5 py-2 sm:py-2.5 border-b flex-shrink-0 ${
-          isDark ? "border-[#1a1a1a] bg-[#111]" : "border-gray-100 bg-gray-50/50"
+          isDark ? "border-white/[0.04] bg-white/[0.02]" : "border-gray-100 bg-gray-50/50"
         }`}>
           {/* Chart Type Buttons */}
           <div className="flex items-center gap-1 overflow-x-auto">
@@ -765,7 +766,7 @@ export function DataViewerModal({
                 className={`px-4 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors flex-shrink-0 flex items-center gap-2 ${
                   currentView === btn.type
                     ? isDark ? "bg-white text-gray-900" : "bg-black text-white"
-                    : isDark ? "text-gray-400 hover:bg-[#1a1a1a]" : "text-gray-500 hover:bg-gray-100"
+                    : isDark ? "text-gray-400 hover:bg-white/[0.05]" : "text-gray-500 hover:bg-gray-100"
                 }`}
               >
                 <span className="[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-[18px] sm:[&>svg]:h-[18px]">{btn.icon}</span>
@@ -775,15 +776,15 @@ export function DataViewerModal({
           </div>
 
           {/* Toolbar: SQL, Filter, Data Adjust, Settings */}
-          <div className="flex items-center gap-1.5 ml-3 pl-3 border-l border-gray-200 dark:border-[#333] relative">
+          <div className="flex items-center gap-1.5 ml-3 pl-3 border-l border-gray-200 dark:border-white/[0.08] relative">
             {/* SQL Button */}
             {sqlQuery && (
               <button
                 onClick={() => setShowSql(!showSql)}
                 className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                   showSql
-                    ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
-                    : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                    ? isDark ? 'text-white bg-white/[0.1]' : 'text-gray-900 bg-gray-200'
+                    : isDark ? 'text-gray-400 hover:bg-white/[0.05]' : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 title={showSql ? "Hide SQL" : "View SQL"}
               >
@@ -799,8 +800,8 @@ export function DataViewerModal({
                 onClick={() => setShowFilterModal(true)}
                 className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                   activeFilterCount > 0
-                    ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
-                    : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                    ? isDark ? 'text-white bg-white/[0.1]' : 'text-gray-900 bg-gray-200'
+                    : isDark ? 'text-gray-400 hover:bg-white/[0.05]' : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 title={`Filter data${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ''}`}
               >
@@ -817,8 +818,8 @@ export function DataViewerModal({
                   onClick={() => { setShowSettings(false); setShowManipulation(!showManipulation); }}
                   className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                     showManipulation || hasActiveManipulations
-                      ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
-                      : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                      ? isDark ? 'text-white bg-white/[0.1]' : 'text-gray-900 bg-gray-200'
+                      : isDark ? 'text-gray-400 hover:bg-white/[0.05]' : 'text-gray-500 hover:bg-gray-100'
                   }`}
                   title="Adjust chart data"
                 >
@@ -839,7 +840,7 @@ export function DataViewerModal({
                     className={`fixed z-50 rounded-t-2xl sm:rounded-xl shadow-lg p-4 pb-8 sm:pb-4 overflow-y-auto
                       inset-x-0 bottom-0 max-h-[75vh]
                       sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-80 sm:max-h-[80vh] ${
-                      isDark ? 'bg-[#1f1f1f] border border-[#333]' : 'bg-white border border-gray-200'
+                      isDark ? 'bg-[#0f0f11] border border-white/[0.08]' : 'bg-white border border-gray-200'
                     }`}
                   >
                     {/* Mobile drag handle */}
@@ -848,7 +849,7 @@ export function DataViewerModal({
                     </div>
                     <div className="space-y-4">
                       <div className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider pb-2 border-b flex items-center justify-between ${
-                        isDark ? 'text-gray-400 border-[#333]' : 'text-gray-400 border-gray-100'
+                        isDark ? 'text-gray-400 border-white/[0.08]' : 'text-gray-400 border-gray-100'
                       }`}>
                         <span>Data Settings</span>
                         <div className="flex items-center gap-2">
@@ -864,7 +865,7 @@ export function DataViewerModal({
                           )}
                           <button
                             onClick={() => setShowManipulation(false)}
-                            className={`sm:hidden p-1 rounded-md ${isDark ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                            className={`sm:hidden p-1 rounded-md ${isDark ? 'hover:bg-white/[0.1] text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -899,7 +900,7 @@ export function DataViewerModal({
                             onChange={(e) => setManipulation({ ...manipulation, groupByColumn: e.target.value || undefined, excludedCategories: new Set() })}
                             className={`w-full text-[11px] rounded-lg px-2.5 py-1.5 outline-none ${
                               isDark
-                                ? 'bg-[#222] border border-[#333] text-gray-200 focus:border-[#444]'
+                                ? 'bg-white/[0.05] border border-white/[0.08] text-gray-200 focus:border-white/[0.12]'
                                 : 'bg-gray-50 border border-gray-200 text-gray-700 focus:border-gray-300'
                             }`}
                           >
@@ -927,10 +928,10 @@ export function DataViewerModal({
                                   className={`px-2.5 py-1 text-[11px] rounded-lg transition-all ${
                                     isHidden
                                       ? isDark
-                                        ? 'text-gray-600 bg-transparent border border-dashed border-[#333]'
+                                        ? 'text-gray-600 bg-transparent border border-dashed border-white/[0.08]'
                                         : 'text-gray-400 bg-transparent border border-dashed border-gray-200'
                                       : isDark
-                                        ? 'text-gray-200 bg-[#222] border border-[#333]'
+                                        ? 'text-gray-200 bg-white/[0.05] border border-white/[0.08]'
                                         : 'text-gray-700 bg-gray-50 border border-gray-200'
                                   }`}
                                 >
@@ -958,10 +959,10 @@ export function DataViewerModal({
                                   className={`px-2.5 py-1 text-[11px] rounded-lg transition-all ${
                                     isExcluded
                                       ? isDark
-                                        ? 'text-gray-600 bg-transparent border border-dashed border-[#333] line-through'
+                                        ? 'text-gray-600 bg-transparent border border-dashed border-white/[0.08] line-through'
                                         : 'text-gray-400 bg-transparent border border-dashed border-gray-200 line-through'
                                       : isDark
-                                        ? 'text-gray-200 bg-[#222] border border-[#333]'
+                                        ? 'text-gray-200 bg-white/[0.05] border border-white/[0.08]'
                                         : 'text-gray-700 bg-gray-50 border border-gray-200'
                                   }`}
                                 >
@@ -986,7 +987,7 @@ export function DataViewerModal({
                           </label>
                           <div className="space-y-1.5">
                             {dataAnalysis.numericColumns.filter(col => !manipulation.hiddenColumns.has(col)).map((col) => (
-                              <div key={col} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${isDark ? 'bg-[#222]' : 'bg-gray-50'}`}>
+                              <div key={col} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${isDark ? 'bg-white/[0.05]' : 'bg-gray-50'}`}>
                                 <span className={`text-[11px] min-w-0 truncate flex-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                                   {col}
                                 </span>
@@ -995,7 +996,7 @@ export function DataViewerModal({
                                   onChange={(e) => changeAggregation(col, e.target.value as AggregationType)}
                                   className={`text-[11px] rounded-md px-1.5 py-1 outline-none ${
                                     isDark
-                                      ? 'bg-[#1a1a1a] border border-[#333] text-gray-200 focus:border-[#444]'
+                                      ? 'bg-white/[0.03] border border-white/[0.08] text-gray-200 focus:border-white/[0.12]'
                                       : 'bg-white border border-gray-200 text-gray-700 focus:border-gray-300'
                                   }`}
                                 >
@@ -1030,8 +1031,8 @@ export function DataViewerModal({
                   onClick={() => { setShowManipulation(false); setShowSettings(!showSettings); }}
                   className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
                     showSettings
-                      ? isDark ? 'text-white bg-[#333]' : 'text-gray-900 bg-gray-200'
-                      : isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                      ? isDark ? 'text-white bg-white/[0.1]' : 'text-gray-900 bg-gray-200'
+                      : isDark ? 'text-gray-400 hover:bg-white/[0.05]' : 'text-gray-500 hover:bg-gray-100'
                   }`}
                   title="Chart settings"
                 >
@@ -1056,7 +1057,7 @@ export function DataViewerModal({
               <button
                 onClick={() => setChartOnlyMode(true)}
                 className={`flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-lg transition-colors ${
-                  isDark ? 'text-gray-400 hover:bg-[#1a1a1a]' : 'text-gray-500 hover:bg-gray-100'
+                  isDark ? 'text-gray-400 hover:bg-white/[0.05]' : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 title="Focus mode (chart only)"
               >
@@ -1070,7 +1071,7 @@ export function DataViewerModal({
 
         {/* SQL Panel */}
         {showSql && sqlQuery && (
-          <div className={`px-3 sm:px-5 py-2 border-b flex-shrink-0 ${isDark ? 'bg-[#0f0f0f] border-[#222]' : 'bg-gray-50 border-gray-200'}`}>
+          <div className={`px-3 sm:px-5 py-2 border-b flex-shrink-0 ${isDark ? 'bg-white/[0.02] border-white/[0.06]' : 'bg-gray-50 border-gray-200'}`}>
             <pre className={`text-xs font-mono whitespace-pre-wrap max-h-[20vh] overflow-y-auto custom-scrollbar ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {sqlQuery}
             </pre>
@@ -1080,7 +1081,7 @@ export function DataViewerModal({
         {/* Active Filters Bar */}
         {activeFilterCount > 0 && (
           <div className={`px-3 sm:px-5 py-1.5 border-b flex items-center gap-2 flex-wrap ${
-            isDark ? 'bg-[#0f0f0f] border-[#222]' : 'bg-gray-50 border-gray-200'
+            isDark ? 'bg-white/[0.02] border-white/[0.06]' : 'bg-gray-50 border-gray-200'
           }`}>
             <span className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
               Filters ({filteredRows.length} of {rows.length}):
@@ -1090,7 +1091,7 @@ export function DataViewerModal({
                 <span
                   key={`${col}-${idx}`}
                   className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full ${
-                    isDark ? 'bg-[#333] text-gray-300' : 'bg-gray-200 text-gray-700'
+                    isDark ? 'bg-white/[0.1] text-gray-300' : 'bg-gray-200 text-gray-700'
                   }`}
                 >
                   <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>{col}:</span>
@@ -1119,7 +1120,7 @@ export function DataViewerModal({
         {/* Content Area - takes ALL remaining space */}
         <div className={`flex-1 min-h-0 overflow-hidden ${
           currentView !== "table"
-            ? isDark ? "bg-[#0d0d0d]" : "bg-gray-100"
+            ? isDark ? "bg-white/[0.02]" : "bg-gray-100"
             : ""
         }`}>
           {currentView === "table" ? (

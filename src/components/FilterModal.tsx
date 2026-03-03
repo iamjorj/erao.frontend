@@ -229,19 +229,19 @@ export function FilterModal({
   }, [columns, filteredRows]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div
         ref={modalRef}
-        className="bg-white dark:bg-[#1a1a1a] rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-2xl h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col"
+        className="bg-white dark:bg-[#0f0f11] border border-transparent sm:border-gray-200/40 sm:dark:border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile drag handle */}
         <div className="sm:hidden flex justify-center py-2">
-          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+          <div className="w-10 h-1 bg-gray-300 dark:bg-white/[0.12] rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 dark:border-[#333]">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-200/80 dark:border-white/[0.08]">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -255,7 +255,7 @@ export function FilterModal({
             {showExport && (
               <button
                 onClick={handleExport}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#333] rounded-lg transition-colors"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
                 title="Export filtered data as CSV"
               >
                 <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,14 +267,14 @@ export function FilterModal({
             {activeFilterCount > 0 && (
               <button
                 onClick={onClearFilters}
-                className="px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#333] rounded-lg transition-colors"
+                className="px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
               >
                 Clear
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-500"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -285,19 +285,19 @@ export function FilterModal({
 
         {/* Active Filters Pills */}
         {activeFilterCount > 0 && (
-          <div className="px-3 sm:px-4 py-2 border-b border-gray-100 dark:border-[#262626] bg-gray-50/50 dark:bg-[#0f0f0f] max-h-20 sm:max-h-24 overflow-y-auto flex-shrink-0">
+          <div className="px-3 sm:px-4 py-2 border-b border-gray-100 dark:border-white/[0.05] bg-gray-50/50 dark:bg-white/[0.02] max-h-20 sm:max-h-24 overflow-y-auto flex-shrink-0">
             <div className="flex flex-wrap gap-1 sm:gap-1.5">
               {Object.entries(filters).map(([col, values]) =>
                 values?.map((val, idx) => (
                   <span
                     key={`${col}-${idx}`}
-                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg"
+                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-200 dark:bg-white/[0.08] text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg"
                   >
                     <span className="text-gray-500 dark:text-gray-400">{col}:</span>
                     <span className="max-w-[80px] truncate">{formatCellValue(val)}</span>
                     <button
                       onClick={() => onFilterChange(col, val)}
-                      className="ml-0.5 p-1 rounded hover:bg-gray-300 dark:hover:bg-[#444]"
+                      className="ml-0.5 p-1 rounded hover:bg-gray-300 dark:hover:bg-white/[0.1]"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -310,13 +310,13 @@ export function FilterModal({
                 filterArray?.map((filter) => (
                   <span
                     key={filter.id}
-                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg"
+                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-200 dark:bg-white/[0.08] text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg"
                   >
                     <span className="text-gray-500 dark:text-gray-400">{col}:</span>
                     <span className="max-w-[100px] truncate">{operators.find(o => o.value === filter.operator)?.label} &quot;{filter.value}&quot;</span>
                     <button
                       onClick={() => onAdvancedFilterChange?.(col, filter, 'remove')}
-                      className="ml-0.5 p-1 rounded hover:bg-gray-300 dark:hover:bg-[#444]"
+                      className="ml-0.5 p-1 rounded hover:bg-gray-300 dark:hover:bg-white/[0.1]"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -332,8 +332,8 @@ export function FilterModal({
         {/* Two Column Layout */}
         <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden">
           {/* Column Selector - Left Panel */}
-          <div className="sm:w-48 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-[#333] flex flex-col flex-shrink-0">
-            <div className="px-3 py-1.5 sm:py-2 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-[#0f0f0f]">
+          <div className="sm:w-48 border-b sm:border-b-0 sm:border-r border-gray-200/80 dark:border-white/[0.06] flex flex-col flex-shrink-0">
+            <div className="px-3 py-1.5 sm:py-2 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-white/[0.02]">
               Select Column
             </div>
             <div className="flex flex-wrap sm:flex-col sm:flex-nowrap sm:overflow-y-auto sm:flex-1 p-1 sm:p-0 gap-1 sm:gap-0">
@@ -345,13 +345,13 @@ export function FilterModal({
                     onClick={() => handleColumnSelect(col)}
                     className={`flex-1 sm:flex-initial min-w-[calc(50%-2px)] sm:min-w-0 text-left px-3 py-2 text-xs sm:text-sm flex items-center gap-1 sm:justify-between transition-colors rounded-lg sm:rounded-none ${
                       selectedColumn === col
-                        ? 'bg-gray-200 dark:bg-[#333] text-gray-900 dark:text-white sm:bg-gray-100 sm:border-r-2 border-gray-900 dark:border-white'
-                        : 'bg-gray-100 dark:bg-[#222] sm:bg-transparent sm:dark:bg-transparent hover:bg-gray-50 dark:hover:bg-[#222] text-gray-700 dark:text-gray-300'
+                        ? 'bg-gray-200 dark:bg-white/[0.08] text-gray-900 dark:text-white sm:bg-gray-100 sm:border-r-2 border-gray-900 dark:border-white'
+                        : 'bg-gray-100 dark:bg-white/[0.05] sm:bg-transparent sm:dark:bg-transparent hover:bg-gray-50 dark:hover:bg-white/[0.04] text-gray-700 dark:text-gray-300'
                     }`}
                   >
                     <span className="truncate">{col}</span>
                     {colFilterCount > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-gray-300 dark:bg-[#444] sm:bg-gray-200 text-gray-700 dark:text-gray-300 rounded">
+                      <span className="ml-1 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-gray-300 dark:bg-white/[0.12] sm:bg-gray-200 text-gray-700 dark:text-gray-300 rounded">
                         {colFilterCount}
                       </span>
                     )}
@@ -367,14 +367,14 @@ export function FilterModal({
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Advanced Filter Section */}
                 {showAdvancedFilters && onAdvancedFilterChange && (
-                  <div className="p-3 border-b border-gray-100 dark:border-[#262626] flex-shrink-0">
+                  <div className="p-3 border-b border-gray-100 dark:border-white/[0.05] flex-shrink-0">
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       {/* Operator Dropdown - Fixed positioning to avoid overflow clipping */}
                       <div className="flex-1 sm:flex-none sm:w-40" ref={operatorButtonRef}>
                         <label className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Operator</label>
                         <button
                           onClick={() => operatorDropdownOpen ? setOperatorDropdownOpen(false) : openOperatorDropdown()}
-                          className="w-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-left flex items-center justify-between hover:border-gray-300 dark:hover:border-[#444] transition-colors"
+                          className="w-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-white/[0.1] bg-gray-50 dark:bg-white/[0.02] text-gray-900 dark:text-white text-left flex items-center justify-between hover:border-gray-300 dark:hover:border-white/[0.12] transition-colors"
                         >
                           <span>{operators.find(o => o.value === advancedOperator)?.label}</span>
                           <svg className={`w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-400 transition-transform ${operatorDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,7 +386,7 @@ export function FilterModal({
                       {operatorDropdownOpen && dropdownPosition && (
                         <div
                           ref={operatorDropdownRef}
-                          className="fixed py-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg shadow-lg z-[200]"
+                          className="fixed py-1 bg-white dark:bg-[#131316] border border-gray-200/60 dark:border-white/[0.08] rounded-xl shadow-lg z-[200]"
                           style={{
                             top: dropdownPosition.top,
                             left: dropdownPosition.left,
@@ -402,8 +402,8 @@ export function FilterModal({
                               }}
                               className={`w-full px-3 py-2 text-xs sm:text-sm text-left transition-colors ${
                                 advancedOperator === op.value
-                                  ? 'bg-gray-100 dark:bg-[#333] text-gray-900 dark:text-white'
-                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#262626]'
+                                  ? 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white'
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                               }`}
                             >
                               {op.label}
@@ -435,7 +435,7 @@ export function FilterModal({
                               setAdvancedValue("");
                             }
                           }}
-                          className="w-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white outline-none focus:border-gray-400 dark:focus:border-gray-500"
+                          className="w-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-white/[0.1] bg-gray-50 dark:bg-white/[0.02] text-gray-900 dark:text-white outline-none focus:border-gray-400 dark:focus:border-white/[0.15]"
                         />
                       </div>
                     </div>
@@ -457,10 +457,10 @@ export function FilterModal({
                         }
                       }}
                       disabled={!advancedValue}
-                      className={`w-full mt-2 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                      className={`w-full mt-2.5 py-2 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 ${
                         advancedValue
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
-                          : 'bg-gray-200 dark:bg-[#333] text-gray-400 cursor-not-allowed'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100'
+                          : 'bg-gray-200 dark:bg-white/[0.06] text-gray-400 cursor-not-allowed'
                       }`}
                     >
                       Add Filter
@@ -469,7 +469,7 @@ export function FilterModal({
                 )}
 
                 {/* Quick Filter by Value */}
-                <div className="px-3 py-2 border-b border-gray-100 dark:border-[#262626] flex-shrink-0">
+                <div className="px-3 py-2 border-b border-gray-100 dark:border-white/[0.05] flex-shrink-0">
                   <div className="relative">
                     <svg className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -479,7 +479,7 @@ export function FilterModal({
                       placeholder={`Search values in "${selectedColumn}"...`}
                       value={valueSearch}
                       onChange={(e) => setValueSearch(e.target.value)}
-                      className="w-full pl-8 sm:pl-9 pr-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white outline-none focus:border-gray-400 dark:focus:border-gray-500"
+                      className="w-full pl-8 sm:pl-9 pr-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-white/[0.1] bg-gray-50 dark:bg-white/[0.02] text-gray-900 dark:text-white outline-none focus:border-gray-400 dark:focus:border-white/[0.15]"
                     />
                   </div>
                   <div className="mt-1 text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500">
@@ -503,12 +503,12 @@ export function FilterModal({
                             onClick={() => onFilterChange(selectedColumn, value)}
                             className={`text-left px-2.5 sm:px-3 py-2 text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-2 ${
                               isActive
-                                ? 'bg-gray-100 dark:bg-[#333] text-gray-900 dark:text-white ring-1 ring-gray-300 dark:ring-[#444]'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#262626]'
+                                ? 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white ring-1 ring-gray-300 dark:ring-white/[0.12]'
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                             }`}
                           >
                             <span className={`w-3.5 sm:w-4 h-3.5 sm:h-4 rounded border flex-shrink-0 flex items-center justify-center ${
-                              isActive ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white' : 'border-gray-300 dark:border-[#444]'
+                              isActive ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white' : 'border-gray-300 dark:border-white/[0.12]'
                             }`}>
                               {isActive && (
                                 <svg className="w-2 sm:w-2.5 h-2 sm:h-2.5 text-white dark:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -533,13 +533,13 @@ export function FilterModal({
         </div>
 
         {/* Footer */}
-        <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-between flex-shrink-0">
+        <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200/80 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.02] flex items-center justify-between flex-shrink-0">
           <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
             <span className="font-medium text-gray-700 dark:text-gray-300">{filteredRows.length}</span>/{rows.length} rows
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-xs sm:text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg transition-colors"
+            className="px-5 py-2 text-xs sm:text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 rounded-xl transition-colors duration-200"
           >
             Done
           </button>

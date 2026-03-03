@@ -8,8 +8,8 @@
 }
 
 .dark {
-  --background: #111827;
-  --foreground: #f9fafb;
+  --background: #09090b;
+  --foreground: #f3f4f6;
 }
 
 @theme inline {
@@ -137,15 +137,15 @@ body {
 
 /* Dark mode scrollbar */
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .dark .custom-scrollbar {
-  scrollbar-color: #4b5563 transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 /* ERD Table scrollbar - professional dark theme */
@@ -180,24 +180,24 @@ body {
 
 /* Dark mode ERD scrollbar */
 .dark .erd-scrollbar::-webkit-scrollbar-track {
-  background: linear-gradient(to bottom, #1f2937, #111827);
+  background: linear-gradient(to bottom, rgba(255,255,255,0.02), transparent);
 }
 
 .dark .erd-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #4b5563, #374151);
-  border: 1px solid #374151;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .dark .erd-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #6b7280, #4b5563);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .dark .erd-scrollbar::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(to bottom, #9ca3af, #6b7280);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .dark .erd-scrollbar {
-  scrollbar-color: #4b5563 #1f2937;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 /* Dark mode focus-visible */
@@ -319,25 +319,25 @@ input[type="range"].chart-slider::-moz-range-track {
 }
 
 .dark input[type="range"].chart-slider {
-  background: #333;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .dark input[type="range"].chart-slider::-webkit-slider-runnable-track {
-  background: #333;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .dark input[type="range"].chart-slider::-webkit-slider-thumb {
   background: #e5e7eb;
-  border-color: #1a1a1a;
+  border-color: #09090b;
 }
 
 .dark input[type="range"].chart-slider::-moz-range-thumb {
   background: #e5e7eb;
-  border-color: #1a1a1a;
+  border-color: #09090b;
 }
 
 .dark input[type="range"].chart-slider::-moz-range-track {
-  background: #333;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* === Landing page specific === */
@@ -358,23 +358,39 @@ input[type="range"].chart-slider::-moz-range-track {
 
 /* Gradient hero text */
 .text-gradient-hero {
-  background: linear-gradient(to right, #f9fafb 0%, #9ca3af 100%);
+  background: linear-gradient(to right, #f8fafc 0%, #cbd5e1 50%, #94a3b8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
+/* Logo marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 35s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+.marquee-mask {
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
 /* Glow effects */
-.glow-blue { box-shadow: 0 0 80px 20px rgba(59,130,246,0.15); }
-.glow-purple { box-shadow: 0 0 80px 20px rgba(139,92,246,0.15); }
-.glow-green { box-shadow: 0 0 80px 20px rgba(16,185,129,0.15); }
+.glow-blue { box-shadow: 0 0 80px 20px rgba(255,255,255,0.06); }
+.glow-purple { box-shadow: 0 0 80px 20px rgba(255,255,255,0.06); }
+.glow-green { box-shadow: 0 0 80px 20px rgba(255,255,255,0.06); }
 
 /* Radial glow behind sections */
 .radial-glow-blue {
-  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 70%);
 }
 .radial-glow-purple {
-  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139,92,246,0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 70%);
 }
 
 /* Browser frame mockup */

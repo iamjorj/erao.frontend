@@ -36,14 +36,14 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void 
     <button
       onClick={onChange}
       className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
-        enabled ? 'bg-gray-800 dark:bg-gray-200' : 'bg-gray-200 dark:bg-[#3a3a3a]'
+        enabled ? 'bg-gray-800 dark:bg-gray-200' : 'bg-gray-200 dark:bg-white/[0.1]'
       }`}
     >
       <div
         className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 shadow-sm ${
           enabled
-            ? 'left-[18px] bg-white dark:bg-[#1a1a1a]'
-            : 'left-0.5 bg-white dark:bg-[#666]'
+            ? 'left-[18px] bg-white dark:bg-[#09090b]'
+            : 'left-0.5 bg-white dark:bg-gray-500'
         }`}
       />
     </button>
@@ -104,10 +104,10 @@ export function ChartSettingsDropdown({
   return (
     <>
       {/* Mobile backdrop */}
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-40 sm:hidden" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 sm:hidden" onClick={onClose} />
       <div
         ref={dropdownRef}
-        className="fixed z-50 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] shadow-xl overflow-y-auto overflow-x-hidden custom-scrollbar
+        className="fixed z-50 bg-white dark:bg-[#0f0f11] border border-gray-200/60 dark:border-white/[0.08] shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar
           inset-x-0 bottom-0 rounded-t-2xl p-5 pb-8 max-h-[75vh]
           sm:inset-auto sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-5 sm:pb-5 sm:w-[280px] sm:max-h-[80vh]"
         onClick={(e) => {
@@ -123,7 +123,7 @@ export function ChartSettingsDropdown({
       >
         {/* Mobile drag handle */}
         <div className="sm:hidden flex justify-center mb-4">
-          <div className="w-8 h-1 bg-gray-200 dark:bg-[#333] rounded-full" />
+          <div className="w-8 h-1 bg-gray-300 dark:bg-white/[0.12] rounded-full" />
         </div>
 
         {/* Header */}
@@ -131,7 +131,7 @@ export function ChartSettingsDropdown({
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{chartType} Settings</h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 sm:w-6 sm:h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 transition-colors"
+            className="w-8 h-8 sm:w-6 sm:h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-400 dark:text-gray-500 transition-colors duration-200"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -153,7 +153,7 @@ export function ChartSettingsDropdown({
                     const val = e.target.value;
                     onSettingsChange({ ...settings, yAxisMin: val === '' ? 'auto' : Number(val) || 0 });
                   }}
-                  className="flex-1 min-w-0 h-8 text-xs px-2.5 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#222] text-gray-800 dark:text-gray-200 outline-none focus:border-gray-300 dark:focus:border-[#444] placeholder:text-gray-300 dark:placeholder:text-gray-600 transition-colors"
+                  className="flex-1 min-w-0 h-8 text-xs px-2.5 rounded-lg border border-gray-200/80 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.04] text-gray-800 dark:text-gray-200 outline-none focus:border-gray-400 dark:focus:border-white/[0.15] focus:ring-1 focus:ring-gray-400/20 dark:focus:ring-white/[0.06] placeholder:text-gray-300 dark:placeholder:text-gray-600 transition-all duration-200"
                 />
                 <span className="text-gray-300 dark:text-gray-600 text-[10px] shrink-0">—</span>
                 <input
@@ -164,7 +164,7 @@ export function ChartSettingsDropdown({
                     const val = e.target.value;
                     onSettingsChange({ ...settings, yAxisMax: val === '' ? 'auto' : Number(val) || 0 });
                   }}
-                  className="flex-1 min-w-0 h-8 text-xs px-2.5 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#222] text-gray-800 dark:text-gray-200 outline-none focus:border-gray-300 dark:focus:border-[#444] placeholder:text-gray-300 dark:placeholder:text-gray-600 transition-colors"
+                  className="flex-1 min-w-0 h-8 text-xs px-2.5 rounded-lg border border-gray-200/80 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.04] text-gray-800 dark:text-gray-200 outline-none focus:border-gray-400 dark:focus:border-white/[0.15] focus:ring-1 focus:ring-gray-400/20 dark:focus:ring-white/[0.06] placeholder:text-gray-300 dark:placeholder:text-gray-600 transition-all duration-200"
                 />
               </div>
             </div>
@@ -209,7 +209,7 @@ export function ChartSettingsDropdown({
           )}
 
           {/* Separator */}
-          <div className="border-t border-gray-100 dark:border-[#2a2a2a]" />
+          <div className="border-t border-gray-100 dark:border-white/[0.06]" />
 
           {/* Color Theme */}
           <div>
@@ -222,10 +222,10 @@ export function ChartSettingsDropdown({
                     onSettingsChange({ ...settings, colorTheme: theme.value });
                     setShowCustom(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                     settings.colorTheme === theme.value && !showCustom
-                      ? 'bg-gray-100 dark:bg-[#222] ring-1 ring-gray-200 dark:ring-[#333]'
-                      : 'hover:bg-gray-50 dark:hover:bg-[#222]'
+                      ? 'bg-gray-100 dark:bg-white/[0.06] ring-1 ring-gray-200/80 dark:ring-white/[0.1]'
+                      : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                   }`}
                 >
                   <div className="flex gap-0.5">
@@ -252,10 +252,10 @@ export function ChartSettingsDropdown({
                     customColors: settings.customColors?.length ? settings.customColors : defaultCustomColors
                   });
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                   showCustom
-                    ? 'bg-gray-100 dark:bg-[#222] ring-1 ring-gray-200 dark:ring-[#333]'
-                    : 'hover:bg-gray-50 dark:hover:bg-[#222]'
+                    ? 'bg-gray-100 dark:bg-white/[0.06] ring-1 ring-gray-200/80 dark:ring-white/[0.1]'
+                    : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex gap-0.5">
@@ -274,14 +274,14 @@ export function ChartSettingsDropdown({
 
             {/* Custom Color Pickers */}
             {showCustom && (
-              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#2a2a2a]">
+              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
                 <div className="flex flex-wrap gap-2">
                   {(settings.customColors || defaultCustomColors).map((color, index) => (
                     <div key={index} className="relative group" data-color-picker>
                       <button
                         onClick={() => { setAddingNewColor(false); setEditingColorIndex(editingColorIndex === index ? null : index); }}
                         className={`w-7 h-7 rounded-lg transition-all ${
-                          editingColorIndex === index ? 'ring-2 ring-gray-400 dark:ring-gray-500 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1a1a]' : 'hover:scale-110'
+                          editingColorIndex === index ? 'ring-2 ring-gray-400 dark:ring-gray-500 ring-offset-2 ring-offset-white dark:ring-offset-[#0f0f11]' : 'hover:scale-110'
                         }`}
                         style={{ backgroundColor: color }}
                       />
@@ -301,7 +301,7 @@ export function ChartSettingsDropdown({
                       )}
                       {editingColorIndex === index && (
                         <div
-                          className="fixed z-[9999] bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] rounded-2xl shadow-2xl p-3.5"
+                          className="fixed z-[9999] bg-white dark:bg-[#0f0f11] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl shadow-2xl p-3.5"
                           style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -318,7 +318,7 @@ export function ChartSettingsDropdown({
                                       onSettingsChange({ ...settings, customColors: newColors });
                                       setEditingColorIndex(null);
                                     }}
-                                    className={`w-6 h-6 rounded-lg cursor-pointer hover:scale-110 transition-transform ${color === pc ? 'ring-2 ring-gray-400 ring-offset-1 ring-offset-white dark:ring-offset-[#1a1a1a]' : ''}`}
+                                    className={`w-6 h-6 rounded-lg cursor-pointer hover:scale-110 transition-transform ${color === pc ? 'ring-2 ring-gray-400 ring-offset-1 ring-offset-white dark:ring-offset-[#0f0f11]' : ''}`}
                                     style={{ backgroundColor: pc }}
                                   />
                                 ))}
@@ -333,13 +333,13 @@ export function ChartSettingsDropdown({
                     <div className="relative" data-color-picker>
                       <button
                         onClick={() => { setEditingColorIndex(null); setAddingNewColor(!addingNewColor); }}
-                        className="w-7 h-7 rounded-lg border border-dashed border-gray-300 dark:border-[#444] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-500 transition-colors"
+                        className="w-7 h-7 rounded-lg border border-dashed border-gray-300 dark:border-white/[0.12] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:border-gray-400 dark:hover:border-white/[0.2] hover:text-gray-500 transition-all duration-200"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       </button>
                       {addingNewColor && (
                         <div
-                          className="fixed z-[9999] bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] rounded-2xl shadow-2xl p-3.5"
+                          className="fixed z-[9999] bg-white dark:bg-[#0f0f11] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl shadow-2xl p-3.5"
                           style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -378,10 +378,10 @@ export function ChartSettingsDropdown({
                 <button
                   key={pos}
                   onClick={() => onSettingsChange({ ...settings, legendPosition: pos })}
-                  className={`flex-1 py-1.5 text-[11px] rounded-lg capitalize transition-all ${
+                  className={`flex-1 py-1.5 text-[11px] rounded-lg capitalize transition-all duration-200 ${
                     settings.legendPosition === pos
-                      ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 font-medium'
-                      : 'bg-gray-50 dark:bg-[#222] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2a2a2a]'
+                      ? 'bg-gray-800 dark:bg-white text-white dark:text-gray-900 font-medium shadow-sm'
+                      : 'bg-gray-50 dark:bg-white/[0.04] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.08]'
                   }`}
                 >
                   {pos}
@@ -393,7 +393,7 @@ export function ChartSettingsDropdown({
           {/* Reset */}
           <button
             onClick={() => { onSettingsChange(defaultChartSettings); setShowCustom(false); }}
-            className="w-full text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 py-2 border-t border-gray-100 dark:border-[#2a2a2a] transition-colors"
+            className="w-full text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 py-2.5 border-t border-gray-100 dark:border-white/[0.06] transition-colors duration-200"
           >
             Reset to defaults
           </button>

@@ -16,12 +16,12 @@ function CodeBlock({ code }: { code: string }) {
   };
 
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-gray-200 dark:border-[#2a2a2a]">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-[#2a2a2a]">
+    <div className="my-3 rounded-xl overflow-hidden border border-gray-200/60 dark:border-white/[0.06] shadow-sm shadow-black/[0.02] dark:shadow-none">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50/80 dark:bg-white/[0.03] border-b border-gray-200/60 dark:border-white/[0.06]">
         <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">SQL</span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
         >
           {copied ? (
             <>
@@ -40,7 +40,7 @@ function CodeBlock({ code }: { code: string }) {
           )}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto bg-white dark:bg-[#141414] text-[12px] leading-relaxed">
+      <pre className="p-4 overflow-x-auto bg-white dark:bg-white/[0.02] text-[12px] leading-relaxed">
         <code className="text-gray-700 dark:text-gray-300 font-mono whitespace-pre">{code}</code>
       </pre>
     </div>
@@ -105,7 +105,7 @@ export function MarkdownResponse({ content }: MarkdownResponseProps) {
         if (segment.startsWith("`") && segment.endsWith("`")) {
           // Inline code
           processedParts.push(
-            <code key={`code-${segIdx}`} className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 rounded text-xs font-mono">
+            <code key={`code-${segIdx}`} className="px-1.5 py-0.5 bg-gray-100/80 dark:bg-white/[0.06] text-gray-800 dark:text-gray-200 rounded-md text-xs font-mono">
               {segment.slice(1, -1)}
             </code>
           );
@@ -203,7 +203,7 @@ export function MarkdownResponse({ content }: MarkdownResponseProps) {
       // Horizontal rule
       if (trimmedLine === "---" || trimmedLine === "***") {
         elements.push(
-          <div key={`${partIdx}-${idx}`} className="h-px bg-gray-200 dark:bg-[#262626] my-4"></div>
+          <div key={`${partIdx}-${idx}`} className="h-px bg-gray-200/60 dark:bg-white/[0.06] my-5"></div>
         );
         return;
       }

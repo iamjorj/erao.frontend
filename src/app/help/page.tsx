@@ -14,9 +14,20 @@ const fadeUp = {
   visible: { opacity: 1, y: 0 },
 };
 
+const fadeBlur = {
+  hidden: { opacity: 0, filter: "blur(8px)" },
+  visible: { opacity: 1, filter: "blur(0px)" },
+};
+
 const stagger = {
   visible: {
     transition: { staggerChildren: 0.1 },
+  },
+};
+
+const staggerSlow = {
+  visible: {
+    transition: { staggerChildren: 0.15 },
   },
 };
 
@@ -111,11 +122,23 @@ const popularArticles = [
   { title: "How We Protect Your Data", category: "Security", slug: "data-protection" },
 ];
 
-const accentMap: Record<string, { bg: string; border: string; text: string }> = {
-  blue: { bg: "bg-blue-500/10", border: "border-blue-500/20", text: "text-blue-400" },
-  violet: { bg: "bg-violet-500/10", border: "border-violet-500/20", text: "text-violet-400" },
-  emerald: { bg: "bg-emerald-500/10", border: "border-emerald-500/20", text: "text-emerald-400" },
+const accentMap: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+  blue: { bg: "bg-white/[0.06]", border: "border-white/[0.08]", text: "text-gray-400", glow: "" },
+  violet: { bg: "bg-white/[0.06]", border: "border-white/[0.08]", text: "text-gray-400", glow: "" },
+  emerald: { bg: "bg-white/[0.06]", border: "border-white/[0.08]", text: "text-gray-400", glow: "" },
 };
+
+/* ------------------------------------------------------------------ */
+/*  SECTION DIVIDER                                                    */
+/* ------------------------------------------------------------------ */
+
+function SectionDivider() {
+  return (
+    <div className="relative z-10 w-full max-w-3xl mx-auto px-6">
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  PAGE                                                               */
@@ -153,9 +176,9 @@ export default function HelpPage() {
   return (
     <PageLayout currentPage="help" variant="dark">
       {/* Hero with Search */}
-      <section className="relative w-full pt-16 sm:pt-24 pb-12 sm:pb-16 overflow-hidden">
-        {/* Subtle radial glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/[0.06] rounded-full blur-[120px] pointer-events-none" />
+      <section className="relative w-full pt-20 sm:pt-32 pb-16 sm:pb-20 overflow-hidden">
+        {/* Radial glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
 
         <motion.div
           className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center"
@@ -164,28 +187,28 @@ export default function HelpPage() {
           variants={stagger}
         >
           <motion.div
-            variants={fadeUp}
+            variants={fadeBlur}
             transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2.5 rounded-full px-4 py-1.5 mb-8 border border-white/10 bg-white/[0.04] backdrop-blur-md"
           >
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-6">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-              </svg>
-              Knowledge Base
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-white/30 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-white/60" />
             </span>
+            <span className="text-sm text-gray-300 font-medium">Knowledge Base</span>
           </motion.div>
 
           <motion.h1
-            className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tighter text-gray-100 mb-4"
+            className="font-semibold tracking-tighter text-gray-100 mb-4 text-balance"
             variants={fadeUp}
             transition={{ duration: 0.6, delay: 0.1 }}
-            style={{ textWrap: "balance" }}
+            style={{ fontSize: "clamp(2rem, 5vw + 0.5rem, 3rem)" }}
           >
             How can we help?
           </motion.h1>
 
           <motion.p
-            className="text-base sm:text-lg text-gray-400 mb-8 sm:mb-10 max-w-xl mx-auto"
+            className="text-base sm:text-lg text-gray-400 mb-10 sm:mb-12 max-w-xl mx-auto leading-relaxed"
             variants={fadeUp}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
@@ -203,7 +226,7 @@ export default function HelpPage() {
               placeholder="Search for articles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-5 py-4 pl-12 bg-white/[0.04] border border-white/[0.08] rounded-xl text-base text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-blue-500/40 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full px-5 py-4 pl-12 bg-white/[0.04] border border-white/[0.08] rounded-2xl text-base text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-white/20 focus:ring-2 focus:ring-white/10 backdrop-blur-sm transition-all duration-300"
             />
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
@@ -217,17 +240,19 @@ export default function HelpPage() {
         </motion.div>
       </section>
 
+      <SectionDivider />
+
       {/* Popular Articles */}
       {!searchQuery && (
         <motion.section
-          className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-12 sm:pb-16"
+          className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
           variants={stagger}
         >
           <motion.p
-            className="uppercase text-sm font-medium text-blue-400/80 tracking-wide mb-5"
+            className="uppercase text-sm font-medium text-gray-500 tracking-wide mb-6"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
@@ -242,16 +267,16 @@ export default function HelpPage() {
               >
                 <Link
                   href={`/help/${article.slug}`}
-                  className="group flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
+                  className="group flex items-center justify-between p-4 sm:p-5 bg-white/[0.02] border border-white/[0.06] rounded-2xl hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
                 >
                   <div>
                     <p className="font-medium text-sm text-gray-200 group-hover:text-white transition-colors">
                       {article.title}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{article.category}</p>
+                    <p className="text-xs text-gray-500 mt-1">{article.category}</p>
                   </div>
                   <svg
-                    className="w-4 h-4 text-gray-600 group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all duration-200"
+                    className="w-4 h-4 text-gray-600 group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all duration-200 flex-shrink-0 ml-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -265,16 +290,18 @@ export default function HelpPage() {
         </motion.section>
       )}
 
+      <SectionDivider />
+
       {/* Categories */}
       <motion.section
         key={searchQuery}
-        className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-20 sm:pb-28"
+        className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20 pb-20 sm:pb-28"
         initial="hidden"
         animate="visible"
         variants={stagger}
       >
         <motion.p
-          className="uppercase text-sm font-medium text-blue-400/80 tracking-wide mb-6"
+          className="uppercase text-sm font-medium text-gray-500 tracking-wide mb-8"
           variants={fadeUp}
           transition={{ duration: 0.5 }}
         >
@@ -287,15 +314,17 @@ export default function HelpPage() {
             return (
               <motion.div
                 key={category.title}
-                className="group bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-6 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
+                className={`group bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-6 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300 ${accent.glow}`}
                 variants={fadeUp}
                 transition={{ duration: 0.4, delay: i * 0.06 }}
               >
                 <div className="flex items-center gap-3 mb-5">
-                  <div className={`w-10 h-10 ${accent.bg} border ${accent.border} ${accent.text} rounded-xl flex items-center justify-center`}>
-                    {category.icon}
+                  <div className="relative">
+                    <div className={`w-10 h-10 ${accent.bg} border ${accent.border} ${accent.text} rounded-xl flex items-center justify-center relative z-10`}>
+                      {category.icon}
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-gray-100">{category.title}</h3>
+                  <h3 className="font-semibold text-gray-100 tracking-tight">{category.title}</h3>
                 </div>
                 <ul className="space-y-2.5">
                   {category.articles.map((article) => (
@@ -328,7 +357,7 @@ export default function HelpPage() {
             <p className="text-gray-500">No articles found for &quot;{searchQuery}&quot;</p>
             <button
               onClick={() => setSearchQuery("")}
-              className="mt-4 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              className="mt-4 text-sm text-gray-400 hover:text-white transition-colors"
             >
               Clear search
             </button>
@@ -336,25 +365,29 @@ export default function HelpPage() {
         )}
       </motion.section>
 
+      <SectionDivider />
+
       {/* Contact Support CTA */}
-      <section className="w-full border-t border-white/[0.06]">
+      <section className="relative w-full overflow-hidden">
+        {/* Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-white/[0.03] rounded-full blur-[120px] pointer-events-none" />
+
         <motion.div
-          className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20 text-center"
+          className="max-w-3xl mx-auto px-4 sm:px-6 py-24 sm:py-32 text-center relative"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
           variants={stagger}
         >
           <motion.h2
-            className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-100 mb-3"
+            className="text-2xl sm:text-3xl font-semibold tracking-tighter text-gray-100 mb-4 text-balance"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            style={{ textWrap: "balance" }}
           >
             Still need help?
           </motion.h2>
           <motion.p
-            className="text-gray-400 mb-8"
+            className="text-gray-400 mb-10 text-lg leading-relaxed"
             variants={fadeUp}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
@@ -366,7 +399,7 @@ export default function HelpPage() {
           >
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium bg-white text-[#09090b] hover:bg-gray-200 transition-colors duration-200"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium bg-white text-[#09090b] hover:bg-gray-100 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] active:scale-[0.98] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Contact Support
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

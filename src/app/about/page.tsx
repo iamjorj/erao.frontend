@@ -35,31 +35,10 @@ const staggerSlow = {
 /*  ACCENT COLORS                                                      */
 /* ------------------------------------------------------------------ */
 
-const accentColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-  blue: {
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-    text: "text-blue-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]",
-  },
-  purple: {
-    bg: "bg-violet-500/10",
-    border: "border-violet-500/20",
-    text: "text-violet-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]",
-  },
-  emerald: {
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    text: "text-emerald-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]",
-  },
-  amber: {
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
-    text: "text-amber-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(245,158,11,0.3)]",
-  },
+const neutralAccent = {
+  bg: "bg-white/[0.06]",
+  border: "border-white/[0.08]",
+  text: "text-gray-400",
 };
 
 /* ------------------------------------------------------------------ */
@@ -125,15 +104,10 @@ const stats = [
 /*  SECTION DIVIDER                                                    */
 /* ------------------------------------------------------------------ */
 
-function SectionDivider({ variant = "blue" }: { variant?: "blue" | "purple" | "neutral" }) {
-  const colors = {
-    blue: "from-transparent via-blue-500/20 to-transparent",
-    purple: "from-transparent via-violet-500/20 to-transparent",
-    neutral: "from-transparent via-white/[0.06] to-transparent",
-  };
+function SectionDivider() {
   return (
     <div className="relative z-10 w-full max-w-3xl mx-auto px-6">
-      <div className={`h-px bg-gradient-to-r ${colors[variant]}`} />
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
     </div>
   );
 }
@@ -157,9 +131,9 @@ export default function AboutPage() {
   return (
     <PageLayout currentPage="about" variant="dark">
       {/* ===== HERO ===== */}
-      <section className="relative z-10 w-full pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
+      <section className="relative z-10 w-full pt-20 pb-24 md:pt-32 md:pb-36 overflow-hidden">
         {/* Radial glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-violet-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
 
         <motion.div
           className="max-w-4xl mx-auto px-6 relative"
@@ -174,8 +148,8 @@ export default function AboutPage() {
             className="inline-flex items-center gap-2.5 rounded-full px-4 py-1.5 mb-8 border border-white/10 bg-white/[0.04] backdrop-blur-md"
           >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75 animate-ping" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-white/30 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-white/60" />
             </span>
             <span className="text-sm text-gray-300 font-medium">About Erao</span>
           </motion.div>
@@ -189,7 +163,7 @@ export default function AboutPage() {
           >
             We&apos;re making data
             <br />
-            <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="text-gray-100">
               accessible to everyone
             </span>
           </motion.h1>
@@ -205,10 +179,10 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="purple" />
+      <SectionDivider />
 
       {/* ===== STATS ===== */}
-      <section className="relative z-10 w-full py-20 md:py-24">
+      <section className="relative z-10 w-full py-24 md:py-28">
         <motion.div
           className="max-w-5xl mx-auto px-6"
           initial="hidden"
@@ -222,9 +196,9 @@ export default function AboutPage() {
                 key={stat.label}
                 variants={fadeUp}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="text-center rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8"
+                className="group text-center rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
               >
-                <p className="text-2xl sm:text-3xl font-semibold tracking-tighter text-gray-100 mb-1">
+                <p className="text-3xl sm:text-4xl font-semibold tracking-tighter mb-2 text-gray-100">
                   {stat.value}
                 </p>
                 <p className="text-sm text-gray-500">{stat.label}</p>
@@ -234,12 +208,12 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="blue" />
+      <SectionDivider />
 
       {/* ===== MISSION ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
+      <section className="relative z-10 w-full py-28 md:py-36 overflow-hidden">
         {/* Subtle glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-blue-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-white/[0.03] rounded-full blur-[120px] pointer-events-none" />
 
         <motion.div
           className="max-w-3xl mx-auto px-6 text-center relative"
@@ -251,7 +225,7 @@ export default function AboutPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-blue-400/80 tracking-wide uppercase mb-3"
+            className="text-sm font-medium text-gray-500 tracking-wide uppercase mb-3"
           >
             Our Mission
           </motion.p>
@@ -260,7 +234,10 @@ export default function AboutPage() {
             transition={{ duration: 0.6 }}
             className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter mb-6 text-balance"
           >
-            Eliminate the gap between question and answer
+            Eliminate the gap between{" "}
+            <span className="text-gray-100">
+              question and answer
+            </span>
           </motion.h2>
           <motion.p
             variants={fadeUp}
@@ -272,10 +249,10 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="neutral" />
+      <SectionDivider />
 
       {/* ===== STORY ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32">
+      <section className="relative z-10 w-full py-28 md:py-36">
         <motion.div
           className="max-w-5xl mx-auto px-6"
           initial="hidden"
@@ -283,11 +260,11 @@ export default function AboutPage() {
           viewport={{ once: true, margin: "-80px" }}
           variants={stagger}
         >
-          <div className="max-w-3xl">
+          <div className="max-w-3xl border-l-2 border-white/10 pl-8 sm:pl-10">
             <motion.p
               variants={fadeUp}
               transition={{ duration: 0.5 }}
-              className="text-sm font-medium text-violet-400/80 tracking-wide uppercase mb-3"
+              className="text-sm font-medium text-gray-500 tracking-wide uppercase mb-3"
             >
               Our Story
             </motion.p>
@@ -296,9 +273,12 @@ export default function AboutPage() {
               transition={{ duration: 0.6 }}
               className="text-2xl sm:text-3xl font-semibold tracking-tighter mb-8 text-balance"
             >
-              From frustration to solution
+              From frustration to{" "}
+              <span className="text-gray-100">
+                solution
+              </span>
             </motion.h2>
-            <div className="space-y-5">
+            <div className="space-y-6">
               <motion.p
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
@@ -325,12 +305,15 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="purple" />
+      <SectionDivider />
 
       {/* ===== VALUES ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32">
+      <section className="relative z-10 w-full py-28 md:py-36">
+        {/* Background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] bg-white/[0.02] rounded-full blur-[120px] pointer-events-none" />
+
         <motion.div
-          className="max-w-5xl mx-auto px-6"
+          className="max-w-5xl mx-auto px-6 relative"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
@@ -339,17 +322,27 @@ export default function AboutPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-blue-400/80 tracking-wide uppercase text-center mb-3"
+            className="text-sm font-medium text-gray-500 tracking-wide uppercase text-center mb-3"
           >
             Our Values
           </motion.p>
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-16 text-balance"
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-4 text-balance"
           >
-            What we believe
+            What we{" "}
+            <span className="text-gray-100">
+              believe
+            </span>
           </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-gray-400 text-center mb-16 max-w-xl mx-auto text-balance leading-relaxed"
+          >
+            The principles that guide everything we build.
+          </motion.p>
 
           <motion.div
             className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
@@ -359,21 +352,22 @@ export default function AboutPage() {
             viewport={{ once: true, margin: "-60px" }}
           >
             {values.map((value) => {
-              const accent = accentColors[value.accentColor];
               return (
                 <motion.div
                   key={value.title}
                   variants={fadeUp}
                   transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className={`group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04] ${accent.glow}`}
+                  className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04]"
                 >
                   {/* Icon */}
-                  <div
-                    className={`w-10 h-10 rounded-xl ${accent.bg} border ${accent.border} ${accent.text} flex items-center justify-center mb-5`}
-                  >
-                    {value.icon}
+                  <div className="mb-5">
+                    <div
+                      className={`w-10 h-10 rounded-xl ${neutralAccent.bg} border ${neutralAccent.border} ${neutralAccent.text} flex items-center justify-center transition-all duration-300`}
+                    >
+                      {value.icon}
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-100 mb-2 tracking-tight">{value.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-100 mb-2.5 tracking-tight">{value.title}</h3>
                   <p className="text-sm text-gray-400 leading-relaxed">{value.description}</p>
                 </motion.div>
               );
@@ -382,12 +376,12 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="blue" />
+      <SectionDivider />
 
       {/* ===== CONTACT ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
+      <section className="relative z-10 w-full py-28 md:py-36 overflow-hidden">
         {/* Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
 
         <motion.div
           className="max-w-3xl mx-auto px-6 text-center relative"
@@ -406,7 +400,7 @@ export default function AboutPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-gray-400 mb-10 text-lg text-balance"
+            className="text-gray-400 mb-10 text-lg text-balance leading-relaxed"
           >
             Questions? Feedback? We&apos;d love to hear from you.
           </motion.p>
@@ -417,13 +411,13 @@ export default function AboutPage() {
           >
             <Link
               href="/contact"
-              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Contact Page
             </Link>
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 active:scale-[0.98] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Email Us
             </a>

@@ -134,22 +134,22 @@ const features = [
 
 const accentColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
   blue: {
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-    text: "text-blue-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]",
+    bg: "bg-white/[0.06]",
+    border: "border-white/[0.08]",
+    text: "text-gray-400",
+    glow: "",
   },
   purple: {
-    bg: "bg-violet-500/10",
-    border: "border-violet-500/20",
-    text: "text-violet-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]",
+    bg: "bg-white/[0.06]",
+    border: "border-white/[0.08]",
+    text: "text-gray-400",
+    glow: "",
   },
   emerald: {
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    text: "text-emerald-400",
-    glow: "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]",
+    bg: "bg-white/[0.06]",
+    border: "border-white/[0.08]",
+    text: "text-gray-400",
+    glow: "",
   },
 };
 
@@ -257,8 +257,8 @@ function MockChatUI() {
         {/* Sidebar header */}
         <div className="p-3 border-b border-white/[0.06]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <span className="text-[10px] font-semibold text-blue-400">E</span>
+            <div className="w-6 h-6 rounded-lg bg-white/[0.08] flex items-center justify-center">
+              <span className="text-[10px] font-semibold text-gray-300">E</span>
             </div>
             <span className="text-xs font-medium text-gray-300">Erao AI</span>
           </div>
@@ -285,8 +285,8 @@ function MockChatUI() {
         {/* Sidebar footer */}
         <div className="p-3 border-t border-white/[0.06]">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-violet-500 flex items-center justify-center">
-              <span className="text-[8px] font-semibold text-white">JD</span>
+            <div className="w-5 h-5 rounded-full bg-white/[0.12] flex items-center justify-center">
+              <span className="text-[8px] font-semibold text-gray-300">JD</span>
             </div>
             <span className="text-[10px] text-gray-400">John Doe</span>
           </div>
@@ -298,7 +298,7 @@ function MockChatUI() {
         {/* Chat header */}
         <div className="px-4 py-2.5 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="w-2 h-2 rounded-full bg-gray-400" />
             <span className="text-xs text-gray-300 font-medium">PostgreSQL — analytics_db</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -311,14 +311,14 @@ function MockChatUI() {
         <div className="flex-1 overflow-hidden px-4 py-4 space-y-4">
           {/* User message */}
           <div className="flex justify-end">
-            <div className="max-w-[70%] px-3 py-2 rounded-2xl rounded-br-md bg-blue-500/15 border border-blue-500/20">
+            <div className="max-w-[70%] px-3 py-2 rounded-2xl rounded-br-md bg-white/[0.08] border border-white/[0.08]">
               <p className="text-[11px] text-gray-200 leading-relaxed">Show me total revenue by region for Q4 2025</p>
             </div>
           </div>
 
           {/* AI message with chart */}
           <div className="flex gap-2">
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <div className="w-5 h-5 rounded-md bg-white/[0.12] flex items-center justify-center flex-shrink-0 mt-0.5">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
@@ -335,10 +335,10 @@ function MockChatUI() {
                 {/* Bars */}
                 <div className="space-y-2">
                   {[
-                    { label: "North America", value: 82, amount: "$2.4M", color: "bg-blue-500" },
-                    { label: "Europe", value: 65, amount: "$1.9M", color: "bg-blue-400" },
-                    { label: "Asia Pacific", value: 48, amount: "$1.4M", color: "bg-violet-400" },
-                    { label: "Latin America", value: 28, amount: "$820K", color: "bg-violet-500" },
+                    { label: "North America", value: 82, amount: "$2.4M", color: "bg-white/60" },
+                    { label: "Europe", value: 65, amount: "$1.9M", color: "bg-white/45" },
+                    { label: "Asia Pacific", value: 48, amount: "$1.4M", color: "bg-white/30" },
+                    { label: "Latin America", value: 28, amount: "$820K", color: "bg-white/20" },
                   ].map((bar) => (
                     <div key={bar.label} className="flex items-center gap-2">
                       <span className="text-[9px] text-gray-500 w-20 text-right flex-shrink-0 truncate">{bar.label}</span>
@@ -356,7 +356,7 @@ function MockChatUI() {
 
               {/* AI summary */}
               <p className="text-[11px] text-gray-400 leading-relaxed">
-                North America leads with <span className="text-blue-400">$2.4M</span> (37% of total). Europe follows at <span className="text-blue-400">$1.9M</span>. Total Q4 revenue: <span className="text-emerald-400">$6.52M</span> — up 12% from Q3.
+                North America leads with <span className="text-gray-200">$2.4M</span> (37% of total). Europe follows at <span className="text-gray-200">$1.9M</span>. Total Q4 revenue: <span className="text-gray-200">$6.52M</span> — up 12% from Q3.
               </p>
             </div>
           </div>
@@ -366,8 +366,8 @@ function MockChatUI() {
         <div className="px-4 py-3 border-t border-white/[0.06]">
           <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2">
             <span className="text-[11px] text-gray-500 flex-1">Ask about your data...</span>
-            <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-6 h-6 rounded-lg bg-white/[0.08] flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
               </svg>
             </div>
@@ -382,15 +382,10 @@ function MockChatUI() {
 /*  SECTION DIVIDER                                                    */
 /* ------------------------------------------------------------------ */
 
-function SectionDivider({ variant = "blue" }: { variant?: "blue" | "purple" | "neutral" }) {
-  const colors = {
-    blue: "from-transparent via-blue-500/20 to-transparent",
-    purple: "from-transparent via-violet-500/20 to-transparent",
-    neutral: "from-transparent via-white/[0.06] to-transparent",
-  };
+function SectionDivider({ variant = "neutral" }: { variant?: "blue" | "purple" | "neutral" }) {
   return (
     <div className="relative z-10 w-full max-w-3xl mx-auto px-6">
-      <div className={`h-px bg-gradient-to-r ${colors[variant]}`} />
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
     </div>
   );
 }
@@ -441,7 +436,7 @@ export default function LandingPage() {
       {/* ===== HERO ===== */}
       <section className="relative z-10 w-full pt-20 pb-24 md:pt-28 md:pb-32 overflow-hidden">
         {/* Hero radial glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-blue-500/[0.07] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-white/[0.03] rounded-full blur-[120px] pointer-events-none" />
 
         <motion.div
           className="max-w-4xl mx-auto px-6 text-center relative"
@@ -456,8 +451,8 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2.5 rounded-full px-4 py-1.5 mb-10 border border-white/10 bg-white/[0.04] backdrop-blur-md"
           >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-white/30 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-white/60" />
             </span>
             <span className="text-sm text-gray-300 font-medium">AI-Powered Data Intelligence</span>
             <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -495,7 +490,7 @@ export default function LandingPage() {
           >
             <Link
               href="/register"
-              className="group relative w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="group relative w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
                 Start Free
@@ -506,7 +501,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/features"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white active:scale-[0.98] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               See Features
             </Link>
@@ -520,7 +515,7 @@ export default function LandingPage() {
           >
             {["Free forever", "2 min setup", "AES-256 encrypted"].map((t) => (
               <span key={t} className="flex items-center gap-2">
-                <CheckIcon className="w-3.5 h-3.5 text-emerald-500/70" />
+                <CheckIcon className="w-3.5 h-3.5 text-gray-500" />
                 <span>{t}</span>
               </span>
             ))}
@@ -538,7 +533,7 @@ export default function LandingPage() {
           className="relative"
         >
           {/* Glow behind browser frame */}
-          <div className="absolute -inset-4 bg-blue-500/[0.06] rounded-3xl blur-[60px] pointer-events-none" />
+          <div className="absolute -inset-4 bg-white/[0.03] rounded-3xl blur-[60px] pointer-events-none" />
 
           <div className="relative browser-frame glow-blue">
             <div className="browser-frame-bar">
@@ -549,7 +544,7 @@ export default function LandingPage() {
               </div>
               <div className="flex-1 mx-4">
                 <div className="bg-[#0a0a0a] rounded-md px-3 py-1.5 text-xs text-gray-500 max-w-xs mx-auto text-center flex items-center justify-center gap-1.5">
-                  <svg className="w-3 h-3 text-emerald-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3 h-3 text-gray-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                   </svg>
                   erao.digital/ai
@@ -603,23 +598,25 @@ export default function LandingPage() {
             Works with 15+ databases and popular file formats
           </motion.p>
 
-          {/* Database logos — two rows on mobile, one row on desktop */}
+          {/* Database logos — infinite marquee */}
           <motion.div
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-5 sm:gap-x-7 sm:gap-y-6"
+            className="relative overflow-hidden marquee-mask"
           >
-            {supportedDatabases.map((db) => (
-              <div
-                key={db.name}
-                className="group flex flex-col items-center gap-2 cursor-default"
-              >
-                <div className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] p-2 opacity-70 group-hover:opacity-100 group-hover:border-white/15 group-hover:bg-white/[0.08] transition-all duration-300">
-                  <img src={db.logo} alt={db.name} className="w-full h-full object-contain brightness-110" />
+            <div className="flex animate-marquee w-max gap-6 sm:gap-8">
+              {[...supportedDatabases, ...supportedDatabases].map((db, idx) => (
+                <div
+                  key={`${db.name}-${idx}`}
+                  className="group flex flex-col items-center gap-2 flex-shrink-0 cursor-default"
+                >
+                  <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] p-2.5 opacity-60 group-hover:opacity-100 group-hover:border-white/15 group-hover:bg-white/[0.08] transition-all duration-300">
+                    <img src={db.logo} alt={db.name} className="w-full h-full object-contain brightness-110" />
+                  </div>
+                  <span className="text-[10px] text-gray-500 group-hover:text-gray-300 transition-colors duration-300">{db.name}</span>
                 </div>
-                <span className="text-[10px] text-gray-500 group-hover:text-gray-300 transition-colors duration-300">{db.name}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </motion.div>
 
           {/* Divider */}
@@ -664,7 +661,7 @@ export default function LandingPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-blue-400/80 mb-4 tracking-wide uppercase"
+            className="text-sm font-medium text-gray-500 mb-4 tracking-wide uppercase"
           >
             Features
           </motion.p>
@@ -744,7 +741,7 @@ export default function LandingPage() {
                       {[40, 65, 45, 80, 55, 70, 90, 60, 75, 50, 85, 68].map((h, idx) => (
                         <div
                           key={idx}
-                          className="flex-1 rounded-t bg-gradient-to-t from-blue-500/30 to-blue-400/10 transition-all duration-300 group-hover:from-blue-500/50 group-hover:to-blue-400/20"
+                          className="flex-1 rounded-t bg-gradient-to-t from-white/20 to-white/[0.05] transition-all duration-300 group-hover:from-white/30 group-hover:to-white/10"
                           style={{ height: `${h}%` }}
                         />
                       ))}
@@ -762,7 +759,7 @@ export default function LandingPage() {
       {/* ===== HOW IT WORKS ===== */}
       <section className="relative z-10 w-full py-20 md:py-28 overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-violet-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-white/[0.03] rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-5xl mx-auto px-6 relative">
           <motion.div
@@ -775,7 +772,7 @@ export default function LandingPage() {
             <motion.p
               variants={fadeUp}
               transition={{ duration: 0.5 }}
-              className="text-sm font-medium text-violet-400/80 mb-4 tracking-wide uppercase"
+              className="text-sm font-medium text-gray-500 mb-4 tracking-wide uppercase"
             >
               How It Works
             </motion.p>
@@ -805,43 +802,25 @@ export default function LandingPage() {
             variants={staggerSlow}
             className="grid grid-cols-1 md:grid-cols-3 gap-6 relative"
           >
-            {/* Connecting line (desktop only) */}
-            <div className="hidden md:block absolute top-[52px] left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px">
-              <div className="w-full h-full bg-gradient-to-r from-blue-500/20 via-violet-500/20 to-emerald-500/20" />
-              {/* Animated dot on the line */}
-              <div className="absolute top-1/2 left-0 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-400/60 animate-pulse" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-violet-400/60 animate-pulse" />
-              <div className="absolute top-1/2 right-0 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-pulse" />
-            </div>
+            {/* Connecting lines between icons (desktop only) */}
+            <div className="hidden md:block absolute top-[52px] left-[calc(16.67%+40px)] right-[calc(50%+40px)] h-px bg-gradient-to-r from-white/[0.06] to-white/[0.08]" />
+            <div className="hidden md:block absolute top-[52px] left-[calc(50%+40px)] right-[calc(16.67%+40px)] h-px bg-gradient-to-r from-white/[0.08] to-white/[0.06]" />
 
             {steps.map((step, i) => {
-              const gradients = [
-                "from-blue-500 to-blue-600",
-                "from-violet-500 to-violet-600",
-                "from-emerald-500 to-emerald-600",
-              ];
-              const glowColors = [
-                "shadow-blue-500/20",
-                "shadow-violet-500/20",
-                "shadow-emerald-500/20",
-              ];
               return (
                 <motion.div
                   key={step.num}
                   variants={fadeUp}
                   transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  className="group text-center relative"
+                  className="group text-center relative z-10"
                 >
-                  {/* Step number badge */}
-                  <div className={`relative w-[52px] h-[52px] rounded-2xl bg-gradient-to-br ${gradients[i]} flex items-center justify-center mx-auto mb-6 shadow-lg ${glowColors[i]} transition-shadow duration-300 group-hover:shadow-xl`}>
-                    <span className="text-sm font-semibold text-white">{step.num}</span>
+                  {/* Step number badge with icon */}
+                  <div className="relative w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:bg-white/[0.08] group-hover:border-white/10">
+                    <span className="text-gray-400">{step.icon}</span>
                     {/* Ring effect */}
-                    <div className={`absolute -inset-1.5 rounded-2xl border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-                  </div>
-
-                  {/* Icon */}
-                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-gray-400 mx-auto mb-4 group-hover:border-white/10 group-hover:text-gray-300 transition-all duration-300">
-                    {step.icon}
+                    <div className="absolute -inset-1.5 rounded-2xl border border-white/[0.06] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    {/* Step number */}
+                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#09090b] border border-white/10 text-[10px] font-semibold text-gray-400 flex items-center justify-center">{step.num}</span>
                   </div>
 
                   <h3 className="text-xl font-semibold text-gray-100 mb-3 tracking-tight">{step.title}</h3>
@@ -868,7 +847,7 @@ export default function LandingPage() {
             <motion.p
               variants={fadeUp}
               transition={{ duration: 0.5 }}
-              className="text-sm font-medium text-blue-400/80 mb-4 tracking-wide uppercase"
+              className="text-sm font-medium text-gray-500 mb-4 tracking-wide uppercase"
             >
               Pricing
             </motion.p>
@@ -903,14 +882,14 @@ export default function LandingPage() {
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                 className={`group relative rounded-2xl p-7 transition-all duration-500 ${
                   plan.highlighted
-                    ? "bg-white/[0.04] border-2 border-blue-500/30 shadow-[0_0_60px_-15px_rgba(59,130,246,0.2)] hover:shadow-[0_0_80px_-15px_rgba(59,130,246,0.3)] hover:border-blue-500/40"
+                    ? "bg-white/[0.04] border-2 border-white/20 shadow-[0_0_60px_-15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_80px_-15px_rgba(255,255,255,0.12)] hover:border-white/25"
                     : "bg-white/[0.02] border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.04]"
                 }`}
               >
                 {/* Popular badge */}
                 {plan.highlighted && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-blue-500 text-white shadow-lg shadow-blue-500/30">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-[#09090b] shadow-lg shadow-white/20">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                       </svg>
@@ -932,7 +911,7 @@ export default function LandingPage() {
                 <ul className="space-y-3.5 mb-8">
                   {plan.features.map((item) => (
                     <li key={item} className="flex items-start gap-3 text-sm">
-                      <CheckIcon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${plan.highlighted ? "text-blue-400" : "text-gray-500"}`} />
+                      <CheckIcon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${plan.highlighted ? "text-gray-400" : "text-gray-500"}`} />
                       <span className="text-gray-300">{item}</span>
                     </li>
                   ))}
@@ -940,7 +919,7 @@ export default function LandingPage() {
 
                 <Link
                   href={plan.ctaHref}
-                  className={`block w-full py-3 text-center rounded-full text-sm font-medium transition-all duration-300 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
+                  className={`block w-full py-3 text-center rounded-full text-sm font-medium transition-all duration-300 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
                     plan.highlighted
                       ? "bg-white text-[#09090b] hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] focus-visible:ring-white/50"
                       : "border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white focus-visible:ring-white/30"
@@ -958,9 +937,8 @@ export default function LandingPage() {
 
       {/* ===== FINAL CTA ===== */}
       <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
-        {/* Multi-layered glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-blue-500/[0.06] rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute top-1/2 left-1/3 -translate-y-1/2 w-[300px] h-[300px] bg-violet-500/[0.04] rounded-full blur-[80px] pointer-events-none" />
+        {/* Subtle glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-white/[0.03] rounded-full blur-[100px] pointer-events-none" />
 
         <motion.div
           initial="hidden"
@@ -996,7 +974,7 @@ export default function LandingPage() {
           >
             <Link
               href="/register"
-              className="group relative w-full sm:w-auto bg-white text-[#09090b] px-10 py-4 rounded-full text-base font-medium transition-all duration-300 hover:shadow-[0_0_50px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="group relative w-full sm:w-auto bg-white text-[#09090b] px-10 py-4 rounded-full text-base font-medium transition-all duration-300 hover:shadow-[0_0_50px_rgba(255,255,255,0.15)] hover:bg-gray-100 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
                 Start Free Today
@@ -1007,7 +985,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/contact"
-              className="w-full sm:w-auto px-10 py-4 rounded-full text-base font-medium border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto px-10 py-4 rounded-full text-base font-medium border border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white active:scale-[0.98] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Talk to Sales
             </Link>
@@ -1020,7 +998,7 @@ export default function LandingPage() {
           >
             {["No credit card required", "Free plan forever", "Cancel anytime"].map((t) => (
               <span key={t} className="flex items-center gap-2">
-                <CheckIcon className="w-3.5 h-3.5 text-emerald-500/70" />
+                <CheckIcon className="w-3.5 h-3.5 text-gray-500" />
                 <span>{t}</span>
               </span>
             ))}

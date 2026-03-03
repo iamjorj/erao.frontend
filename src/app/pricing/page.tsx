@@ -62,6 +62,7 @@ const plans = [
     cta: "Get Started",
     ctaHref: "/register",
     highlighted: false,
+    accentColor: "gray",
   },
   {
     name: "Pro",
@@ -78,6 +79,7 @@ const plans = [
     cta: "Start Free Trial",
     ctaHref: "/register",
     highlighted: true,
+    accentColor: "blue",
   },
   {
     name: "Enterprise",
@@ -95,6 +97,7 @@ const plans = [
     cta: "Contact Sales",
     ctaHref: "/contact",
     highlighted: false,
+    accentColor: "violet",
   },
 ];
 
@@ -150,15 +153,10 @@ const faqs = [
 /*  SECTION DIVIDER                                                    */
 /* ------------------------------------------------------------------ */
 
-function SectionDivider({ variant = "blue" }: { variant?: "blue" | "purple" | "neutral" }) {
-  const colors = {
-    blue: "from-transparent via-blue-500/20 to-transparent",
-    purple: "from-transparent via-violet-500/20 to-transparent",
-    neutral: "from-transparent via-white/[0.06] to-transparent",
-  };
+function SectionDivider() {
   return (
     <div className="relative z-10 w-full max-w-3xl mx-auto px-6">
-      <div className={`h-px bg-gradient-to-r ${colors[variant]}`} />
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
     </div>
   );
 }
@@ -184,9 +182,9 @@ export default function PricingPage() {
   return (
     <PageLayout currentPage="pricing" variant="dark">
       {/* ===== HERO ===== */}
-      <section className="relative z-10 w-full pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
+      <section className="relative z-10 w-full pt-20 pb-24 md:pt-32 md:pb-36 overflow-hidden">
         {/* Radial glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-blue-500/[0.06] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
 
         <motion.div
           className="max-w-4xl mx-auto px-6 text-center relative"
@@ -201,10 +199,10 @@ export default function PricingPage() {
             className="inline-flex items-center gap-2.5 rounded-full px-4 py-1.5 mb-8 border border-white/10 bg-white/[0.04] backdrop-blur-md"
           >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-400" />
             </span>
-            <span className="text-sm text-gray-300 font-medium">Simple Pricing</span>
+            <span className="text-sm text-gray-400 font-medium">Simple Pricing</span>
           </motion.div>
 
           {/* Headline */}
@@ -216,7 +214,7 @@ export default function PricingPage() {
           >
             Simple, transparent
             <br />
-            <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="text-gray-100">
               pricing
             </span>
           </motion.h1>
@@ -233,7 +231,7 @@ export default function PricingPage() {
       </section>
 
       {/* ===== PRICING CARDS ===== */}
-      <section className="relative z-10 w-full pb-24 md:pb-32">
+      <section className="relative z-10 w-full pb-28 md:pb-36">
         <motion.div
           className="max-w-5xl mx-auto px-6"
           initial="hidden"
@@ -249,14 +247,19 @@ export default function PricingPage() {
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 className={`relative rounded-2xl p-6 sm:p-8 transition-all duration-300 ${
                   plan.highlighted
-                    ? "border border-blue-500/30 bg-white/[0.04] shadow-[0_0_60px_-15px_rgba(59,130,246,0.2)]"
+                    ? "border-2 border-white/20 bg-white/[0.04] shadow-[0_0_60px_-15px_rgba(255,255,255,0.1)] md:scale-[1.03]"
                     : "border border-white/[0.06] bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
                 }`}
               >
                 {/* Most Popular badge */}
                 {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-xs font-medium">
-                    Most Popular
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-white/20 rounded-full blur-md" />
+                      <div className="relative bg-white text-[#09090b] px-4 py-1.5 rounded-full text-xs font-medium">
+                        Most Popular
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -277,8 +280,8 @@ export default function PricingPage() {
                   href={plan.ctaHref}
                   className={`block w-full py-3 text-center rounded-full text-sm font-medium transition-all duration-300 mb-8 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
                     plan.highlighted
-                      ? "bg-white text-[#09090b] hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-white/50"
-                      : "border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 focus-visible:ring-white/30"
+                      ? "bg-white text-[#09090b] hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 active:scale-[0.98] focus-visible:ring-white/50"
+                      : "border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 active:scale-[0.98] focus-visible:ring-white/30"
                   }`}
                 >
                   {plan.cta}
@@ -289,7 +292,7 @@ export default function PricingPage() {
                   {plan.features.map((feature) => (
                     <li key={feature.name} className="flex items-start gap-3 text-sm">
                       {feature.included ? (
-                        <span className="text-emerald-400 flex-shrink-0 mt-0.5">
+                        <span className="flex-shrink-0 mt-0.5 text-gray-400">
                           <CheckIcon />
                         </span>
                       ) : (
@@ -311,10 +314,10 @@ export default function PricingPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="neutral" />
+      <SectionDivider />
 
       {/* ===== FEATURE COMPARISON TABLE ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32">
+      <section className="relative z-10 w-full py-28 md:py-36">
         <motion.div
           className="max-w-5xl mx-auto px-6"
           initial="hidden"
@@ -325,17 +328,27 @@ export default function PricingPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-blue-400/80 tracking-wide uppercase text-center mb-3"
+            className="text-sm font-medium text-gray-500 tracking-wide uppercase text-center mb-3"
           >
             Comparison
           </motion.p>
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-3xl font-semibold tracking-tighter text-center mb-12 text-balance"
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-4 text-balance"
           >
-            Compare all features
+            Compare all{" "}
+            <span className="text-gray-100">
+              features
+            </span>
           </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-gray-400 text-center mb-14 max-w-xl mx-auto text-balance leading-relaxed"
+          >
+            See exactly what you get with each plan.
+          </motion.p>
 
           <motion.div
             variants={fadeUp}
@@ -343,37 +356,47 @@ export default function PricingPage() {
             className="overflow-x-auto -mx-4 sm:mx-0"
           >
             <div className="min-w-[540px] px-4 sm:px-0">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-white/[0.08]">
-                    <th className="text-left py-4 pr-4 text-sm font-medium text-gray-400">Feature</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-gray-400">Free</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-blue-400">Pro</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-gray-400">Enterprise</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonRows.map((row) => (
-                    <tr key={row.feature} className="border-b border-white/[0.04]">
-                      <td className="py-4 pr-4 text-sm text-gray-300">{row.feature}</td>
-                      <td className="text-center py-4 px-4 text-sm text-gray-500">{row.free}</td>
-                      <td className="text-center py-4 px-4 text-sm text-gray-300">{row.pro}</td>
-                      <td className="text-center py-4 px-4 text-sm text-gray-500">{row.enterprise}</td>
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/[0.08]">
+                      <th className="text-left py-4 px-6 text-sm font-medium text-gray-400">Feature</th>
+                      <th className="text-center py-4 px-4 text-sm font-medium text-gray-400">Free</th>
+                      <th className="text-center py-4 px-4 text-sm font-semibold text-gray-100">
+                        Pro
+                      </th>
+                      <th className="text-center py-4 px-4 text-sm font-medium text-gray-400">Enterprise</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {comparisonRows.map((row, i) => (
+                      <tr
+                        key={row.feature}
+                        className={`border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors duration-200 ${i === comparisonRows.length - 1 ? "border-b-0" : ""}`}
+                      >
+                        <td className="py-4 px-6 text-sm text-gray-300">{row.feature}</td>
+                        <td className="text-center py-4 px-4 text-sm text-gray-500">{row.free}</td>
+                        <td className="text-center py-4 px-4 text-sm text-gray-200 font-medium bg-white/[0.02]">{row.pro}</td>
+                        <td className="text-center py-4 px-4 text-sm text-gray-500">{row.enterprise}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </motion.div>
         </motion.div>
       </section>
 
-      <SectionDivider variant="purple" />
+      <SectionDivider />
 
       {/* ===== FAQ ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32">
+      <section className="relative z-10 w-full py-28 md:py-36">
+        {/* Background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] bg-white/[0.02] rounded-full blur-[120px] pointer-events-none" />
+
         <motion.div
-          className="max-w-3xl mx-auto px-6"
+          className="max-w-3xl mx-auto px-6 relative"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
@@ -382,17 +405,27 @@ export default function PricingPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium text-violet-400/80 tracking-wide uppercase text-center mb-3"
+            className="text-sm font-medium text-gray-500 tracking-wide uppercase text-center mb-3"
           >
             FAQ
           </motion.p>
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-3xl font-semibold tracking-tighter text-center mb-12 text-balance"
+            className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tighter text-center mb-4 text-balance"
           >
-            Frequently asked questions
+            Frequently asked{" "}
+            <span className="text-gray-100">
+              questions
+            </span>
           </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-gray-400 text-center mb-14 max-w-xl mx-auto text-balance leading-relaxed"
+          >
+            Everything you need to know about Erao.
+          </motion.p>
 
           <motion.div
             className="space-y-3"
@@ -406,25 +439,29 @@ export default function PricingPage() {
                 key={index}
                 variants={fadeUp}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden transition-colors duration-300 hover:border-white/10"
+                className={`rounded-2xl border bg-white/[0.02] overflow-hidden transition-all duration-300 ${
+                  openFaq === index
+                    ? "border-white/[0.1] bg-white/[0.04]"
+                    : "border-white/[0.06] hover:border-white/10"
+                }`}
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full flex items-center justify-between p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-inset rounded-2xl"
+                  className="w-full flex items-center justify-between p-5 sm:p-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-inset rounded-2xl"
                   aria-expanded={openFaq === index}
                 >
-                  <span className="font-medium text-sm text-gray-200">{faq.question}</span>
-                  <svg
-                    className={`w-5 h-5 text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4 ${
-                      openFaq === index ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <span className="font-medium text-sm text-gray-200 pr-4">{faq.question}</span>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${openFaq === index ? "bg-white/10 rotate-180" : "bg-white/[0.04]"}`}>
+                    <svg
+                      className="w-4 h-4 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </button>
                 <AnimatePresence initial={false}>
                   {openFaq === index && (
@@ -435,7 +472,8 @@ export default function PricingPage() {
                       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                       className="overflow-hidden"
                     >
-                      <div className="px-5 pb-5">
+                      <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+                        <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-4" />
                         <p className="text-sm text-gray-400 leading-relaxed">{faq.answer}</p>
                       </div>
                     </motion.div>
@@ -447,12 +485,12 @@ export default function PricingPage() {
         </motion.div>
       </section>
 
-      <SectionDivider variant="blue" />
+      <SectionDivider />
 
       {/* ===== CTA ===== */}
-      <section className="relative z-10 w-full py-24 md:py-32 overflow-hidden">
+      <section className="relative z-10 w-full py-28 md:py-36 overflow-hidden">
         {/* Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
 
         <motion.div
           className="max-w-3xl mx-auto px-6 text-center relative"
@@ -471,7 +509,7 @@ export default function PricingPage() {
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-gray-400 mb-10 text-lg text-balance"
+            className="text-gray-400 mb-10 text-lg text-balance leading-relaxed"
           >
             Our team is here to help you find the right plan.
           </motion.p>
@@ -482,13 +520,13 @@ export default function PricingPage() {
           >
             <Link
               href="/contact"
-              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto bg-white text-[#09090b] px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-gray-100 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Contact Sales
             </Link>
             <Link
               href="/register"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/15 active:scale-[0.98] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             >
               Start Free
             </Link>

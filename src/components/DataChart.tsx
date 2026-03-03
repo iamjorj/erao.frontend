@@ -105,13 +105,14 @@ const COLORS = COLOR_THEMES.colorful;
 
 // Dark mode detection hook
 function useDarkMode(): boolean {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== 'undefined' ? document.documentElement.classList.contains("dark") : false
+  );
 
   useEffect(() => {
     const checkDarkMode = () => {
       setIsDark(document.documentElement.classList.contains("dark"));
     };
-    checkDarkMode();
 
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
@@ -989,10 +990,10 @@ export const DataChart = memo(function DataChart({
     // Theme colors
     const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
     const tickColor = isDark ? "#9ca3af" : "#64748b";
-    const tBg = isDark ? "#18181b" : "#ffffff";
+    const tBg = isDark ? "#131316" : "#ffffff";
     const tBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
     const tText = isDark ? "#f1f5f9" : "#1e293b";
-    const shadowCss = isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)';
+    const shadowCss = isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.08)';
 
     // Formatters
     const fmtAxis = (v: number) => {
@@ -1223,7 +1224,7 @@ export const DataChart = memo(function DataChart({
               symbol: 'circle',
               symbolSize: 7,
               itemStyle: {
-                color: isDark ? '#18181b' : '#fff',
+                color: isDark ? '#09090b' : '#fff',
                 borderColor: color,
                 borderWidth: 2.5,
               },
@@ -1231,7 +1232,7 @@ export const DataChart = memo(function DataChart({
                 symbolSize: 10,
                 itemStyle: {
                   color,
-                  borderColor: isDark ? '#18181b' : '#fff',
+                  borderColor: isDark ? '#09090b' : '#fff',
                   borderWidth: 2.5,
                 },
               },
@@ -1287,7 +1288,7 @@ export const DataChart = memo(function DataChart({
                 symbolSize: 10,
                 itemStyle: {
                   color,
-                  borderColor: isDark ? '#18181b' : '#fff',
+                  borderColor: isDark ? '#09090b' : '#fff',
                   borderWidth: 2.5,
                 },
               },
@@ -1345,7 +1346,7 @@ export const DataChart = memo(function DataChart({
               itemStyle: { color: chartColors[i % chartColors.length] },
             })),
             itemStyle: {
-              borderColor: isDark ? '#18181b' : '#fff',
+              borderColor: isDark ? '#09090b' : '#fff',
               borderWidth: 3,
             },
             label: {
@@ -1381,7 +1382,7 @@ export const DataChart = memo(function DataChart({
       <div className={`flex flex-col items-center justify-center gap-2 text-gray-500 dark:text-gray-400 text-xs sm:text-sm ${fillContainer ? 'h-full' : 'h-48'}`}>
         <span>{hasHiddenCols ? "All chart columns are hidden" : "No numeric data to chart"}</span>
         {hasHiddenCols && (
-          <button onClick={resetManipulations} className="text-[11px] px-3 py-1 rounded-lg bg-gray-100 dark:bg-[#222] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] transition-colors">
+          <button onClick={resetManipulations} className="text-[11px] px-3 py-1 rounded-lg bg-gray-100 dark:bg-white/[0.05] hover:bg-gray-200 dark:hover:bg-white/[0.08] transition-colors">
             Reset columns
           </button>
         )}
@@ -1476,7 +1477,7 @@ export const DataChart = memo(function DataChart({
   if (chartType === 'pie' && pieData.length === 0) {
     return (
       <div className={`w-full h-full overflow-hidden relative flex flex-col ${
-        borderless ? 'p-0' : 'bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors'
+        borderless ? 'p-0' : 'bg-white dark:bg-white/[0.02] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors'
       }`}>
         <div className={`flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm ${fillContainer ? 'h-full' : ''}`}
              style={fillContainer ? undefined : { height: typeof chartHeight === 'number' ? chartHeight : undefined }}>
@@ -1490,7 +1491,7 @@ export const DataChart = memo(function DataChart({
     <div className={`w-full h-full overflow-hidden relative flex flex-col ${
       borderless
         ? 'p-0'
-        : 'bg-white dark:bg-[#1a1a1a] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors'
+        : 'bg-white dark:bg-white/[0.02] rounded-xl p-1.5 sm:p-3 lg:p-4 transition-colors'
     }`}>
       {/* Header */}
       {!borderless && (
