@@ -801,6 +801,7 @@ export default function AIPage() {
   const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
   const [showConnectorModal, setShowConnectorModal] = useState(false);
   const [showConnectorSetup, setShowConnectorSetup] = useState<string | null>(null);
+  const [showDataSourcePicker, setShowDataSourcePicker] = useState(false);
 
   // Chat input state
   const [inputValue, setInputValue] = useState("");
@@ -862,6 +863,62 @@ export default function AIPage() {
   // Mobile navigation: 'chats' shows full-page conversation list, 'chat' shows active conversation
   const [mobileView, setMobileView] = useState<'chats' | 'chat'>('chats');
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
+
+  // Tutorial walkthrough state
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
+
+  const TUTORIAL_STEPS = useMemo(() => [
+    {
+      selector: '[data-tutorial="welcome-buttons"]',
+      title: "Start by connecting your data",
+      description: "Click one of these to connect a database, upload a spreadsheet, or link an app like Shopify or Stripe.",
+      position: "bottom" as const,
+      padding: 12,
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+        </svg>
+      ),
+    },
+    {
+      selector: '[data-tutorial="input-icons"]',
+      title: "Quick access from the input bar",
+      description: "You can also switch data sources anytime using these icons \u2014 database, file upload, and app connector.",
+      position: "top" as const,
+      padding: 8,
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+      ),
+    },
+    {
+      selector: '[data-tutorial="input-field"]',
+      title: "Ask anything about your data",
+      description: "Type a question like \u2018What were my top sales last month?\u2019 and Erao will show results with charts \u2014 no coding needed.",
+      position: "top" as const,
+      padding: 8,
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      ),
+    },
+    {
+      selector: '[data-tutorial="new-chat"]',
+      title: "Your conversations are saved",
+      description: "Every conversation is saved. Come back anytime to review past analyses or start a new chat.",
+      position: "right" as const,
+      padding: 8,
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+        </svg>
+      ),
+    },
+  ], []);
 
   // Chart view state - tracks view mode per message
   const [chartViews, setChartViews] = useState<Record<string, ChartType>>({});
@@ -1453,7 +1510,7 @@ export default function AIPage() {
   const createNewConversation = async () => {
     // Need either a database, file, or connector selected
     if (!selectedDatabaseId && !selectedFileId && !selectedConnectorId) {
-      setShowDatabaseModal(true);
+      setShowDataSourcePicker(true);
       return;
     }
 
@@ -1502,7 +1559,7 @@ export default function AIPage() {
 
     // Need either a database, file, or connector selected
     if (!selectedDatabaseId && !selectedFileId && !selectedConnectorId) {
-      setShowDatabaseModal(true);
+      setShowDataSourcePicker(true);
       setIsSending(false);
       setInputValue(messageContent);
       return;
@@ -1940,6 +1997,90 @@ export default function AIPage() {
   const hasPendingRequest = !!(selectedConversationId && pendingConversations.has(selectedConversationId));
   const isEmptyChat = messages.length === 0 && !loadingMessages && !isSending && !hasPendingRequest;
 
+  // Tutorial: trigger on first visit with no data sources
+  useEffect(() => {
+    if (!initialLoadComplete || !isEmptyChat) return;
+    if (databases.length > 0 || files.length > 0 || connectors.length > 0) return;
+    if (localStorage.getItem('erao-tutorial-completed') === 'true') return;
+    const timer = setTimeout(() => setShowTutorial(true), 600);
+    return () => clearTimeout(timer);
+  }, [initialLoadComplete, isEmptyChat, databases.length, files.length, connectors.length]);
+
+  // Tutorial: track highlight rect on step change / resize
+  useEffect(() => {
+    if (!showTutorial) return;
+
+    const updateRect = () => {
+      const step = TUTORIAL_STEPS[tutorialStep];
+      if (!step) return;
+
+      // Skip step 4 (new-chat) on mobile — sidebar is hidden
+      if (step.selector === '[data-tutorial="new-chat"]' && window.innerWidth < 768) {
+        // If it's the last step, finish tutorial
+        if (tutorialStep >= TUTORIAL_STEPS.length - 1) {
+          setShowTutorial(false);
+          localStorage.setItem('erao-tutorial-completed', 'true');
+        } else {
+          setTutorialStep(prev => prev + 1);
+        }
+        return;
+      }
+
+      const el = document.querySelector(step.selector);
+      if (!el) {
+        // Element not found — skip to next or finish
+        if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+          setTutorialStep(prev => prev + 1);
+        } else {
+          setShowTutorial(false);
+          localStorage.setItem('erao-tutorial-completed', 'true');
+        }
+        return;
+      }
+      setHighlightRect(el.getBoundingClientRect());
+    };
+
+    updateRect();
+    window.addEventListener('resize', updateRect);
+    window.addEventListener('scroll', updateRect, true);
+    return () => {
+      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', updateRect, true);
+    };
+  }, [showTutorial, tutorialStep, TUTORIAL_STEPS]);
+
+  const handleNextStep = useCallback(() => {
+    if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+      setTutorialStep(prev => prev + 1);
+    } else {
+      setShowTutorial(false);
+      localStorage.setItem('erao-tutorial-completed', 'true');
+    }
+  }, [tutorialStep, TUTORIAL_STEPS.length]);
+
+  const handleSkipTutorial = useCallback(() => {
+    setShowTutorial(false);
+    localStorage.setItem('erao-tutorial-completed', 'true');
+  }, []);
+
+  // Manual trigger for testing / "replay tutorial"
+  const startTutorial = useCallback(() => {
+    setTutorialStep(0);
+    setHighlightRect(null);
+    setShowTutorial(true);
+  }, []);
+
+  // Tutorial: keyboard shortcuts
+  useEffect(() => {
+    if (!showTutorial) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleSkipTutorial();
+      if (e.key === 'Enter') handleNextStep();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showTutorial, handleSkipTutorial, handleNextStep]);
+
   // Show loading only for auth check
   if (isLoading) {
     return (
@@ -2100,6 +2241,7 @@ export default function AIPage() {
           {/* Top Actions */}
           <div className={`pt-1 pb-1 flex flex-col gap-0.5 px-2 ${sidebarCollapsed ? 'md:px-2.5 md:items-center' : ''}`}>
             <button
+              data-tutorial="new-chat"
               onClick={() => { createNewConversation(); setMobileSidebarOpen(false); }}
               className={`flex items-center text-[13px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors w-full gap-2.5 px-2.5 py-2 ${
                 sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0 md:gap-0' : ''
@@ -3499,7 +3641,7 @@ export default function AIPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-wrap items-center justify-center gap-2">
+                  <div data-tutorial="welcome-buttons" className="flex flex-wrap items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => setShowDatabaseModal(true)}
@@ -3516,7 +3658,7 @@ export default function AIPage() {
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white/50 dark:bg-white/[0.02] hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] text-sm text-gray-600 dark:text-gray-400 transition-all duration-200 active:scale-[0.98]"
                     >
                       <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       Upload file
                     </button>
@@ -3532,6 +3674,14 @@ export default function AIPage() {
                     </button>
                   </div>
                 )}
+                {/* Temporary test button — remove before production */}
+                <button
+                  type="button"
+                  onClick={startTutorial}
+                  className="mt-3 text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors underline underline-offset-2 decoration-gray-300 dark:decoration-gray-600"
+                >
+                  Take a quick tour
+                </button>
               </div>
             )}
             <form
@@ -3547,70 +3697,74 @@ export default function AIPage() {
                 accept=".xlsx,.docx,.csv,.xml,.json,.txt,.tsv"
                 className="hidden"
               />
-              {/* Database select button */}
-              <button
-                type="button"
-                onClick={() => setShowDatabaseModal(true)}
-                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                  selectedDatabase
-                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
-                }`}
-                title={selectedDatabase ? selectedDatabase.name : "Select database"}
-              >
-                <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                </svg>
-              </button>
-              {/* Files select button */}
-              <button
-                type="button"
-                onClick={() => setShowFilesModal(true)}
-                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                  selectedFile
-                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
-                }`}
-                title={selectedFile ? selectedFile.originalFileName : "Select or upload file"}
-              >
-                <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
-              {/* Connector select button */}
-              <button
-                type="button"
-                onClick={() => setShowConnectorModal(true)}
-                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                  selectedConnector
-                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
-                }`}
-                title={selectedConnector ? selectedConnector.name : "Connect an app"}
-              >
-                <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-              </button>
+              <div data-tutorial="input-icons" className="flex items-center gap-1.5">
+                {/* Database select button */}
+                <button
+                  type="button"
+                  onClick={() => setShowDatabaseModal(true)}
+                  className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                    selectedDatabase
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                  }`}
+                  title={selectedDatabase ? selectedDatabase.name : "Select database"}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                  </svg>
+                </button>
+                {/* Files select button */}
+                <button
+                  type="button"
+                  onClick={() => setShowFilesModal(true)}
+                  className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                    selectedFile
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                  }`}
+                  title={selectedFile ? selectedFile.originalFileName : "Select or upload file"}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
+                {/* Connector select button */}
+                <button
+                  type="button"
+                  onClick={() => setShowConnectorModal(true)}
+                  className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                    selectedConnector
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                  }`}
+                  title={selectedConnector ? selectedConnector.name : "Connect an app"}
+                >
+                  <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </button>
+              </div>
 
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={selectedConnector ? `Ask about your ${selectedConnectorDef?.name || 'app'} data...` : selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask about your data..."}
-                disabled={isSending}
-                className="flex-1 min-w-0 ml-0.5 text-base sm:text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
-                enterKeyHint="send"
-              />
-              <button
-                type="submit"
-                disabled={isSending || !inputValue.trim()}
-                className="w-10 h-10 sm:w-8 sm:h-8 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center flex-shrink-0 hover:bg-gray-800 dark:hover:bg-gray-200 active:scale-95 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <svg className="w-4 h-4 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-              </button>
+              <div data-tutorial="input-field" className="flex items-center flex-1 min-w-0 gap-1.5">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={selectedConnector ? `Ask about your ${selectedConnectorDef?.name || 'app'} data...` : selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask about your data..."}
+                  disabled={isSending}
+                  className="flex-1 min-w-0 ml-0.5 text-base sm:text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
+                  enterKeyHint="send"
+                />
+                <button
+                  type="submit"
+                  disabled={isSending || !inputValue.trim()}
+                  className="w-10 h-10 sm:w-8 sm:h-8 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center flex-shrink-0 hover:bg-gray-800 dark:hover:bg-gray-200 active:scale-95 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-4 h-4 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -3811,6 +3965,102 @@ export default function AIPage() {
           formatFileSize={formatFileSize}
           getFileIcon={getFileIcon}
         />
+      )}
+      </AnimatePresence>
+
+      {/* Data Source Picker Modal */}
+      <AnimatePresence>
+      {showDataSourcePicker && (
+        <motion.div
+          key="datasource-picker-overlay"
+          className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={() => setShowDataSourcePicker(false)}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowDataSourcePicker(false); }}
+        >
+          <motion.div
+            className="bg-white dark:bg-[#111113] w-full sm:max-w-[400px] rounded-t-2xl sm:rounded-2xl border border-gray-200/50 dark:border-white/[0.08] shadow-2xl dark:shadow-black/50 overflow-hidden"
+            initial={{ y: 40, opacity: 0, scale: 0.97 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 40, opacity: 0, scale: 0.97 }}
+            transition={{ type: "spring", damping: 28, stiffness: 350 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Choose a data source</h2>
+              <button
+                onClick={() => setShowDataSourcePicker(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+
+            {/* Options */}
+            <div className="px-3 pb-4 space-y-1">
+              {/* Database */}
+              <button
+                onClick={() => { setShowDataSourcePicker(false); setShowDatabaseModal(true); }}
+                className="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] border border-transparent hover:border-gray-200/60 dark:hover:border-white/[0.08] transition-all group text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">Connect a database</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">PostgreSQL, MySQL, SQL Server, and more</div>
+                </div>
+                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* File */}
+              <button
+                onClick={() => { setShowDataSourcePicker(false); setShowFilesModal(true); }}
+                className="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] border border-transparent hover:border-gray-200/60 dark:hover:border-white/[0.08] transition-all group text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">Upload a file</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">CSV, Excel, JSON, XML, and more</div>
+                </div>
+                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* App Connector */}
+              <button
+                onClick={() => { setShowDataSourcePicker(false); setShowConnectorModal(true); }}
+                className="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] border border-transparent hover:border-gray-200/60 dark:hover:border-white/[0.08] transition-all group text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">Connect an app</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">Shopify, Stripe, HubSpot, and more</div>
+                </div>
+                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
       </AnimatePresence>
 
@@ -4024,6 +4274,199 @@ export default function AIPage() {
           </div>
         </div>
       )}
+
+      {/* Tutorial Walkthrough Overlay */}
+      <AnimatePresence>
+        {showTutorial && highlightRect && (() => {
+          const step = TUTORIAL_STEPS[tutorialStep];
+          if (!step) return null;
+          const pad = step.padding;
+          const rect = highlightRect;
+          const totalSteps = TUTORIAL_STEPS.length;
+          const visibleSteps = typeof window !== 'undefined' && window.innerWidth < 768
+            ? totalSteps - 1
+            : totalSteps;
+
+          // Tooltip positioning
+          const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+          const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+          const tooltipWidth = vw < 640 ? Math.min(vw - 32, 320) : 340;
+          const gap = 16;
+          const tooltipStyle: React.CSSProperties = { width: tooltipWidth };
+          let resolvedPosition = step.position;
+
+          if (step.position === 'bottom') {
+            tooltipStyle.top = rect.bottom + pad + gap;
+            tooltipStyle.left = Math.max(16, Math.min(rect.left + rect.width / 2 - tooltipWidth / 2, vw - tooltipWidth - 16));
+          } else if (step.position === 'top') {
+            tooltipStyle.bottom = vh - rect.top + pad + gap;
+            tooltipStyle.left = Math.max(16, Math.min(rect.left + rect.width / 2 - tooltipWidth / 2, vw - tooltipWidth - 16));
+          } else if (step.position === 'right') {
+            tooltipStyle.top = Math.max(16, rect.top + rect.height / 2 - 80);
+            tooltipStyle.left = rect.right + pad + gap;
+            if (tooltipStyle.left + tooltipWidth > vw - 16) {
+              tooltipStyle.left = Math.max(16, rect.left + rect.width / 2 - tooltipWidth / 2);
+              tooltipStyle.top = rect.bottom + pad + gap;
+              resolvedPosition = 'bottom';
+            }
+          }
+
+          // Arrow nub position (points from tooltip toward highlighted element)
+          const arrowStyle: React.CSSProperties = { position: 'absolute' };
+          const highlightCenterX = rect.left + rect.width / 2;
+          const tooltipLeft = tooltipStyle.left as number;
+          const arrowOffsetX = Math.max(20, Math.min(highlightCenterX - tooltipLeft, tooltipWidth - 20));
+
+          if (resolvedPosition === 'bottom') {
+            arrowStyle.top = -6;
+            arrowStyle.left = arrowOffsetX;
+          } else if (resolvedPosition === 'top') {
+            arrowStyle.bottom = -6;
+            arrowStyle.left = arrowOffsetX;
+          } else if (resolvedPosition === 'right') {
+            arrowStyle.left = -6;
+            arrowStyle.top = 28;
+          }
+
+          const slideDir = resolvedPosition === 'top' ? 10 : resolvedPosition === 'bottom' ? -10 : 0;
+          const slideX = resolvedPosition === 'right' ? -10 : 0;
+
+          return (
+            <motion.div
+              key="tutorial-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* Click-blocking backdrop */}
+              <div className="fixed inset-0 z-[100]" onClick={handleSkipTutorial} />
+
+              {/* Highlight cutout */}
+              <motion.div
+                className="fixed z-[101] rounded-xl pointer-events-none"
+                initial={false}
+                animate={{
+                  top: rect.top - pad,
+                  left: rect.left - pad,
+                  width: rect.width + pad * 2,
+                  height: rect.height + pad * 2,
+                }}
+                transition={{ type: "spring", damping: 30, stiffness: 350 }}
+                style={{ boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6)' }}
+              />
+
+              {/* Subtle pulse ring around highlight */}
+              <motion.div
+                className="fixed z-[101] rounded-xl pointer-events-none border-2 border-white/20"
+                initial={false}
+                animate={{
+                  top: rect.top - pad - 3,
+                  left: rect.left - pad - 3,
+                  width: rect.width + pad * 2 + 6,
+                  height: rect.height + pad * 2 + 6,
+                  opacity: [0.4, 0.8, 0.4],
+                }}
+                transition={{
+                  top: { type: "spring", damping: 30, stiffness: 350 },
+                  left: { type: "spring", damping: 30, stiffness: 350 },
+                  width: { type: "spring", damping: 30, stiffness: 350 },
+                  height: { type: "spring", damping: 30, stiffness: 350 },
+                  opacity: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                }}
+              />
+
+              {/* Tooltip card */}
+              <motion.div
+                className="fixed z-[102]"
+                style={tooltipStyle}
+                initial={{ opacity: 0, y: slideDir, x: slideX }}
+                animate={{ opacity: 1, y: 0, x: 0 }}
+                exit={{ opacity: 0, y: slideDir / 2, x: slideX / 2 }}
+                transition={{ type: "spring", damping: 28, stiffness: 320, mass: 0.8 }}
+                key={`tooltip-${tutorialStep}`}
+              >
+                {/* Arrow nub */}
+                <div
+                  style={arrowStyle}
+                  className="w-3 h-3 rotate-45 bg-white dark:bg-[#141416] border-l border-t border-gray-200/60 dark:border-white/[0.1]"
+                />
+
+                <div className="bg-white dark:bg-[#141416] rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/50 border border-gray-200/60 dark:border-white/[0.08] overflow-hidden">
+                  {/* Progress bar (thin line at top) */}
+                  <div className="h-[2px] bg-gray-100 dark:bg-white/[0.06]">
+                    <motion.div
+                      className="h-full bg-gray-900 dark:bg-white rounded-r-full"
+                      initial={false}
+                      animate={{ width: `${((tutorialStep + 1) / visibleSteps) * 100}%` }}
+                      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    />
+                  </div>
+
+                  <div className="p-5">
+                    {/* Header row: icon + step counter */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.07] flex items-center justify-center text-gray-500 dark:text-gray-400">
+                        {step.icon}
+                      </div>
+                      <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 tabular-nums">
+                        {tutorialStep + 1}/{visibleSteps}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white mb-1">
+                      {step.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed mb-5">
+                      {step.description}
+                    </p>
+
+                    {/* Footer: dots + buttons */}
+                    <div className="flex items-center justify-between">
+                      {/* Progress dots */}
+                      <div className="flex items-center gap-1.5">
+                        {Array.from({ length: visibleSteps }).map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="rounded-full"
+                            animate={{
+                              width: i === tutorialStep ? 16 : 6,
+                              height: 6,
+                              backgroundColor: i === tutorialStep
+                                ? (darkMode ? 'rgba(255,255,255,1)' : 'rgba(17,17,19,1)')
+                                : (darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                            }}
+                            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Buttons */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={handleSkipTutorial}
+                          className="text-[12px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                        >
+                          Skip
+                        </button>
+                        <button
+                          onClick={handleNextStep}
+                          className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-[12px] font-medium px-4 py-1.5 hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-[0.97] transition-all duration-150"
+                        >
+                          {tutorialStep < TUTORIAL_STEPS.length - 1 ? 'Next' : 'Got it'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }
