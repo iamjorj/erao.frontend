@@ -195,6 +195,8 @@ export interface Conversation {
   fileDocumentName: string | null;
   appConnectorId: string | null;
   appConnectorName: string | null;
+  customInstructions: string | null;
+  hasContextSummary: boolean;
   createdAt: string;
   updatedAt: string;
   lastMessageAt: string | null;
@@ -213,6 +215,7 @@ export interface CreateConversationPayload {
 
 export interface UpdateConversationPayload {
   title?: string;
+  customInstructions?: string;
 }
 
 // Message types
@@ -278,6 +281,16 @@ export interface ClarificationRequest {
   options: ClarificationOption[];
 }
 
+export interface ContextMetadata {
+  totalMessages: number;
+  messagesInContext: number;
+  usingSummary: boolean;
+  summarizedMessages: number;
+  estimatedInputTokens: number;
+  tokenBudget: number;
+  hasCustomInstructions: boolean;
+}
+
 export interface ChatResponse {
   userMessage: Message;
   assistantMessage: Message;
@@ -287,6 +300,7 @@ export interface ChatResponse {
   clarification?: ClarificationRequest;
   insight?: string;
   followUpQuestions?: string[];
+  context?: ContextMetadata;
 }
 
 // App Connector types

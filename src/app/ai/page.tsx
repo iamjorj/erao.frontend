@@ -33,7 +33,9 @@ import {
   getTierName,
   ClarificationRequest,
   AppConnectorDto,
+  ContextMetadata,
 } from "@/lib/api";
+import { ContextStatusChip } from "@/components/ContextStatusChip";
 import { connectorDefinitions, getConnectorByTypeIndex } from "@/lib/connectors";
 import { motion, AnimatePresence } from "framer-motion";
 import { DataChart, ChartType, detectChartType, ChartSettings, defaultChartSettings, ChartManipulation, AggregationType, getDefaultAggregationForColumn } from "@/components/DataChart";
@@ -803,13 +805,16 @@ export default function AIPage() {
   const [showConnectorSetup, setShowConnectorSetup] = useState<string | null>(null);
   const [showDataSourcePicker, setShowDataSourcePicker] = useState(false);
 
+  // Context metadata state
+  const [lastContextMetadata, setLastContextMetadata] = useState<ContextMetadata | null>(null);
+
   // Chat input state
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
 
   // Loading phase indicator
-  const [currentPhase, setCurrentPhase] = useState<"writing" | "executing" | null>(null);
-  const phaseTimeoutsRef = useRef<{ writing?: NodeJS.Timeout; executing?: NodeJS.Timeout }>({});
+  const [currentPhase, setCurrentPhase] = useState<"understanding" | "analyzing" | "writing" | "executing" | "formatting" | null>(null);
+  const phaseTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
   // Track pending request's conversation ID to handle background completion
   const pendingConversationRef = useRef<string | null>(null);
@@ -821,7 +826,7 @@ export default function AIPage() {
   const [pendingConversations, setPendingConversations] = useState<Set<string>>(new Set());
 
   // Track pending message info per conversation (message content and phase)
-  const pendingMessagesRef = useRef<Map<string, { message: string; phase: "writing" | "executing" | null }>>(new Map());
+  const pendingMessagesRef = useRef<Map<string, { message: string; phase: "understanding" | "analyzing" | "writing" | "executing" | "formatting" | null }>>(new Map());
 
   // Error state
   const [error, setError] = useState<string | null>(null);
@@ -1465,6 +1470,19 @@ export default function AIPage() {
     }
   };
 
+  const handleUpdateCustomInstructions = useCallback(async (instructions: string) => {
+    if (!selectedConversationId) return;
+    try {
+      await api.updateConversation(selectedConversationId, { customInstructions: instructions });
+      // Update conversation in local state
+      setConversations(prev => prev.map(c =>
+        c.id === selectedConversationId ? { ...c, customInstructions: instructions } : c
+      ));
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.message);
+    }
+  }, [selectedConversationId]);
+
   const selectConversation = useCallback(async (conversationId: string) => {
     setSelectedConversationId(conversationId);
     setMessages([]); // Clear old messages immediately so spinner doesn't overlap
@@ -1473,10 +1491,11 @@ export default function AIPage() {
     // Reset sending state when switching conversations
     setIsSending(false);
     setCurrentPhase(null);
+    // Reset context viewer state
+    setLastContextMetadata(null);
     // Clear any pending phase timers
-    if (phaseTimeoutsRef.current.writing) clearTimeout(phaseTimeoutsRef.current.writing);
-    if (phaseTimeoutsRef.current.executing) clearTimeout(phaseTimeoutsRef.current.executing);
-    phaseTimeoutsRef.current = {};
+    phaseTimeoutsRef.current.forEach(clearTimeout);
+    phaseTimeoutsRef.current = [];
     // Update pending ref to new conversation - callbacks from old requests will see the mismatch
     pendingConversationRef.current = conversationId;
 
@@ -1514,29 +1533,21 @@ export default function AIPage() {
       return;
     }
 
+    // If already on a blank chat (no messages), don't create another one
+    if (messages.length === 0 && !selectedConversationId) {
+      return;
+    }
+
     // Reset sending state from any in-flight request (same as selectConversation)
     setIsSending(false);
     setCurrentPhase(null);
-    if (phaseTimeoutsRef.current.writing) clearTimeout(phaseTimeoutsRef.current.writing);
-    if (phaseTimeoutsRef.current.executing) clearTimeout(phaseTimeoutsRef.current.executing);
-    phaseTimeoutsRef.current = {};
+    phaseTimeoutsRef.current.forEach(clearTimeout);
+    phaseTimeoutsRef.current = [];
     setError(null);
 
-    try {
-      const response = await api.createConversation({
-        databaseConnectionId: selectedDatabaseId || undefined,
-        fileDocumentId: selectedFileId || undefined,
-      });
-      if (response.success) {
-        setConversations((prev) => [response.data, ...prev]);
-        setSelectedConversationId(response.data.id);
-        setMessages([]);
-      }
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      }
-    }
+    // Just reset to blank state — conversation will be created on first message send
+    setSelectedConversationId(null);
+    setMessages([]);
   };
 
   const sendMessageDirect = (text: string) => {
@@ -1614,24 +1625,23 @@ export default function AIPage() {
     pendingMessagesRef.current.set(requestConversationId, { message: messageContent, phase: null });
 
     try {
-      // Fake phases - show "writing" after 500ms, "executing" after 2s
-      // Only update currentPhase if user is still viewing this conversation
-      phaseTimeoutsRef.current.writing = setTimeout(() => {
-        // Update phase in pending messages ref (always, for background indicator)
-        const pending = pendingMessagesRef.current.get(requestConversationId);
-        if (pending) pendingMessagesRef.current.set(requestConversationId, { ...pending, phase: "writing" });
-        // Only update visible phase if still on same conversation
-        if (selectedConversationIdRef.current === requestConversationId) {
-          setCurrentPhase("writing");
-        }
-      }, 500);
-      phaseTimeoutsRef.current.executing = setTimeout(() => {
-        const pending = pendingMessagesRef.current.get(requestConversationId);
-        if (pending) pendingMessagesRef.current.set(requestConversationId, { ...pending, phase: "executing" });
-        if (selectedConversationIdRef.current === requestConversationId) {
-          setCurrentPhase("executing");
-        }
-      }, 2000);
+      // Progressive phase indicators - each phase gives the user a sense of progress
+      const phases: Array<{ phase: "understanding" | "analyzing" | "writing" | "executing" | "formatting"; delay: number }> = [
+        { phase: "understanding", delay: 500 },
+        { phase: "analyzing", delay: 1500 },
+        { phase: "writing", delay: 2800 },
+        { phase: "executing", delay: 4200 },
+        { phase: "formatting", delay: 6000 },
+      ];
+      phaseTimeoutsRef.current = phases.map(({ phase, delay }) =>
+        setTimeout(() => {
+          const pending = pendingMessagesRef.current.get(requestConversationId);
+          if (pending) pendingMessagesRef.current.set(requestConversationId, { ...pending, phase });
+          if (selectedConversationIdRef.current === requestConversationId) {
+            setCurrentPhase(phase);
+          }
+        }, delay)
+      );
 
       // Use REST API - this completes even if user switches away
       const response = await api.sendMessage({
@@ -1641,9 +1651,8 @@ export default function AIPage() {
       });
 
       // Clear fake phase timers
-      if (phaseTimeoutsRef.current.writing) clearTimeout(phaseTimeoutsRef.current.writing);
-      if (phaseTimeoutsRef.current.executing) clearTimeout(phaseTimeoutsRef.current.executing);
-      phaseTimeoutsRef.current = {};
+      phaseTimeoutsRef.current.forEach(clearTimeout);
+      phaseTimeoutsRef.current = [];
 
       // Check if user is currently viewing the same conversation (using ref for accurate async check)
       const currentlyViewingConversation = selectedConversationIdRef.current === requestConversationId;
@@ -1691,6 +1700,11 @@ export default function AIPage() {
         }
         if (response.data.followUpQuestions?.length) {
           setFollowUpQuestions(prev => ({ ...prev, [response.data.assistantMessage.id]: response.data.followUpQuestions! }));
+        }
+
+        // Store context metadata for the context viewer
+        if (response.data.context) {
+          setLastContextMetadata(response.data.context);
         }
 
         // Check if user requested a specific chart type
@@ -1808,9 +1822,8 @@ export default function AIPage() {
       }
     } catch (err) {
       // Clear fake phase timers on error too
-      if (phaseTimeoutsRef.current.writing) clearTimeout(phaseTimeoutsRef.current.writing);
-      if (phaseTimeoutsRef.current.executing) clearTimeout(phaseTimeoutsRef.current.executing);
-      phaseTimeoutsRef.current = {};
+      phaseTimeoutsRef.current.forEach(clearTimeout);
+      phaseTimeoutsRef.current = [];
 
       // Check if user is currently viewing the same conversation
       const currentlyViewingConversation = selectedConversationIdRef.current === requestConversationId;
@@ -2679,6 +2692,18 @@ export default function AIPage() {
                   </span>
                 </>
               )}
+
+              {/* Context status chip */}
+              {lastContextMetadata && (
+                <>
+                  <div className="w-px h-5 bg-gray-200 dark:bg-white/[0.08] hidden sm:block" />
+                  <ContextStatusChip
+                    contextMetadata={lastContextMetadata}
+                    conversation={conversations.find(c => c.id === selectedConversationId) || null}
+                    onUpdateCustomInstructions={handleUpdateCustomInstructions}
+                  />
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -2693,8 +2718,13 @@ export default function AIPage() {
         {/* Chat Area */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-5 pt-4 sm:pt-5 pb-24 sm:pb-20 flex flex-col gap-4 sm:gap-5 custom-scrollbar">
           {messages.length === 0 ? null : (
-            messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message) => (
-              <div key={message.id}>
+            messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message, messageIndex) => (
+              <motion.div
+                key={message.id}
+                initial={messageIndex === messages.filter((m) => m && m.role !== undefined && m.role !== null).length - 1 ? { opacity: 0, y: 12 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              >
                 {isAssistantMessage(message.role) ? (
                   <div className="w-full sm:w-[85%] md:w-[75%] sm:max-w-[85%] md:max-w-[75%] flex flex-col gap-2 sm:gap-3">
                     <div className="flex items-center gap-2.5">
@@ -3374,7 +3404,7 @@ export default function AIPage() {
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             ))
           )}
           {/* Show processing indicator when actively sending OR when this conversation has pending request */}
@@ -3404,171 +3434,184 @@ export default function AIPage() {
                     </div>
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Erao</span>
                   </div>
-                  <div className="pl-[38px] flex items-center gap-3 sm:gap-5">
-                    {/* Robot Animation Container */}
-                    <div className="relative w-14 h-14 sm:w-20 sm:h-20 flex-shrink-0">
-                  <svg viewBox="0 0 300 300" className="w-full h-full overflow-visible">
-                    {/* Thought rings orbiting around */}
-                    <ellipse
-                      cx="150" cy="150" rx="90" ry="30"
-                      className="fill-none stroke-black dark:stroke-white opacity-30"
-                      strokeWidth="1.5"
-                      style={{ transformOrigin: '150px 150px', animation: 'orbit-ring 4s linear infinite' }}
-                    />
-                    <ellipse
-                      cx="150" cy="150" rx="70" ry="25"
-                      className="fill-none stroke-black dark:stroke-white opacity-30"
-                      strokeWidth="1.5"
-                      style={{ transformOrigin: '150px 150px', animation: 'orbit-ring 4s linear infinite reverse', animationDelay: '-2s' }}
-                    />
+                  <motion.div
+                    className="pl-[38px]"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+                  >
+                    {(() => {
+                      const phaseIdx = effectivePhase === "understanding" ? 1 : effectivePhase === "analyzing" ? 2 : effectivePhase === "writing" ? 3 : effectivePhase === "executing" ? 4 : effectivePhase === "formatting" ? 5 : 0;
+                      const shimmer = (w: string, h: string = "h-2.5", delay: number = 0, rounded: string = "rounded-full") => (
+                        <div className={`relative overflow-hidden ${rounded} ${h} bg-gray-100 dark:bg-white/[0.05]`} style={{ width: w }}>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/[0.04] to-transparent dark:from-transparent dark:via-white/[0.06] dark:to-transparent" style={{ animation: `shimmer 2s ${delay}s infinite` }} />
+                        </div>
+                      );
+                      return (
+                        <div className="bg-white dark:bg-white/[0.03] rounded-2xl px-5 py-4 shadow-sm dark:shadow-none border border-gray-100/80 dark:border-white/[0.04]">
+                          {/* Phase header: icon + label */}
+                          <AnimatePresence mode="wait">
+                            <motion.div
+                              key={effectivePhase || "thinking"}
+                              initial={{ opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -6 }}
+                              transition={{ duration: 0.22 }}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.06] flex items-center justify-center flex-shrink-0 text-gray-400 dark:text-gray-500">
+                                  {(!effectivePhase) && (
+                                    <motion.svg animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                                    </motion.svg>
+                                  )}
+                                  {effectivePhase === "understanding" && (
+                                    <motion.svg animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                    </motion.svg>
+                                  )}
+                                  {effectivePhase === "analyzing" && (
+                                    <motion.svg animate={{ rotate: [0, 5, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125M12 18.375h-1.5m0-12.75H3.375" />
+                                    </motion.svg>
+                                  )}
+                                  {effectivePhase === "writing" && (
+                                    <motion.svg animate={{ y: [0, -2, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                    </motion.svg>
+                                  )}
+                                  {effectivePhase === "executing" && (
+                                    <motion.svg animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M21.015 4.356v4.992" />
+                                    </motion.svg>
+                                  )}
+                                  {effectivePhase === "formatting" && (
+                                    <motion.svg animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                                    </motion.svg>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  <span className="text-[13px] font-medium text-gray-600 dark:text-gray-300">
+                                    {effectivePhase === "understanding" ? "Understanding your question"
+                                      : effectivePhase === "analyzing" ? "Analyzing schema"
+                                      : effectivePhase === "writing" ? "Writing SQL query"
+                                      : effectivePhase === "executing" ? "Executing query"
+                                      : effectivePhase === "formatting" ? "Preparing results"
+                                      : "Thinking"}
+                                  </span>
+                                  <span className="flex gap-[3px] items-center">
+                                    {[0, 1, 2].map((i) => (
+                                      <motion.span
+                                        key={i}
+                                        className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"
+                                        animate={{ opacity: [0.2, 1, 0.2] }}
+                                        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                                      />
+                                    ))}
+                                  </span>
+                                </div>
+                              </div>
 
-                    {/* Floating particles */}
-                    <circle cx="80" cy="100" r="3" className="fill-black dark:fill-white" style={{ animation: 'particle-float 2s ease-in-out infinite' }} />
-                    <circle cx="220" cy="110" r="2" className="fill-black dark:fill-white" style={{ animation: 'particle-float 2s ease-in-out infinite', animationDelay: '0.3s' }} />
-                    <circle cx="70" cy="180" r="2.5" className="fill-black dark:fill-white" style={{ animation: 'particle-float 2s ease-in-out infinite', animationDelay: '0.6s' }} />
-                    <circle cx="230" cy="190" r="2" className="fill-black dark:fill-white" style={{ animation: 'particle-float 2s ease-in-out infinite', animationDelay: '0.9s' }} />
-                    <circle cx="150" cy="60" r="3" className="fill-black dark:fill-white" style={{ animation: 'particle-float 2s ease-in-out infinite', animationDelay: '1.2s' }} />
-                    <circle cx="150" cy="240" r="2" className="fill-black dark:fill-white" style={{ animation: 'particle-float 2s ease-in-out infinite', animationDelay: '1.5s' }} />
+                              {/* Phase-specific skeleton content */}
+                              <div className="mt-3.5 ml-11">
+                                {/* Thinking: generic text skeleton */}
+                                {!effectivePhase && (
+                                  <div className="space-y-2.5">
+                                    {shimmer("78%", "h-2.5", 0)}
+                                    {shimmer("55%", "h-2.5", 0.15)}
+                                    {shimmer("35%", "h-2.5", 0.3)}
+                                  </div>
+                                )}
 
-                    {/* Main robot group with float + sway */}
-                    <g style={{ animation: 'robot-float 3s ease-in-out infinite' }}>
-                      <g style={{ transformOrigin: '150px 150px', animation: 'robot-sway 4s ease-in-out infinite' }}>
+                                {/* Understanding: text blocks being parsed */}
+                                {effectivePhase === "understanding" && (
+                                  <div className="space-y-2.5">
+                                    {shimmer("85%", "h-3", 0, "rounded")}
+                                    {shimmer("60%", "h-3", 0.2, "rounded")}
+                                  </div>
+                                )}
 
-                        {/* Body */}
-                        <rect
-                          x="100" y="100" width="100" height="100" rx="8"
-                          className="fill-none stroke-black dark:stroke-white"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+                                {/* Analyzing: mini table skeleton */}
+                                {effectivePhase === "analyzing" && (
+                                  <div className="space-y-1.5">
+                                    <div className="flex gap-2">
+                                      {shimmer("28%", "h-2.5", 0, "rounded")}
+                                      {shimmer("32%", "h-2.5", 0.1, "rounded")}
+                                      {shimmer("24%", "h-2.5", 0.2, "rounded")}
+                                    </div>
+                                    <div className="h-px bg-gray-100 dark:bg-white/[0.04]" />
+                                    {[0, 1].map(row => (
+                                      <div key={row} className="flex gap-2">
+                                        {shimmer("28%", "h-2", (row + 1) * 0.15, "rounded")}
+                                        {shimmer("32%", "h-2", (row + 1) * 0.15 + 0.1, "rounded")}
+                                        {shimmer("24%", "h-2", (row + 1) * 0.15 + 0.2, "rounded")}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
 
-                        {/* Inner frame */}
-                        <rect
-                          x="110" y="110" width="80" height="80" rx="4"
-                          className="fill-none stroke-black dark:stroke-white"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}
-                        />
+                                {/* Writing: SQL-like code lines */}
+                                {effectivePhase === "writing" && (
+                                  <div className="space-y-2">
+                                    {shimmer("25%", "h-2", 0)}
+                                    {shimmer("72%", "h-2", 0.12)}
+                                    <div className="pl-4">{shimmer("50%", "h-2", 0.24)}</div>
+                                    {shimmer("40%", "h-2", 0.36)}
+                                  </div>
+                                )}
 
-                        {/* Thinking eye/core */}
-                        <g style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}>
-                          <circle
-                            cx="150" cy="150" r="25"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
+                                {/* Executing: progress bar + result preview */}
+                                {effectivePhase === "executing" && (
+                                  <div className="space-y-2.5">
+                                    <div className="relative overflow-hidden rounded-full h-1.5 bg-gray-100 dark:bg-white/[0.05]">
+                                      <motion.div
+                                        className="absolute inset-y-0 left-0 bg-gray-200 dark:bg-white/[0.12] rounded-full"
+                                        initial={{ width: "0%" }}
+                                        animate={{ width: ["0%", "40%", "70%", "90%"] }}
+                                        transition={{ duration: 5, ease: "easeOut", times: [0, 0.3, 0.7, 1] }}
+                                      />
+                                    </div>
+                                    {shimmer("80%", "h-2", 0.1)}
+                                    {shimmer("60%", "h-2", 0.25)}
+                                  </div>
+                                )}
 
-                          {/* Spinning inner elements */}
-                          <g style={{ transformOrigin: '150px 150px', animation: 'think-spin 3s linear infinite' }}>
-                            <circle cx="150" cy="130" r="4" className="fill-black dark:fill-white" />
-                            <circle cx="170" cy="150" r="3" className="fill-black dark:fill-white" />
-                            <circle cx="150" cy="170" r="4" className="fill-black dark:fill-white" />
-                            <circle cx="130" cy="150" r="3" className="fill-black dark:fill-white" />
-                          </g>
-                        </g>
+                                {/* Formatting: mini bar chart growing */}
+                                {effectivePhase === "formatting" && (
+                                  <div className="flex items-end gap-1.5 h-10">
+                                    {[40, 70, 100, 55, 80].map((pct, i) => (
+                                      <motion.div
+                                        key={i}
+                                        className="flex-1 rounded-t bg-gray-100 dark:bg-white/[0.06] relative overflow-hidden"
+                                        initial={{ height: 0 }}
+                                        animate={{ height: `${pct}%` }}
+                                        transition={{ duration: 0.5, delay: i * 0.08, ease: [0.25, 0.1, 0.25, 1] }}
+                                      >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/[0.04] to-transparent dark:from-transparent dark:via-white/[0.06] dark:to-transparent" style={{ animation: `shimmer 2s ${i * 0.12}s infinite` }} />
+                                      </motion.div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          </AnimatePresence>
 
-                        {/* Antenna */}
-                        <line
-                          x1="150" y1="100" x2="150" y2="70"
-                          className="stroke-black dark:stroke-white"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <circle
-                          cx="150" cy="65" r="6"
-                          className="fill-black dark:fill-white"
-                          style={{ animation: 'antenna-blink 1s ease-in-out infinite' }}
-                        />
-
-                        {/* Arms */}
-                        <g style={{ transformOrigin: '90px 135px', animation: 'arm-wave-left 2s ease-in-out infinite' }}>
-                          <polygon
-                            points="100,120 70,140 70,160 100,150"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <circle
-                            cx="70" cy="150" r="8"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="1.5"
-                            style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}
-                          />
-                        </g>
-
-                        <g style={{ transformOrigin: '210px 135px', animation: 'arm-wave-right 2s ease-in-out infinite' }}>
-                          <polygon
-                            points="200,120 230,140 230,160 200,150"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <circle
-                            cx="230" cy="150" r="8"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="1.5"
-                            style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}
-                          />
-                        </g>
-
-                        {/* Legs */}
-                        <g style={{ animation: 'leg-float 2.5s ease-in-out infinite' }}>
-                          <polygon
-                            points="120,200 130,240 110,240"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <circle
-                            cx="120" cy="245" r="5"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="1.5"
-                          />
-                        </g>
-
-                        <g style={{ animation: 'leg-float 2.5s ease-in-out infinite', animationDelay: '-1.25s' }}>
-                          <polygon
-                            points="180,200 190,240 170,240"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <circle
-                            cx="180" cy="245" r="5"
-                            className="fill-none stroke-black dark:stroke-white"
-                            strokeWidth="1.5"
-                          />
-                        </g>
-
-                      </g>
-                    </g>
-                  </svg>
-                </div>
-
-                {/* Phase Text */}
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white tracking-wide">
-                        {effectivePhase === "writing"
-                          ? "Writing response"
-                          : effectivePhase === "executing"
-                          ? "Running query"
-                          : "Thinking"}
-                      </span>
-                      <span className="flex gap-1 items-center">
-                        <span className="w-1 h-1 bg-black dark:bg-white rounded-full animate-bounce" />
-                        <span className="w-1 h-1 bg-black dark:bg-white rounded-full animate-bounce [animation-delay:0.1s]" />
-                        <span className="w-1 h-1 bg-black dark:bg-white rounded-full animate-bounce [animation-delay:0.2s]" />
-                      </span>
-                    </div>
-                  </div>
+                          {/* Progress segments */}
+                          <div className="flex items-center gap-1 mt-4 ml-11">
+                            {[0, 1, 2, 3, 4, 5].map(i => (
+                              <div
+                                key={i}
+                                className={`h-[3px] flex-1 rounded-full transition-all duration-500 ease-out ${
+                                  i <= phaseIdx ? "bg-gray-200 dark:bg-white/[0.12]" : "bg-gray-100/60 dark:bg-white/[0.04]"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </motion.div>
                 </div>
               </>
             );
@@ -4467,6 +4510,7 @@ export default function AIPage() {
           );
         })()}
       </AnimatePresence>
+
     </div>
   );
 }
@@ -6665,6 +6709,7 @@ function TableCard({
           )}
         </div>
       )}
+
     </div>
   );
 }
