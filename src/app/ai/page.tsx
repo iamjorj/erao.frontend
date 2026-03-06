@@ -2207,24 +2207,79 @@ const handleUpdateContextSummary = useCallback(async (summary: string) => {    i
               <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : (databases.length === 0 && files.length === 0 && connectors.length === 0) ? (
-            <div className="text-center py-16">
+            <div className="flex flex-col items-center justify-center min-h-full py-8">
               <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/[0.03] flex items-center justify-center mx-auto mb-3">
                 <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                 </svg>
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No data sources yet</p>
-              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Connect a database, upload a file, or link an app</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">No data sources yet</p>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1 mb-5">Connect a database, upload a file, or link an app</p>
+              <div className="flex flex-col gap-2.5 px-4">
+                <button
+                  onClick={() => setShowAddDatabaseModal(true)}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl border border-gray-200/80 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.03] active:bg-gray-100 dark:active:bg-white/[0.05] transition-colors"
+                >
+                  <div className="flex items-center -space-x-1.5 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-30 shadow-sm"><img src="/db-logos/postgresql.png" alt="" className="w-7 h-7 object-contain" /></div>
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-20 shadow-sm"><img src="/db-logos/mysql.png" alt="" className="w-7 h-7 object-contain" /></div>
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-10 shadow-sm"><img src="/db-logos/mongodb.png" alt="" className="w-7 h-7 object-contain" /></div>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[14px] font-medium text-gray-700 dark:text-gray-300">Connect Database</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">PostgreSQL, MySQL, MongoDB...</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { fileInputRef.current?.click(); }}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl border border-gray-200/80 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.03] active:bg-gray-100 dark:active:bg-white/[0.05] transition-colors"
+                >
+                  <div className="flex items-center -space-x-1.5 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-30 shadow-sm"><img src="/file-logos/excel.png" alt="" className="w-7 h-7 object-contain" /></div>
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-20 shadow-sm"><img src="/file-logos/word.svg" alt="" className="w-9 h-9 object-contain" /></div>
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-10 shadow-sm"><img src="/file-logos/csv.png" alt="" className="w-7 h-7 object-contain" /></div>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[14px] font-medium text-gray-700 dark:text-gray-300">Upload File</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">Excel, CSV, JSON, XML...</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setShowConnectorModal(true)}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl border border-gray-200/80 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.03] active:bg-gray-100 dark:active:bg-white/[0.05] transition-colors"
+                >
+                  <div className="flex items-center -space-x-1.5 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-30 shadow-sm"><img src="/connector-logos/shopify.png" alt="" className="w-7 h-7 object-contain" /></div>
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-20 shadow-sm"><img src="/connector-logos/stripe.png" alt="" className="w-7 h-7 object-contain" /></div>
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center relative z-10 shadow-sm"><img src="/connector-logos/hubspot.png" alt="" className="w-7 h-7 object-contain" /></div>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[14px] font-medium text-gray-700 dark:text-gray-300">Connect App</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">Shopify, Stripe, HubSpot...</p>
+                  </div>
+                </button>
+              </div>
             </div>
           ) : (
             <>
               {/* Databases */}
-              {databases.length > 0 && (
-                <div className="mb-5">
-                  <div className="px-1 py-2">
-                    <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Databases</span>
-                  </div>
-                  {databases.map(db => (
+              <div className="mb-5">
+                <div className="px-1 py-2 flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Databases{databases.length > 0 && <span className="ml-1.5 text-gray-300 dark:text-gray-600">{databases.length}</span>}</span>
+                  <button onClick={() => setShowAddDatabaseModal(true)} className="text-[11px] font-medium text-gray-400 dark:text-gray-500 px-2 py-1 rounded-full border border-gray-200/60 dark:border-white/[0.06] active:bg-gray-100 dark:active:bg-white/[0.06]">+ New</button>
+                </div>
+                {databases.length === 0 ? (
+                  <button
+                    onClick={() => setShowAddDatabaseModal(true)}
+                    className="w-full px-3 py-3.5 rounded-xl border border-dashed border-gray-200 dark:border-white/[0.06] active:bg-gray-50 dark:active:bg-white/[0.03] transition-colors flex items-center gap-3.5"
+                  >
+                    <div className="w-11 h-11 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                      <img src="/db-logos/postgresql.png" alt="" className="w-7 h-7 object-contain opacity-40" />
+                    </div>
+                    <span className="text-[14px] text-gray-400 dark:text-gray-500">Connect a database</span>
+                  </button>
+                ) : (
+                  databases.map(db => (
                     <div
                       key={db.id}
                       onClick={() => { selectDataSource('database', db.id); setMobileView('chat'); }}
@@ -2247,16 +2302,27 @@ const handleUpdateContextSummary = useCallback(async (summary: string) => {    i
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
               {/* Files */}
-              {files.length > 0 && (
-                <div className="mb-5">
-                  <div className="px-1 py-2">
-                    <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Files</span>
-                  </div>
-                  {files.map(file => (
+              <div className="mb-5">
+                <div className="px-1 py-2 flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Files{files.length > 0 && <span className="ml-1.5 text-gray-300 dark:text-gray-600">{files.length}</span>}</span>
+                  <button onClick={() => fileInputRef.current?.click()} className="text-[11px] font-medium text-gray-400 dark:text-gray-500 px-2 py-1 rounded-full border border-gray-200/60 dark:border-white/[0.06] active:bg-gray-100 dark:active:bg-white/[0.06]">+ Upload</button>
+                </div>
+                {files.length === 0 ? (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full px-3 py-3.5 rounded-xl border border-dashed border-gray-200 dark:border-white/[0.06] active:bg-gray-50 dark:active:bg-white/[0.03] transition-colors flex items-center gap-3.5"
+                  >
+                    <div className="w-11 h-11 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                      <img src="/file-logos/csv.png" alt="" className="w-7 h-7 object-contain opacity-40" />
+                    </div>
+                    <span className="text-[14px] text-gray-400 dark:text-gray-500">Upload a file</span>
+                  </button>
+                ) : (
+                  files.map(file => (
                     <div
                       key={file.id}
                       onClick={() => { selectDataSource('file', file.id); setMobileView('chat'); }}
@@ -2279,16 +2345,27 @@ const handleUpdateContextSummary = useCallback(async (summary: string) => {    i
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
               {/* Connectors */}
-              {connectors.length > 0 && (
-                <div className="mb-5">
-                  <div className="px-1 py-2">
-                    <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Connectors</span>
-                  </div>
-                  {connectors.map(conn => (
+              <div className="mb-5">
+                <div className="px-1 py-2 flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Connectors{connectors.length > 0 && <span className="ml-1.5 text-gray-300 dark:text-gray-600">{connectors.length}</span>}</span>
+                  <button onClick={() => setShowConnectorModal(true)} className="text-[11px] font-medium text-gray-400 dark:text-gray-500 px-2 py-1 rounded-full border border-gray-200/60 dark:border-white/[0.06] active:bg-gray-100 dark:active:bg-white/[0.06]">+ New</button>
+                </div>
+                {connectors.length === 0 ? (
+                  <button
+                    onClick={() => setShowConnectorModal(true)}
+                    className="w-full px-3 py-3.5 rounded-xl border border-dashed border-gray-200 dark:border-white/[0.06] active:bg-gray-50 dark:active:bg-white/[0.03] transition-colors flex items-center gap-3.5"
+                  >
+                    <div className="w-11 h-11 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                      <img src="/connector-logos/shopify.png" alt="" className="w-7 h-7 object-contain opacity-40" />
+                    </div>
+                    <span className="text-[14px] text-gray-400 dark:text-gray-500">Connect an app</span>
+                  </button>
+                ) : (
+                  connectors.map(conn => (
                     <div
                       key={conn.id}
                       onClick={() => { selectDataSource('connector', conn.id); setMobileView('chat'); }}
@@ -2316,9 +2393,9 @@ const handleUpdateContextSummary = useCallback(async (summary: string) => {    i
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </>
           )}
         </div>
