@@ -31,6 +31,7 @@ export interface User {
   subscriptionTier: number | string;
   queryLimitPerMonth: number;
   queriesUsedThisMonth: number;
+  globalCustomInstructions: string | null;
   createdAt: string;
 }
 
@@ -111,6 +112,7 @@ export interface DatabaseConnection {
   databaseType: DatabaseType;
   isActive: boolean;
   lastTestedAt: string | null;
+  globalCustomInstructions: string | null;
   createdAt: string;
 }
 
@@ -197,6 +199,10 @@ export interface Conversation {
   appConnectorName: string | null;
   customInstructions: string | null;
   hasContextSummary: boolean;
+  contextSummary: string | null;
+  summarizedMessageCount: number;
+  lastContextMetadata: ContextMetadata | null;
+  globalCustomInstructions: string | null;
   createdAt: string;
   updatedAt: string;
   lastMessageAt: string | null;
@@ -216,6 +222,7 @@ export interface CreateConversationPayload {
 export interface UpdateConversationPayload {
   title?: string;
   customInstructions?: string;
+  contextSummary?: string;
 }
 
 // Message types
@@ -289,6 +296,8 @@ export interface ContextMetadata {
   estimatedInputTokens: number;
   tokenBudget: number;
   hasCustomInstructions: boolean;
+  contextSummary: string | null;
+  summarizedMessageCount: number;
 }
 
 export interface ChatResponse {
@@ -310,6 +319,7 @@ export interface AppConnector {
   connectorType: number;
   isActive: boolean;
   lastSyncedAt: string | null;
+  globalCustomInstructions: string | null;
   createdAt: string;
   updatedAt: string;
   syncStatus: number; // 0=Idle, 1=Syncing, 2=Completed, 3=Failed
@@ -395,6 +405,7 @@ export interface UsageLogEntry {
   databaseConnectionName: string;
   queryType: string;
   executionTimeMs: number;
+  globalCustomInstructions: string | null;
   createdAt: string;
 }
 
@@ -433,6 +444,7 @@ export interface FileDocument {
   status: FileProcessingStatus;
   errorMessage: string | null;
   columns: string[] | null;
+  globalCustomInstructions: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -805,6 +817,15 @@ class ApiClient {
     return this.request<ConversationDetail>(`/api/conversations/${id}`);
   }
 
+  async getOrCreateConversationBySource(
+    type: 'database' | 'file' | 'connector',
+    sourceId: string
+  ): Promise<ApiResponse<ConversationDetail>> {
+    return this.request<ConversationDetail>(
+      `/api/conversations/by-source?type=${encodeURIComponent(type)}&sourceId=${encodeURIComponent(sourceId)}`
+    );
+  }
+
   async createConversation(payload: CreateConversationPayload): Promise<ApiResponse<Conversation>> {
     return this.request<Conversation>('/api/conversations', {
       method: 'POST',
@@ -847,7 +868,7 @@ class ApiClient {
     return this.request<User>('/api/account');
   }
 
-  async updateAccount(payload: { firstName?: string; lastName?: string }): Promise<ApiResponse<User>> {
+  async updateAccount(payload: { firstName?: string; lastName?: string; globalCustomInstructions?: string }): Promise<ApiResponse<User>> {
     return this.request<User>('/api/account', {
       method: 'PUT',
       body: JSON.stringify(payload),
@@ -1124,6 +1145,7 @@ export interface StreamError {
 export interface UserMessageSaved {
   messageId: string;
   content: string;
+  globalCustomInstructions: string | null;
   createdAt: string;
 }
 

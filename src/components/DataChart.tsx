@@ -706,7 +706,7 @@ export const DataChart = memo(function DataChart({
     : COLOR_THEMES[settings.colorTheme] || COLORS;
 
   // Responsive chart dimensions (base)
-  const baseChartHeight = fillContainer ? "100%" : (isMobile ? 300 : screenSize === "tablet" ? 300 : 320);
+  const baseChartHeight = fillContainer ? "100%" : (isMobile ? 340 : screenSize === "tablet" ? 300 : 320);
 
   // Memoize all chart data processing
   const chartConfig = useMemo(() => {
@@ -995,12 +995,12 @@ export const DataChart = memo(function DataChart({
     const tText = isDark ? "#f1f5f9" : "#1e293b";
     const shadowCss = isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.08)';
 
-    // Formatters
+    // Formatters — auto-increase precision to avoid duplicate Y-axis labels
     const fmtAxis = (v: number) => {
       if (v === 0) return '0';
       const abs = Math.abs(v);
-      if (abs >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
-      if (abs >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+      if (abs >= 1e9) return `${(v / 1e9).toFixed(abs % 1e8 === 0 ? 1 : 2)}B`;
+      if (abs >= 1e6) return `${(v / 1e6).toFixed(abs % 1e5 === 0 ? 1 : 2)}M`;
       if (abs >= 1e3) return `${(v / 1e3).toFixed(abs >= 1e4 ? 0 : 1)}K`;
       if (Number.isInteger(v)) return String(v);
       return v.toFixed(1);
@@ -1017,14 +1017,18 @@ export const DataChart = memo(function DataChart({
     const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     // X-axis interval and rotation
+    // Check if labels are long enough to need rotation even with few items
+    const maxLabelLen = Math.max(...cd.map(d => String(d.name ?? '').length), 0);
+    const labelsTooLong = maxLabelLen > 8 && count > 5;
+
     let xInterval: number;
     let xRotate: number;
-    if (count <= 10) {
+    if (count <= 10 && !labelsTooLong) {
       xInterval = 0;
       xRotate = 0;
     } else if (count <= 20) {
       xInterval = 0;
-      xRotate = -45;
+      xRotate = -35;
     } else {
       xInterval = Math.ceil(count / 15) - 1;
       xRotate = -45;
@@ -1145,6 +1149,47 @@ export const DataChart = memo(function DataChart({
       show: false,
     };
 
+    // Smart Y-axis min: when the dominant column has clustered values (range < 20% of its max),
+    // start near its minimum so differences are visible instead of starting at 0.
+    // We check per-column to avoid mixing scales (e.g. 2.3B amount + 0.86 score).
+    const smartYMin = (() => {
+      if (settings.yAxisMin !== 'auto') return settings.yAxisMin;
+      if (dc.length === 0 || cd.length < 2) return 0;
+
+      // Find the dominant column (largest max value)
+      let bestCol = dc[0];
+      let bestMax = 0;
+      for (const col of dc) {
+        for (const d of cd) {
+          const v = Math.abs(Number(d[col]) || 0);
+          if (v > bestMax) { bestMax = v; bestCol = col; }
+        }
+      }
+
+      // Collect values only from the dominant column
+      const vals = cd.map(d => Number(d[bestCol]) || 0).filter(v => v !== 0);
+      if (vals.length < 2) return 0;
+      const minVal = Math.min(...vals);
+      const maxVal = Math.max(...vals);
+      if (minVal <= 0 || maxVal === 0) return 0;
+      const range = maxVal - minVal;
+      // If range is less than 20% of max, zoom in
+      if (range < maxVal * 0.2) {
+        const padding = range * 0.5 || maxVal * 0.05;
+        const floor = Math.max(0, minVal - padding);
+        // Compute a "nice" tick interval (~5-6 ticks across the visible range),
+        // then round min DOWN to a multiple of it so Y-axis labels are evenly spaced.
+        const totalRange = maxVal - floor;
+        const rawInterval = totalRange / 5;
+        const intervalMag = Math.pow(10, Math.floor(Math.log10(rawInterval)));
+        const normalized = rawInterval / intervalMag;
+        const niceMultiplier = normalized <= 1.5 ? 1 : normalized <= 3 ? 2 : normalized <= 7 ? 5 : 10;
+        const niceInterval = niceMultiplier * intervalMag;
+        return Math.floor(floor / niceInterval) * niceInterval;
+      }
+      return 0;
+    })();
+
     switch (chartType) {
       case 'bar':
         return {
@@ -1153,7 +1198,7 @@ export const DataChart = memo(function DataChart({
           xAxis,
           yAxis: {
             ...yAxisBase,
-            min: settings.yAxisMin === 'auto' ? 0 : settings.yAxisMin,
+            min: smartYMin,
             max: settings.yAxisMax === 'auto' ? undefined : settings.yAxisMax,
           },
           tooltip: {
@@ -1200,7 +1245,7 @@ export const DataChart = memo(function DataChart({
           xAxis,
           yAxis: {
             ...yAxisBase,
-            min: settings.yAxisMin === 'auto' ? undefined : settings.yAxisMin,
+            min: smartYMin,
             max: settings.yAxisMax === 'auto' ? undefined : settings.yAxisMax,
           },
           tooltip: {
@@ -1258,7 +1303,7 @@ export const DataChart = memo(function DataChart({
           xAxis,
           yAxis: {
             ...yAxisBase,
-            min: settings.yAxisMin === 'auto' ? undefined : settings.yAxisMin,
+            min: smartYMin,
             max: settings.yAxisMax === 'auto' ? undefined : settings.yAxisMax,
           },
           tooltip: {
@@ -1374,6 +1419,44 @@ export const DataChart = memo(function DataChart({
     }
   }, [chartConfig, chartType, settings, isDark, screenSize, chartColors]);
 
+  // ECharts instance ref for legend toggle
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chartRef = useRef<any>(null);
+  const [hiddenLegendItems, setHiddenLegendItems] = useState<Set<string>>(new Set());
+
+  const legendItems = useMemo(() => {
+    if (!chartOption) return [];
+    if (chartType === 'pie') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const seriesData = (chartOption as any).series?.[0]?.data as Array<{ name: string; itemStyle?: { color?: string } }> | undefined;
+      if (!seriesData) return [];
+      return seriesData.map((d, i) => ({
+        name: d.name,
+        color: d.itemStyle?.color || chartColors[i % chartColors.length],
+      }));
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const series = (chartOption as any).series as Array<{ name?: string; color?: string; lineStyle?: { color?: string }; itemStyle?: { color?: string; borderColor?: string } }> | undefined;
+    if (!series) return [];
+    return series.map((s, i) => ({
+      name: s.name || `Series ${i + 1}`,
+      color: s.color || s.lineStyle?.color || s.itemStyle?.borderColor || s.itemStyle?.color || chartColors[i % chartColors.length],
+    }));
+  }, [chartOption, chartType, chartColors]);
+
+  const handleLegendToggle = useCallback((name: string) => {
+    const instance = chartRef.current?.getEchartsInstance?.();
+    if (instance) {
+      instance.dispatchAction({ type: 'legendToggleSelect', name });
+    }
+    setHiddenLegendItems(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }, []);
+
   // Early return for no data — AFTER all hooks
   if (!chartConfig) {
     if (chartType === "table") return null;
@@ -1429,49 +1512,6 @@ export const DataChart = memo(function DataChart({
   };
 
   const infoText = getChartInfoText();
-
-  // ECharts instance ref for legend toggle
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chartRef = useRef<any>(null);
-  const [hiddenLegendItems, setHiddenLegendItems] = useState<Set<string>>(new Set());
-
-  // Extract legend items from chart config
-  const legendItems = useMemo(() => {
-    if (!chartOption) return [];
-    if (chartType === 'pie') {
-      // Pie: items come from series data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const seriesData = (chartOption as any).series?.[0]?.data as Array<{ name: string; itemStyle?: { color?: string } }> | undefined;
-      if (!seriesData) return [];
-      return seriesData.map((d, i) => ({
-        name: d.name,
-        color: d.itemStyle?.color || chartColors[i % chartColors.length],
-      }));
-    }
-    // Bar/Line/Area: items come from series
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const series = (chartOption as any).series as Array<{ name?: string; color?: string; lineStyle?: { color?: string }; itemStyle?: { color?: string; borderColor?: string } }> | undefined;
-    if (!series) return [];
-    return series.map((s, i) => ({
-      name: s.name || `Series ${i + 1}`,
-      // Prefer series.color or lineStyle.color (line/area use itemStyle.color for hollow dots, not the series color)
-      color: s.color || s.lineStyle?.color || s.itemStyle?.borderColor || s.itemStyle?.color || chartColors[i % chartColors.length],
-    }));
-  }, [chartOption, chartType, chartColors]);
-
-  // Toggle legend item visibility via ECharts action
-  const handleLegendToggle = useCallback((name: string) => {
-    const instance = chartRef.current?.getEchartsInstance?.();
-    if (instance) {
-      instance.dispatchAction({ type: 'legendToggleSelect', name });
-    }
-    setHiddenLegendItems(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }, []);
 
   // Pie empty state
   if (chartType === 'pie' && pieData.length === 0) {

@@ -35,7 +35,8 @@ import {
   AppConnectorDto,
   ContextMetadata,
 } from "@/lib/api";
-import { ContextStatusChip } from "@/components/ContextStatusChip";
+import { ContextWindowChip } from "@/components/ContextWindowChip";
+import { InstructionsPanel } from "@/components/InstructionsPanel";
 import { connectorDefinitions, getConnectorByTypeIndex } from "@/lib/connectors";
 import { motion, AnimatePresence } from "framer-motion";
 import { DataChart, ChartType, detectChartType, ChartSettings, defaultChartSettings, ChartManipulation, AggregationType, getDefaultAggregationForColumn } from "@/components/DataChart";
@@ -47,6 +48,44 @@ import SettingsBottomNav from "@/components/SettingsBottomNav";
 import InsightCard from "@/components/InsightCard";
 import FollowUpChips from "@/components/FollowUpChips";
 import { useVirtualizer } from "@tanstack/react-virtual";
+
+// Logo path helpers — map type enums to brand logo files in /public
+function getDatabaseLogoPath(dbType: DatabaseType): string {
+  const map: Record<number, string> = {
+    0: '/db-logos/postgresql.png', 1: '/db-logos/mysql.png', 2: '/db-logos/sql-server.png',
+    3: '/db-logos/mongodb.png', 4: '/db-logos/oracle.png', 5: '/db-logos/sqlite.webp',
+    6: '/db-logos/mariadb.png', 7: '/db-logos/cockroachdb.png', 8: '/db-logos/redshift.png',
+    9: '/db-logos/clickhouse.png', 10: '/db-logos/firebird.png', 11: '/db-logos/duckdb.png',
+    12: '/db-logos/timescaledb.png', 13: '/db-logos/yugabytedb.png', 14: '/db-logos/snowflake.png',
+  };
+  const strMap: Record<string, string> = {
+    PostgreSQL: '/db-logos/postgresql.png', MySQL: '/db-logos/mysql.png', SQLServer: '/db-logos/sql-server.png',
+    MongoDB: '/db-logos/mongodb.png', Oracle: '/db-logos/oracle.png', SQLite: '/db-logos/sqlite.webp',
+    MariaDB: '/db-logos/mariadb.png', CockroachDB: '/db-logos/cockroachdb.png', Redshift: '/db-logos/redshift.png',
+    ClickHouse: '/db-logos/clickhouse.png', Firebird: '/db-logos/firebird.png', DuckDB: '/db-logos/duckdb.png',
+    TimescaleDB: '/db-logos/timescaledb.png', YugabyteDB: '/db-logos/yugabytedb.png', Snowflake: '/db-logos/snowflake.png',
+  };
+  if (typeof dbType === 'number') return map[dbType] || '/db-logos/postgresql.png';
+  return strMap[dbType] || '/db-logos/postgresql.png';
+}
+
+function getFileLogoPath(fileType: FileType): string {
+  const map: Record<number, string> = {
+    0: '/file-logos/excel.png', 1: '/file-logos/word.svg', 2: '/file-logos/csv.png',
+    3: '/file-logos/xml.svg', 4: '/file-logos/json.svg', 5: '/file-logos/txt.png',
+  };
+  const strMap: Record<string, string> = {
+    Excel: '/file-logos/excel.png', Word: '/file-logos/word.svg', Csv: '/file-logos/csv.png',
+    Xml: '/file-logos/xml.svg', Json: '/file-logos/json.svg', Text: '/file-logos/txt.png',
+  };
+  if (typeof fileType === 'number') return map[fileType] || '/file-logos/csv.png';
+  return strMap[fileType] || '/file-logos/csv.png';
+}
+
+function getConnectorLogoPath(connectorType: number): string {
+  const def = getConnectorByTypeIndex(connectorType);
+  return def ? `/connector-logos/${def.id}.png` : '/connector-logos/shopify.png';
+}
 
 // Helper to strip SQL/JSON/viz code blocks from AI response text
 // Keeps ```text blocks — those are intentional "show sql" responses rendered by MarkdownResponse
@@ -834,6 +873,7 @@ export default function AIPage() {
 
   // Account menu state
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showInstructionsPanel, setShowInstructionsPanel] = useState(false);
 
   // Search state
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -851,7 +891,7 @@ export default function AIPage() {
 
   // Delete confirmation modal state
   const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: 'conversation' | 'database' | 'connector';
+    type: 'conversation' | 'database' | 'file' | 'connector';
     id: string;
     name: string;
   } | null>(null);
@@ -1275,60 +1315,31 @@ export default function AIPage() {
   // Full load with auto-selection - only for initial load
   const loadConversations = async () => {
     try {
-      // Set loading state for chat area immediately if we have a saved conversation
-      const savedId = initialConversationIdRef.current;
-      if (savedId) {
-        setSelectedConversationId(savedId);
-        setLoadingMessages(true);
-      }
-
       const response = await api.getConversations();
       if (response.success) {
         setConversations(response.data);
+      }
 
-        const savedExists = savedId && response.data.some(c => c.id === savedId);
+      // Try to restore last selected source
+      const savedSourceType = localStorage.getItem('selectedSourceType') as 'database' | 'file' | 'connector' | null;
+      const savedSourceId = localStorage.getItem('selectedSourceId');
 
-        if (savedExists && savedId) {
-          // Load messages for saved conversation
-          try {
-            const convResponse = await api.getConversation(savedId);
-            if (convResponse.success) {
-              setMessages(convResponse.data.messages);
-              if (convResponse.data.appConnectorId) {
-                setSelectedConnectorId(convResponse.data.appConnectorId);
-                setSelectedDatabaseId(null);
-                setSelectedFileId(null);
-              } else if (convResponse.data.databaseConnectionId) {
-                setSelectedDatabaseId(convResponse.data.databaseConnectionId);
-                setSelectedFileId(null);
-                setSelectedConnectorId(null);
-              } else if (convResponse.data.fileDocumentId) {
-                setSelectedFileId(convResponse.data.fileDocumentId);
-                setSelectedDatabaseId(null);
-                setSelectedConnectorId(null);
-              }
-            }
-          } catch {
-            devError("Failed to load saved conversation");
-          } finally {
-            setLoadingMessages(false);
-          }
-        } else if (response.data.length > 0) {
-          // Clear invalid saved ID and select first
-          if (savedId) {
-            localStorage.removeItem("selectedConversationId");
-          }
-          await selectConversation(response.data[0].id);
-        } else {
-          // No conversations exist - clear loading state
-          setLoadingMessages(false);
-          if (savedId) {
-            localStorage.removeItem("selectedConversationId");
+      if (savedSourceType && savedSourceId) {
+        await selectDataSource(savedSourceType, savedSourceId);
+      } else {
+        // Fallback: try old selectedConversationId format
+        const savedId = initialConversationIdRef.current;
+        if (savedId && response.success) {
+          const savedExists = response.data.some(c => c.id === savedId);
+          if (savedExists) {
+            await selectConversation(savedId);
           }
         }
+        setLoadingMessages(false);
       }
     } catch (err) {
       devError("Failed to load conversations:", err);
+      setLoadingMessages(false);
     } finally {
       setLoadingConversations(false);
       setInitialLoadComplete(true);
@@ -1394,11 +1405,8 @@ export default function AIPage() {
       });
       if (response.success && response.file) {
         setFiles((prev) => [response.file!, ...prev]);
-        setSelectedFileId(response.file.id);
-        // Clear database and conversation when file is uploaded
-        setSelectedDatabaseId(null);
-        setSelectedConversationId(null);
-        setMessages([]);
+        // Auto-select the newly uploaded file as data source
+        selectDataSource('file', response.file.id);
       } else {
         setError(response.message || "Failed to upload file");
       }
@@ -1483,6 +1491,17 @@ export default function AIPage() {
     }
   }, [selectedConversationId]);
 
+  const handleUpdateGlobalInstructions = useCallback(async (instructions: string) => {
+    try {
+      await api.updateAccount({ globalCustomInstructions: instructions });
+      setUser(prev => prev ? { ...prev, globalCustomInstructions: instructions } : prev);
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.message);
+    }
+  }, []);
+
+const handleUpdateContextSummary = useCallback(async (summary: string) => {    if (!selectedConversationId) return;    try {      await api.updateConversation(selectedConversationId, { contextSummary: summary });      setConversations(prev => prev.map(c =>        c.id === selectedConversationId ? { ...c, contextSummary: summary } : c      ));    } catch (err) {      if (err instanceof ApiError) setError(err.message);    }  }, [selectedConversationId]);
+
   const selectConversation = useCallback(async (conversationId: string) => {
     setSelectedConversationId(conversationId);
     setMessages([]); // Clear old messages immediately so spinner doesn't overlap
@@ -1526,29 +1545,60 @@ export default function AIPage() {
     }
   }, []);
 
-  const createNewConversation = async () => {
-    // Need either a database, file, or connector selected
-    if (!selectedDatabaseId && !selectedFileId && !selectedConnectorId) {
-      setShowDataSourcePicker(true);
-      return;
+  const selectDataSource = useCallback(async (type: 'database' | 'file' | 'connector', sourceId: string) => {
+    // Set the appropriate source ID and clear others
+    if (type === 'database') {
+      setSelectedDatabaseId(sourceId);
+      setSelectedFileId(null);
+      setSelectedConnectorId(null);
+    } else if (type === 'file') {
+      setSelectedFileId(sourceId);
+      setSelectedDatabaseId(null);
+      setSelectedConnectorId(null);
+    } else {
+      setSelectedConnectorId(sourceId);
+      setSelectedDatabaseId(null);
+      setSelectedFileId(null);
     }
 
-    // If already on a blank chat (no messages), don't create another one
-    if (messages.length === 0 && !selectedConversationId) {
-      return;
-    }
+    // Save to localStorage
+    localStorage.setItem('selectedSourceType', type);
+    localStorage.setItem('selectedSourceId', sourceId);
 
-    // Reset sending state from any in-flight request (same as selectConversation)
+    // Reset UI state
+    setMessages([]);
+    setLoadingMessages(true);
     setIsSending(false);
     setCurrentPhase(null);
+    setError(null);
+    setLastContextMetadata(null);
     phaseTimeoutsRef.current.forEach(clearTimeout);
     phaseTimeoutsRef.current = [];
-    setError(null);
 
-    // Just reset to blank state — conversation will be created on first message send
-    setSelectedConversationId(null);
-    setMessages([]);
-  };
+    try {
+      const response = await api.getOrCreateConversationBySource(type, sourceId);
+      if (response.success) {
+        const conv = response.data;
+        setSelectedConversationId(conv.id);
+        setMessages(conv.messages);
+        // Restore persisted context metadata from backend
+        if (conv.lastContextMetadata) {
+          setLastContextMetadata(conv.lastContextMetadata);
+        }
+        // Update conversations list
+        setConversations(prev => {
+          const exists = prev.some(c => c.id === conv.id);
+          if (exists) return prev.map(c => c.id === conv.id ? conv : c);
+          return [conv, ...prev];
+        });
+      }
+    } catch (err) {
+      devError("Failed to get/create conversation for source:", err);
+      setError("Failed to load conversation");
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
 
   const sendMessageDirect = (text: string) => {
     setInputValue(text);
@@ -1565,6 +1615,9 @@ export default function AIPage() {
 
     const messageContent = inputValue.trim();
     setInputValue("");
+    // Reset textarea height after send
+    const textarea = document.querySelector('[data-chat-form] textarea') as HTMLTextAreaElement | null;
+    if (textarea) textarea.style.height = 'auto';
     setIsSending(true);
     setError(null);
 
@@ -1588,28 +1641,36 @@ export default function AIPage() {
     };
     setMessages((prev) => [...prev, tempUserMessage]);
 
-    // If no conversation selected, create one first
+    // Conversation should already exist from selectDataSource
     let conversationId = selectedConversationId;
     if (!conversationId) {
-      try {
-        const convResponse = await api.createConversation({
-          databaseConnectionId: selectedDatabaseId || undefined,
-          fileDocumentId: selectedFileId || undefined,
-          appConnectorId: selectedConnectorId || undefined,
-        });
-        if (convResponse.success) {
-          conversationId = convResponse.data.id;
-          setConversations((prev) => [convResponse.data, ...prev]);
-          setSelectedConversationId(conversationId);
+      // Fallback: try to get-or-create via source
+      const sourceType = selectedDatabaseId ? 'database' : selectedFileId ? 'file' : selectedConnectorId ? 'connector' : null;
+      const sourceId = selectedDatabaseId || selectedFileId || selectedConnectorId;
+      if (sourceType && sourceId) {
+        try {
+          const convResponse = await api.getOrCreateConversationBySource(sourceType, sourceId);
+          if (convResponse.success) {
+            conversationId = convResponse.data.id;
+            setSelectedConversationId(conversationId);
+            setConversations(prev => {
+              const exists = prev.some(c => c.id === convResponse.data.id);
+              if (exists) return prev;
+              return [convResponse.data, ...prev];
+            });
+          }
+        } catch (err) {
+          if (err instanceof ApiError) setError(err.message);
+          setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id));
+          setIsSending(false);
+          setInputValue(messageContent);
+          return;
         }
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        }
-        // Remove optimistic message on error
-        setMessages((prev) => prev.filter((m) => m.id !== tempUserMessage.id));
+      } else {
+        setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id));
         setIsSending(false);
         setInputValue(messageContent);
+        setShowDataSourcePicker(true);
         return;
       }
     }
@@ -1702,9 +1763,18 @@ export default function AIPage() {
           setFollowUpQuestions(prev => ({ ...prev, [response.data.assistantMessage.id]: response.data.followUpQuestions! }));
         }
 
-        // Store context metadata for the context viewer
+        // Store context metadata for the context viewer + cache per conversation
         if (response.data.context) {
           setLastContextMetadata(response.data.context);
+          // Sync context summary back to conversation state
+          if (response.data.context.contextSummary && selectedConversationIdRef.current) {
+            const convId = selectedConversationIdRef.current;
+            setConversations(prev => prev.map(c =>
+              c.id === convId
+                ? { ...c, contextSummary: response.data.context!.contextSummary, summarizedMessageCount: response.data.context!.summarizedMessageCount, hasContextSummary: true }
+                : c
+            ));
+          }
         }
 
         // Check if user requested a specific chart type
@@ -2107,105 +2177,151 @@ export default function AIPage() {
 
   return (
     <div className="h-dvh bg-gray-50 dark:bg-[#09090b] flex transition-colors duration-300 overflow-hidden">
-      {/* Mobile Chats View - full-page conversation list */}
+      {/* Mobile Data Sources View */}
       <div className={`md:hidden fixed inset-0 z-30 flex-col bg-white dark:bg-[#09090b] ${mobileView === 'chats' ? 'flex' : 'hidden'}`}>
         {/* Header */}
-        <div className="px-4 pt-4 pb-2 flex-shrink-0">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Chats</h1>
-        </div>
-
-        {/* Search */}
-        <div className="px-4 pb-3 flex-shrink-0">
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={mobileSearchQuery}
-              onChange={(e) => setMobileSearchQuery(e.target.value)}
-              placeholder="Search conversations..."
-              className="w-full h-10 bg-gray-100 dark:bg-white/[0.04] rounded-xl pl-10 pr-4 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none border border-transparent dark:border-white/[0.04] focus:border-gray-200 dark:focus:border-white/[0.08] transition-colors"
-            />
+        <div className="px-4 pt-5 pb-3 flex-shrink-0 flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Your Data</h1>
+            <p className="text-[13px] text-gray-400 dark:text-gray-500 mt-0.5">Select a source to start analyzing</p>
           </div>
+          <button
+            onClick={() => setShowInstructionsPanel(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200/60 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04] text-gray-500 dark:text-gray-400 transition-colors relative"
+            title="Custom Instructions"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+            </svg>
+            <span className="text-[12px] font-medium">Instructions</span>
+            {(user?.globalCustomInstructions || conversations.find(c => c.id === selectedConversationId)?.customInstructions) && (
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-300" />
+            )}
+          </button>
         </div>
 
-        {/* Conversations list */}
+        {/* Data sources list */}
         <div className="flex-1 overflow-y-auto px-3 pb-20">
           {loadingConversations ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
             </div>
-          ) : conversations.length === 0 ? (
+          ) : (databases.length === 0 && files.length === 0 && connectors.length === 0) ? (
             <div className="text-center py-16">
               <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/[0.03] flex items-center justify-center mx-auto mb-3">
                 <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                 </svg>
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No conversations yet</p>
-              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Tap below to start your first chat</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No data sources yet</p>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Connect a database, upload a file, or link an app</p>
             </div>
           ) : (
-            conversations
-              .filter(chat =>
-                !mobileSearchQuery ||
-                (chat.title || 'New Chat').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
-                (chat.databaseConnectionName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
-                (chat.fileDocumentName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase()) ||
-                (chat.appConnectorName || '').toLowerCase().includes(mobileSearchQuery.toLowerCase())
-              )
-              .map((chat, idx) => (
-                <div
-                  key={chat.id}
-                  onClick={() => {
-                    selectConversation(chat.id);
-                    setMobileView('chat');
-                    setMobileSearchQuery('');
-                  }}
-                  className={`px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 mb-0.5 ${
-                    chat.id === selectedConversationId
-                      ? 'bg-gray-100 dark:bg-white/[0.06]'
-                      : 'active:bg-gray-50 dark:active:bg-white/[0.04]'
-                  }`}
-                  style={{ animationDelay: `${idx * 30}ms` }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-[14px] font-medium text-gray-900 dark:text-white truncate">
-                        {chat.title || 'New Chat'}
-                      </span>
-                      {pendingConversations.has(chat.id) && (
-                        <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gray-500"></span>
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap ml-3 flex-shrink-0">
-                      {formatRelativeTime(chat.updatedAt)}
-                    </span>
+            <>
+              {/* Databases */}
+              {databases.length > 0 && (
+                <div className="mb-5">
+                  <div className="px-1 py-2">
+                    <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Databases</span>
                   </div>
-                  {(chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName) && (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">
-                      {chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName}
-                    </p>
-                  )}
+                  {databases.map(db => (
+                    <div
+                      key={db.id}
+                      onClick={() => { selectDataSource('database', db.id); setMobileView('chat'); }}
+                      className={`px-3 py-3.5 rounded-xl cursor-pointer transition-all duration-200 mb-0.5 flex items-center gap-3.5 ${
+                        selectedDatabaseId === db.id ? 'bg-gray-100/80 dark:bg-white/[0.05]' : 'active:bg-gray-50 dark:active:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                        <img src={getDatabaseLogoPath(db.databaseType)} alt="" className="w-7 h-7 object-contain" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[15px] truncate transition-colors ${selectedDatabaseId === db.id ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{db.name}</p>
+                        <span className="text-[12px] text-gray-400 dark:text-gray-500">{getDatabaseTypeName(db.databaseType)}</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'database', id: db.id, name: db.name }); }}
+                        className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex-shrink-0"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))
+              )}
+              {/* Files */}
+              {files.length > 0 && (
+                <div className="mb-5">
+                  <div className="px-1 py-2">
+                    <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Files</span>
+                  </div>
+                  {files.map(file => (
+                    <div
+                      key={file.id}
+                      onClick={() => { selectDataSource('file', file.id); setMobileView('chat'); }}
+                      className={`px-3 py-3.5 rounded-xl cursor-pointer transition-all duration-200 mb-0.5 flex items-center gap-3.5 ${
+                        selectedFileId === file.id ? 'bg-gray-100/80 dark:bg-white/[0.05]' : 'active:bg-gray-50 dark:active:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                        <img src={getFileLogoPath(file.fileType)} alt="" className="w-7 h-7 object-contain" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[15px] truncate transition-colors ${selectedFileId === file.id ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{file.originalFileName}</p>
+                        <span className="text-[12px] text-gray-400 dark:text-gray-500">{getFileTypeName(file.fileType)}</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'file', id: file.id, name: file.originalFileName }); }}
+                        className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex-shrink-0"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Connectors */}
+              {connectors.length > 0 && (
+                <div className="mb-5">
+                  <div className="px-1 py-2">
+                    <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Connectors</span>
+                  </div>
+                  {connectors.map(conn => (
+                    <div
+                      key={conn.id}
+                      onClick={() => { selectDataSource('connector', conn.id); setMobileView('chat'); }}
+                      className={`px-3 py-3.5 rounded-xl cursor-pointer transition-all duration-200 mb-0.5 flex items-center gap-3.5 ${
+                        selectedConnectorId === conn.id ? 'bg-gray-100/80 dark:bg-white/[0.05]' : 'active:bg-gray-50 dark:active:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                        <img src={getConnectorLogoPath(conn.connectorType)} alt="" className="w-7 h-7 object-contain" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[15px] truncate transition-colors ${selectedConnectorId === conn.id ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{conn.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[12px] text-gray-400 dark:text-gray-500">{getConnectorByTypeIndex(conn.connectorType)?.name || 'Connector'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            conn.syncStatus === 2 ? 'bg-emerald-400' : conn.syncStatus === 1 ? 'bg-amber-400 animate-pulse' : 'bg-gray-300'
+                          }`} />
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'connector', id: conn.id, name: conn.name }); }}
+                        className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex-shrink-0"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
-
-        {/* New Chat FAB - bottom right above nav */}
-        <button
-          onClick={() => { createNewConversation(); setMobileView('chat'); }}
-          className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[60] flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg shadow-gray-900/25 dark:shadow-black/30 active:scale-95 transition-all duration-200 hover:shadow-xl"
-        >
-          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-          <span className="text-sm font-medium">New chat</span>
-        </button>
 
         {/* Bottom nav */}
         <SettingsBottomNav />
@@ -2216,10 +2332,10 @@ export default function AIPage() {
         hidden md:flex md:flex-col
         ${sidebarCollapsed ? 'md:w-[60px]' : 'md:w-[260px]'}
         bg-white/80 dark:bg-white/[0.02] justify-between border-r border-gray-200/60 dark:border-white/[0.06] transition-all duration-300
-        relative
+        relative overflow-hidden
       `}>
         {/* Top Section */}
-        <div className="flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col">
           {/* Header with Logo and Toggle */}
           <div className={`pt-3 pb-2 flex items-center px-3 justify-between ${sidebarCollapsed ? 'md:px-2.5 md:justify-center' : ''}`}>
             {/* Logo - always show on mobile, hide on desktop when collapsed */}
@@ -2251,208 +2367,271 @@ export default function AIPage() {
             </div>
           </div>
 
-          {/* Top Actions */}
-          <div className={`pt-1 pb-1 flex flex-col gap-0.5 px-2 ${sidebarCollapsed ? 'md:px-2.5 md:items-center' : ''}`}>
-            <button
-              data-tutorial="new-chat"
-              onClick={() => { createNewConversation(); setMobileSidebarOpen(false); }}
-              className={`flex items-center text-[13px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors w-full gap-2.5 px-2.5 py-2 ${
-                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0 md:gap-0' : ''
-              }`}
-              title="New chat"
-            >
-              <svg className={`text-gray-500 dark:text-gray-400 flex-shrink-0 w-[18px] h-[18px] ${sidebarCollapsed ? 'md:w-5 md:h-5' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className={sidebarCollapsed ? 'md:hidden' : ''}>New chat</span>
-            </button>
-            <button
-              onClick={() => setShowSearchModal(true)}
-              className={`flex items-center text-[13px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors w-full gap-2.5 px-2.5 py-2 ${
-                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0 md:gap-0' : ''
-              }`}
-              title="Search chats"
-            >
-              <svg className={`text-gray-500 dark:text-gray-400 flex-shrink-0 w-[18px] h-[18px] ${sidebarCollapsed ? 'md:w-5 md:h-5' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span className={sidebarCollapsed ? 'md:hidden' : ''}>Search chats</span>
-            </button>
-          </div>
-
-          {/* Section Header */}
-          <div className={`px-4 pt-4 pb-1 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
-            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Your chats</span>
-          </div>
-
-          {/* Chat List */}
-          <div ref={chatListRef} className={`flex flex-col gap-0.5 pb-2 overflow-y-auto custom-scrollbar px-2 max-h-[calc(100vh-280px)] ${sidebarCollapsed ? 'md:px-2.5 md:pt-3 md:max-h-[calc(100vh-200px)] md:items-center' : ''}`}>
+          {/* Data Source Hub */}
+          <div className={`flex-1 overflow-y-auto custom-scrollbar px-2 pt-3 pb-2 ${sidebarCollapsed ? 'md:px-2.5 md:pt-3 md:items-center' : ''}`}>
             {loadingConversations ? (
               <div className={`text-center py-4 text-xs text-gray-400 dark:text-gray-500 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
                 Loading...
               </div>
-            ) : conversations.length === 0 ? (
-              <div className={`text-center py-4 text-xs text-gray-400 dark:text-gray-500 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
-                No conversations yet
-              </div>
             ) : (
-              conversations.map((chat) => (
-                  /* Expanded view - full chat item */
-                  <div
-                    key={chat.id}
-                    className={`group relative w-full text-left rounded-lg px-3 py-2 flex flex-col gap-0.5 cursor-pointer transition-all duration-150 ${sidebarCollapsed ? 'md:hidden' : ''} ${
-                      chatMenuOpen === chat.id ? "z-50" : ""
-                    } ${
-                      chat.id === selectedConversationId
-                        ? "bg-gray-100 dark:bg-white/[0.08]"
-                        : "hover:bg-gray-50 dark:hover:bg-white/[0.05]"
-                    }`}
-                    onClick={() => {
-                      if (editingConversationId !== chat.id) {
-                        setChatMenuOpen(null);
-                        selectConversation(chat.id);
-                        setMobileSidebarOpen(false);
-                      }
-                    }}
-                  >
-                    {editingConversationId === chat.id ? (
-                      <input
-                        type="text"
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onBlur={() => handleRenameConversation(chat.id, editingTitle)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleRenameConversation(chat.id, editingTitle);
-                          if (e.key === "Escape") setEditingConversationId(null);
-                        }}
-                        className="text-sm bg-white dark:bg-white/[0.04] border border-gray-300 dark:border-white/[0.06] rounded px-2 py-0.5 w-full pr-6 dark:text-white"
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <div className="flex items-center gap-1.5 pr-6">
-                        <span className="text-[13px] truncate text-gray-800 dark:text-gray-200">
-                          {chat.title || "New Chat"}
-                        </span>
-                        {pendingConversations.has(chat.id) && (
+              <>
+                {/* Databases Section */}
+                <div className={`mb-4 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                  <div className="flex items-center justify-between px-2.5 py-1 mb-1">
+                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">Databases{databases.length > 0 && <span className="ml-1.5 text-gray-300 dark:text-gray-600">{databases.length}</span>}</span>
+                    <button
+                      onClick={() => setShowAddDatabaseModal(true)}
+                      className="flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full border border-gray-200/60 dark:border-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1] transition-all"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" d="M12 5v14m7-7H5" /></svg>
+                      New
+                    </button>
+                  </div>
+                  {databases.length === 0 ? (
+                    <button
+                      onClick={() => setShowAddDatabaseModal(true)}
+                      className="w-full mx-auto px-3 py-3.5 rounded-lg border border-dashed border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.12] hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all cursor-pointer flex items-center gap-3"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                        <img src="/db-logos/postgresql.png" alt="" className="w-6 h-6 object-contain opacity-40" />
+                      </div>
+                      <span className="text-[13px] text-gray-400 dark:text-gray-500">Connect a database</span>
+                    </button>
+                  ) : (
+                    databases.map(db => (
+                      <div
+                        key={db.id}
+                        className={`group w-full text-left rounded-lg px-2.5 py-2.5 mb-px flex items-center gap-3 transition-all duration-150 cursor-pointer ${
+                          selectedDatabaseId === db.id
+                            ? 'bg-gray-100/80 dark:bg-white/[0.06]'
+                            : 'hover:bg-gray-50/80 dark:hover:bg-white/[0.03]'
+                        }`}
+                        onClick={() => { selectDataSource('database', db.id); setMobileSidebarOpen(false); }}
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                          <img src={getDatabaseLogoPath(db.databaseType)} alt="" className="w-6 h-6 object-contain" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm truncate transition-colors ${selectedDatabaseId === db.id ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{db.name}</p>
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500">{getDatabaseTypeName(db.databaseType)}</span>
+                        </div>
+                        {pendingConversations.has(conversations.find(c => c.databaseConnectionId === db.id)?.id || '') && (
                           <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gray-500"></span>
                           </span>
                         )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'database', id: db.id, name: db.name }); }}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex-shrink-0"
+                          title="Remove"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
                       </div>
-                    )}
-                    <div className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500 pr-6">
-                      {(chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName) && (
-                        <>
-                          <span className="truncate max-w-[70px]">
-                            {chat.databaseConnectionName || chat.fileDocumentName || chat.appConnectorName}
-                          </span>
-                          <span className="text-gray-300 dark:text-gray-600">·</span>
-                        </>
-                      )}
-                      <span className="whitespace-nowrap">{formatRelativeTime(chat.updatedAt)}</span>
-                    </div>
-                      {/* More options button */}
-                      {editingConversationId !== chat.id && (
-                        <div className={`absolute right-1.5 top-1/2 -translate-y-1/2 ${chatMenuOpen === chat.id ? "z-[100]" : ""}`}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (chatMenuOpen === chat.id) {
-                                setChatMenuOpen(null);
-                                setChatMenuPos(null);
-                              } else {
-                                const button = e.currentTarget;
-                                const buttonRect = button.getBoundingClientRect();
-                                const spaceBelow = window.innerHeight - buttonRect.bottom;
-                                const openUp = spaceBelow < 100;
-                                setChatMenuOpenUp(openUp);
-                                setChatMenuPos({
-                                  top: openUp ? buttonRect.top : buttonRect.bottom + 4,
-                                  left: buttonRect.right - 128, // 128 = w-32 menu width
-                                });
-                                setChatMenuOpen(chat.id);
-                              }
-                            }}
-                            className={`p-2 sm:p-1 rounded-md transition-all ${
-                              chatMenuOpen === chat.id
-                                ? "bg-gray-200 dark:bg-white/10"
-                                : "sm:opacity-0 sm:group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-white/[0.08]"
-                            }`}
-                          >
-                            <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                              <circle cx="12" cy="6" r="2" />
-                              <circle cx="12" cy="12" r="2" />
-                              <circle cx="12" cy="18" r="2" />
-                            </svg>
-                          </button>
-                          {/* Dropdown menu - rendered as fixed portal to avoid overflow clipping */}
-                        </div>
-                      )}
+                    ))
+                  )}
+                </div>
+
+                {/* Files Section */}
+                <div className={`mb-4 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                  <div className="flex items-center justify-between px-2.5 py-1 mb-1">
+                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">Files{files.length > 0 && <span className="ml-1.5 text-gray-300 dark:text-gray-600">{files.length}</span>}</span>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full border border-gray-200/60 dark:border-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1] transition-all"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12L8 8m4-4l4 4" /></svg>
+                      Upload
+                    </button>
                   </div>
-              ))
+                  {files.length === 0 ? (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full mx-auto px-3 py-3.5 rounded-lg border border-dashed border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.12] hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all cursor-pointer flex items-center gap-3"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                        <img src="/file-logos/csv.png" alt="" className="w-6 h-6 object-contain opacity-40" />
+                      </div>
+                      <span className="text-[13px] text-gray-400 dark:text-gray-500">Upload a file</span>
+                    </button>
+                  ) : (
+                    files.map(file => (
+                      <div
+                        key={file.id}
+                        className={`group w-full text-left rounded-lg px-2.5 py-2.5 mb-px flex items-center gap-3 transition-all duration-150 cursor-pointer ${
+                          selectedFileId === file.id
+                            ? 'bg-gray-100/80 dark:bg-white/[0.06]'
+                            : 'hover:bg-gray-50/80 dark:hover:bg-white/[0.03]'
+                        }`}
+                        onClick={() => { selectDataSource('file', file.id); setMobileSidebarOpen(false); }}
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                          <img src={getFileLogoPath(file.fileType)} alt="" className="w-6 h-6 object-contain" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm truncate transition-colors ${selectedFileId === file.id ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{file.originalFileName}</p>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-gray-400 dark:text-gray-500">{getFileTypeName(file.fileType)}</span>
+                            {file.rowCount != null && (
+                              <span className="text-[11px] text-gray-400 dark:text-gray-500">{file.rowCount.toLocaleString()} rows</span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'file', id: file.id, name: file.originalFileName }); }}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex-shrink-0"
+                          title="Remove"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Connectors Section */}
+                <div className={`mb-4 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                  <div className="flex items-center justify-between px-2.5 py-1 mb-1">
+                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">Connectors{connectors.length > 0 && <span className="ml-1.5 text-gray-300 dark:text-gray-600">{connectors.length}</span>}</span>
+                    <button
+                      onClick={() => setShowConnectorModal(true)}
+                      className="flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full border border-gray-200/60 dark:border-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1] transition-all"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" d="M12 5v14m7-7H5" /></svg>
+                      New
+                    </button>
+                  </div>
+                  {connectors.length === 0 ? (
+                    <button
+                      onClick={() => setShowConnectorModal(true)}
+                      className="w-full mx-auto px-3 py-3.5 rounded-lg border border-dashed border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.12] hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all cursor-pointer flex items-center gap-3"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                        <img src="/connector-logos/shopify.png" alt="" className="w-6 h-6 object-contain opacity-40" />
+                      </div>
+                      <span className="text-[13px] text-gray-400 dark:text-gray-500">Connect an app</span>
+                    </button>
+                  ) : (
+                    connectors.map(conn => {
+                      const connDef = getConnectorByTypeIndex(conn.connectorType);
+                      return (
+                        <div
+                          key={conn.id}
+                          className={`group w-full text-left rounded-lg px-2.5 py-2.5 mb-px flex items-center gap-3 transition-all duration-150 cursor-pointer ${
+                            selectedConnectorId === conn.id
+                              ? 'bg-gray-100/80 dark:bg-white/[0.06]'
+                              : 'hover:bg-gray-50/80 dark:hover:bg-white/[0.03]'
+                          }`}
+                          onClick={() => { selectDataSource('connector', conn.id); setMobileSidebarOpen(false); }}
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+                            <img src={getConnectorLogoPath(conn.connectorType)} alt="" className="w-6 h-6 object-contain" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm truncate transition-colors ${selectedConnectorId === conn.id ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{conn.name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-gray-400 dark:text-gray-500">{connDef?.name || 'Connector'}</span>
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                conn.syncStatus === 1 ? 'bg-amber-400 animate-pulse' :
+                                conn.syncStatus === 3 ? 'bg-red-400' :
+                                conn.syncStatus === 2 ? 'bg-emerald-400' :
+                                'bg-gray-300 dark:bg-gray-600'
+                              }`} />
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'connector', id: conn.id, name: conn.name }); }}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex-shrink-0"
+                            title="Remove"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Collapsed sidebar icons */}
+                {sidebarCollapsed && (
+                  <div className="hidden md:flex flex-col items-center gap-1">
+                    {databases.map(db => (
+                      <button
+                        key={db.id}
+                        onClick={() => selectDataSource('database', db.id)}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                          selectedDatabaseId === db.id
+                            ? 'bg-gray-100/80 dark:bg-white/[0.08]'
+                            : 'hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                        }`}
+                        title={db.name}
+                      >
+                        <img src={getDatabaseLogoPath(db.databaseType)} alt="" className="w-6 h-6 object-contain" />
+                      </button>
+                    ))}
+                    {files.map(file => (
+                      <button
+                        key={file.id}
+                        onClick={() => selectDataSource('file', file.id)}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                          selectedFileId === file.id
+                            ? 'bg-gray-100/80 dark:bg-white/[0.08]'
+                            : 'hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                        }`}
+                        title={file.originalFileName}
+                      >
+                        <img src={getFileLogoPath(file.fileType)} alt="" className="w-6 h-6 object-contain" />
+                      </button>
+                    ))}
+                    {connectors.map(conn => (
+                      <button
+                        key={conn.id}
+                        onClick={() => selectDataSource('connector', conn.id)}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                          selectedConnectorId === conn.id
+                            ? 'bg-gray-100/80 dark:bg-white/[0.08]'
+                            : 'hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                        }`}
+                        title={conn.name}
+                      >
+                        <img src={getConnectorLogoPath(conn.connectorType)} alt="" className="w-6 h-6 object-contain" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
-
-          {/* Chat context menu - fixed position to avoid overflow clipping */}
-          {chatMenuOpen && chatMenuPos && (
-            <div
-              className="fixed w-32 bg-white dark:bg-[#0c0c0e] rounded-xl border border-gray-200/80 dark:border-white/[0.08] shadow-xl dark:shadow-2xl dark:shadow-black/50 overflow-hidden z-[200]"
-              style={{
-                top: chatMenuOpenUp ? undefined : chatMenuPos.top,
-                bottom: chatMenuOpenUp ? window.innerHeight - chatMenuPos.top + 4 : undefined,
-                left: chatMenuPos.left,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const chatId = chatMenuOpen;
-                  const chat = conversations.find(c => c.id === chatId);
-                  setChatMenuOpen(null);
-                  setChatMenuPos(null);
-                  if (chat) {
-                    setEditingConversationId(chat.id);
-                    setEditingTitle(chat.title || "New Chat");
-                  }
-                }}
-                className="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.06] flex items-center gap-2 transition-colors"
-              >
-                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                Rename
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const chatId = chatMenuOpen;
-                  const chat = conversations.find(c => c.id === chatId);
-                  setChatMenuOpen(null);
-                  setChatMenuPos(null);
-                  if (chat) {
-                    setDeleteConfirm({
-                      type: 'conversation',
-                      id: chat.id,
-                      name: chat.title || 'New Chat'
-                    });
-                  }
-                }}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center gap-2 transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* User Profile */}
-        <div className={`relative border-t border-gray-200/60 dark:border-white/[0.06] p-2 ${sidebarCollapsed ? 'md:p-2.5 md:flex md:justify-center' : ''}`}>
+        {/* Bottom Section: Instructions + User Profile — pinned at bottom */}
+        <div className="flex-shrink-0">
+          {/* Instructions Button */}
+          <div className={`border-t border-gray-200/60 dark:border-white/[0.06] px-2 py-2 ${sidebarCollapsed ? 'md:px-2.5 md:flex md:justify-center' : ''}`}>
+            <button
+              onClick={() => setShowInstructionsPanel(true)}
+              className={`rounded-lg flex items-center hover:bg-gray-100/70 dark:hover:bg-white/[0.06] transition-colors w-full px-2.5 py-2 gap-2.5 ${
+                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0 md:gap-0' : ''
+              }`}
+              title="Custom Instructions"
+            >
+              <div className="relative flex-shrink-0">
+                <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                </svg>
+                {(user?.globalCustomInstructions || conversations.find(c => c.id === selectedConversationId)?.customInstructions) && (
+                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-gray-300" />
+                )}
+              </div>
+              <span className={`text-[13px] text-gray-600 dark:text-gray-400 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                Instructions
+              </span>
+            </button>
+          </div>
+
+          {/* User Profile */}
+          <div className={`relative border-t border-gray-200/60 dark:border-white/[0.06] p-2 ${sidebarCollapsed ? 'md:p-2.5 md:flex md:justify-center' : ''}`}>
           <button
             onClick={() => setShowAccountMenu(!showAccountMenu)}
             className={`rounded-lg flex items-center hover:bg-gray-100/70 dark:hover:bg-white/[0.06] transition-colors w-full px-2.5 py-2 gap-2.5 ${
@@ -2556,16 +2735,16 @@ export default function AIPage() {
             </div>
           )}
         </div>
+        </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden transition-colors duration-300 relative">
         {/* Header */}
         <header className="border-b border-gray-200/60 dark:border-white/[0.06] z-10 bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-xl transition-colors duration-300 flex-shrink-0">
-          {/* Row 1: Back/Title + DB/File (desktop inline) */}
-          <div className="px-3 sm:px-5 py-3 flex items-center justify-between gap-2">
-            {/* Left: Back + Title */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="px-3 sm:px-5 py-2.5 flex items-center justify-between gap-3">
+            {/* Left: Back + Logo + Name + metadata */}
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <button
                 onClick={() => setMobileView('chats')}
                 className="md:hidden flex items-center text-sm text-gray-900 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-1 -ml-1"
@@ -2574,136 +2753,104 @@ export default function AIPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h1 className="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[180px] sm:max-w-none">
-                {selectedConversation?.title || "New Chat"}
-              </h1>
-            </div>
 
-            {/* Right: Source chip + action buttons */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              {/* Source chips */}
+              {/* Source logo */}
               {selectedDatabase && (
-                <button
-                  onClick={() => setShowDatabaseModal(true)}
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.04] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all text-sm cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                  </svg>
-                  <span className="text-gray-700 dark:text-gray-300 truncate max-w-[100px] sm:max-w-[160px]">{selectedDatabase.name}</span>
-                  <span className="hidden sm:inline text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">{getDatabaseTypeName(selectedDatabase.databaseType)}</span>
-                  <svg className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+                <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+                  <img src={getDatabaseLogoPath(selectedDatabase.databaseType)} alt="" className="w-[18px] h-[18px] object-contain" />
+                </div>
               )}
               {selectedFile && (
-                <button
-                  onClick={() => setShowFilesModal(true)}
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.04] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all text-sm cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-gray-700 dark:text-gray-300 truncate max-w-[100px] sm:max-w-[160px]">{selectedFile.originalFileName}</span>
-                  <span className="hidden sm:inline text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">{getFileTypeName(selectedFile.fileType)}</span>
-                  <svg className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+                <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+                  <img src={getFileLogoPath(selectedFile.fileType)} alt="" className="w-[18px] h-[18px] object-contain" />
+                </div>
               )}
               {selectedConnector && (
-                <button
-                  onClick={() => setShowConnectorModal(true)}
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.04] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all text-sm cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span className="text-gray-700 dark:text-gray-300 truncate max-w-[100px] sm:max-w-[160px]">{selectedConnector.name}</span>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    selectedConnector.syncStatus === 1 ? 'bg-amber-400 animate-pulse' :
-                    selectedConnector.syncStatus === 3 ? 'bg-red-400' :
-                    selectedConnector.syncStatus === 2 ? 'bg-emerald-400' :
-                    'bg-gray-300 dark:bg-gray-600'
-                  }`} />
-                  <svg className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+                <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+                  <img src={getConnectorLogoPath(selectedConnector.connectorType)} alt="" className="w-[18px] h-[18px] object-contain" />
+                </div>
               )}
 
-              {/* Separator + action buttons */}
-              {selectedDatabase && (
-                <>
-                  <div className="w-px h-5 bg-gray-200 dark:bg-white/[0.08] hidden sm:block" />
-                  <button
-                    onClick={() => {
-                      setSchemaViewDatabaseId(selectedDatabase.id);
-                      setShowSchemaModal(true);
-                    }}
-                    title="View Schema"
-                    className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-500 dark:text-gray-400 transition-colors text-xs font-medium"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span className="hidden sm:inline">Schema</span>
-                  </button>
-                </>
-              )}
-
-              {selectedConnector && (
-                <>
-                  <div className="w-px h-5 bg-gray-200 dark:bg-white/[0.08] hidden sm:block" />
-                  <button
-                    onClick={handleHeaderSync}
-                    disabled={selectedConnector.syncStatus === 1}
-                    title="Sync now"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-500 dark:text-gray-400 transition-colors disabled:opacity-50"
-                  >
-                    <svg className={`w-3.5 h-3.5 ${selectedConnector.syncStatus === 1 ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                  <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-                    {selectedConnector.lastSyncedAt && (
-                      <span>{formatRelativeTime(selectedConnector.lastSyncedAt)}</span>
+              {/* Name + subtitle */}
+              <div className="min-w-0">
+                <h1 className="font-medium text-[13px] text-gray-900 dark:text-white truncate max-w-[180px] sm:max-w-none leading-tight">
+                  {selectedDatabase?.name || selectedFile?.originalFileName || selectedConnector?.name || selectedConversation?.title || "Select a data source"}
+                </h1>
+                {selectedDatabase && (
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">{getDatabaseTypeName(selectedDatabase.databaseType)}</p>
+                )}
+                {selectedFile && (
+                  <p className="hidden sm:block text-[11px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">
+                    {getFileTypeName(selectedFile.fileType)}
+                    {selectedFile.rowCount != null && selectedFile.rowCount > 0 && (
+                      <span> · {selectedFile.rowCount.toLocaleString()} rows</span>
                     )}
-                    {selectedConnector.lastSyncedAt && connectorTotalRows > 0 && <span>·</span>}
-                    {connectorTotalRows > 0 && <span>{connectorTotalRows.toLocaleString()} rows</span>}
-                    {connectorTotalRows > 0 && connectorTableCount > 0 && <span>·</span>}
-                    {connectorTableCount > 0 && <span>{connectorTableCount} {connectorTableCount === 1 ? 'table' : 'tables'}</span>}
-                  </span>
-                </>
-              )}
-
-              {selectedFile && selectedFile.rowCount != null && selectedFile.rowCount > 0 && (
-                <>
-                  <div className="w-px h-5 bg-gray-200 dark:bg-white/[0.08] hidden sm:block" />
-                  <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-                    <span>{selectedFile.rowCount.toLocaleString()} rows</span>
                     {selectedFile.columns && selectedFile.columns.length > 0 && (
-                      <>
-                        <span>·</span>
-                        <span>{selectedFile.columns.length} columns</span>
-                      </>
+                      <span> · {selectedFile.columns.length} cols</span>
                     )}
-                  </span>
-                </>
+                  </p>
+                )}
+                {selectedConnector && (
+                  <p className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                      selectedConnector.syncStatus === 1 ? 'bg-amber-400 animate-pulse' :
+                      selectedConnector.syncStatus === 3 ? 'bg-red-400' :
+                      selectedConnector.syncStatus === 2 ? 'bg-emerald-400' :
+                      'bg-gray-300 dark:bg-gray-600'
+                    }`} />
+                    {selectedConnector.lastSyncedAt ? formatRelativeTime(selectedConnector.lastSyncedAt) : 'Not synced'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Right: action buttons */}
+            <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+              {/* Database: Schema */}
+              {selectedDatabase && (
+                <button
+                  onClick={() => {
+                    setSchemaViewDatabaseId(selectedDatabase.id);
+                    setShowSchemaModal(true);
+                  }}
+                  title="View Schema"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200/60 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04] hover:border-gray-300 dark:hover:border-white/[0.1] text-gray-500 dark:text-gray-400 transition-all text-[11px] font-medium"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Schema</span>
+                </button>
               )}
 
-              {/* Context status chip */}
-              {lastContextMetadata && (
-                <>
-                  <div className="w-px h-5 bg-gray-200 dark:bg-white/[0.08] hidden sm:block" />
-                  <ContextStatusChip
-                    contextMetadata={lastContextMetadata}
-                    conversation={conversations.find(c => c.id === selectedConversationId) || null}
-                    onUpdateCustomInstructions={handleUpdateCustomInstructions}
-                  />
-                </>
+              {/* Connector: Sync */}
+              {selectedConnector && (
+                <button
+                  onClick={handleHeaderSync}
+                  disabled={selectedConnector.syncStatus === 1}
+                  title="Sync now"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200/60 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04] hover:border-gray-300 dark:hover:border-white/[0.1] text-gray-500 dark:text-gray-400 transition-all text-[11px] font-medium disabled:opacity-40"
+                >
+                  <svg className={`w-3.5 h-3.5 ${selectedConnector.syncStatus === 1 ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="hidden sm:inline">Sync</span>
+                </button>
               )}
+
+              {/* Instructions — visible on mobile too */}
+              <button
+                onClick={() => setShowInstructionsPanel(true)}
+                className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors relative"
+                title="Custom Instructions"
+              >
+                <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                </svg>
+                {(user?.globalCustomInstructions || conversations.find(c => c.id === selectedConversationId)?.customInstructions) && (
+                  <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-gray-300" />
+                )}
+              </button>
             </div>
           </div>
         </header>
@@ -2716,14 +2863,22 @@ export default function AIPage() {
         )}
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-5 pt-4 sm:pt-5 pb-24 sm:pb-20 flex flex-col gap-4 sm:gap-5 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pt-2 pb-32 sm:pb-28 flex flex-col gap-4 sm:gap-5 custom-scrollbar">
+
           {messages.length === 0 ? null : (
-            messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message, messageIndex) => (
+            messages.filter((m) => m && m.role !== undefined && m.role !== null).map((message, messageIndex) => {
+              // Determine if this message was summarized (old, compacted)
+              const validMessages = messages.filter((m) => m && m.role !== undefined && m.role !== null);
+              const messagesInContext = lastContextMetadata?.messagesInContext || validMessages.length;
+              const isSummarized = messageIndex < (validMessages.length - messagesInContext);
+
+              return (
               <motion.div
                 key={message.id}
-                initial={messageIndex === messages.filter((m) => m && m.role !== undefined && m.role !== null).length - 1 ? { opacity: 0, y: 12 } : false}
+                initial={messageIndex === validMessages.length - 1 ? { opacity: 0, y: 12 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                className={`px-3 sm:px-5 ${isSummarized ? 'opacity-60' : ''}`}
               >
                 {isAssistantMessage(message.role) ? (
                   <div className="w-full sm:w-[85%] md:w-[75%] sm:max-w-[85%] md:max-w-[75%] flex flex-col gap-2 sm:gap-3">
@@ -2791,7 +2946,7 @@ export default function AIPage() {
                                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{capitalizedTitle}</span>
                                   </div>
                                   {/* View Toggle Buttons */}
-                                  <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-100 dark:border-white/[0.05] gap-0.5 sm:gap-1 overflow-x-auto">
+                                  <div className="flex items-center justify-between p-1 sm:p-2 border-b border-gray-100 dark:border-white/[0.05] gap-0.5 sm:gap-1 flex-wrap">
                                     <div className="flex items-center gap-0.5 flex-shrink-0">
                                       <button
                                         onClick={() => setChartViews(prev => ({ ...prev, [viewKey]: "table" }))}
@@ -3405,7 +3560,7 @@ export default function AIPage() {
                   </div>
                 )}
               </motion.div>
-            ))
+            ); })
           )}
           {/* Show processing indicator when actively sending OR when this conversation has pending request */}
           {(isSending || (selectedConversationId && pendingConversations.has(selectedConversationId) && !isSending)) && (() => {
@@ -3628,9 +3783,30 @@ export default function AIPage() {
           </div>
         )}
 
+        {/* Context window chip - desktop: bottom-right of chat panel */}
+        {selectedConversationId && lastContextMetadata && !isEmptyChat && (
+          <div className="hidden sm:block absolute bottom-[1.75rem] right-6 z-30">
+            <ContextWindowChip
+              contextMetadata={lastContextMetadata}
+              conversation={conversations.find(c => c.id === selectedConversationId) || null}
+              onUpdateContextSummary={handleUpdateContextSummary}
+            />
+          </div>
+        )}
+
         {/* Input Area */}
         <div className={`${isEmptyChat ? 'absolute inset-0 flex items-center justify-center px-3 sm:px-5' : 'absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-5 pt-3 sm:pt-4 flex justify-center backdrop-blur-2xl bg-gradient-to-t from-white via-white/95 to-white/0 dark:from-[#09090b] dark:via-[#09090b]/95 dark:to-[#09090b]/0'}`}>
           <div className={`w-full max-w-[680px] ${isEmptyChat ? 'flex flex-col items-center gap-4 sm:gap-6' : ''}`}>
+            {/* Context window chip - mobile: above input form */}
+            {!isEmptyChat && selectedConversationId && lastContextMetadata && mobileView === 'chat' && (
+              <div className="sm:hidden flex justify-end mb-1">
+                <ContextWindowChip
+                  contextMetadata={lastContextMetadata}
+                  conversation={conversations.find(c => c.id === selectedConversationId) || null}
+                  onUpdateContextSummary={handleUpdateContextSummary}
+                />
+              </div>
+            )}
             {isEmptyChat && (
               <div className="text-center px-2 max-w-lg">
                 <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/[0.06] border border-gray-200/60 dark:border-white/[0.08] flex items-center justify-center mx-auto mb-4">
@@ -3730,7 +3906,7 @@ export default function AIPage() {
             <form
               data-chat-form
               onSubmit={handleSendMessage}
-              className="w-full h-12 sm:h-11 bg-gray-50/80 dark:bg-white/[0.04] rounded-2xl px-2.5 flex items-center gap-1.5 border border-gray-200/80 dark:border-white/[0.08] focus-within:border-gray-300 dark:focus-within:border-white/15 focus-within:bg-white dark:focus-within:bg-white/[0.06] focus-within:shadow-sm focus-within:ring-2 focus-within:ring-gray-200/30 dark:focus-within:ring-white/[0.04] transition-all duration-200"
+              className="w-full bg-gray-50/80 dark:bg-white/[0.04] rounded-2xl px-2.5 pb-2 pt-1 flex flex-col border border-gray-200/80 dark:border-white/[0.08] focus-within:border-gray-300 dark:focus-within:border-white/15 focus-within:bg-white dark:focus-within:bg-white/[0.06] focus-within:shadow-sm focus-within:ring-2 focus-within:ring-gray-200/30 dark:focus-within:ring-white/[0.04] transition-all duration-200"
             >
               {/* Hidden file input for uploads */}
               <input
@@ -3740,68 +3916,84 @@ export default function AIPage() {
                 accept=".xlsx,.docx,.csv,.xml,.json,.txt,.tsv"
                 className="hidden"
               />
-              <div data-tutorial="input-icons" className="flex items-center gap-1.5">
-                {/* Database select button */}
-                <button
-                  type="button"
-                  onClick={() => setShowDatabaseModal(true)}
-                  className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                    selectedDatabase
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
-                  }`}
-                  title={selectedDatabase ? selectedDatabase.name : "Select database"}
-                >
-                  <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                  </svg>
-                </button>
-                {/* Files select button */}
-                <button
-                  type="button"
-                  onClick={() => setShowFilesModal(true)}
-                  className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                    selectedFile
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
-                  }`}
-                  title={selectedFile ? selectedFile.originalFileName : "Select or upload file"}
-                >
-                  <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </button>
-                {/* Connector select button */}
-                <button
-                  type="button"
-                  onClick={() => setShowConnectorModal(true)}
-                  className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                    selectedConnector
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
-                  }`}
-                  title={selectedConnector ? selectedConnector.name : "Connect an app"}
-                >
-                  <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                </button>
-              </div>
-
-              <div data-tutorial="input-field" className="flex items-center flex-1 min-w-0 gap-1.5">
-                <input
-                  type="text"
+              {/* Textarea area */}
+              <div data-tutorial="input-field">
+                <textarea
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    // Auto-resize
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (inputValue.trim() && !isSending) {
+                        handleSendMessage(e as unknown as React.FormEvent);
+                      }
+                    }
+                  }}
                   placeholder={selectedConnector ? `Ask about your ${selectedConnectorDef?.name || 'app'} data...` : selectedFile ? `Ask about ${selectedFile.originalFileName}...` : "Ask about your data..."}
                   disabled={isSending}
-                  className="flex-1 min-w-0 ml-0.5 text-base sm:text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white"
+                  rows={1}
+                  className="w-full px-1 pt-2.5 pb-1 text-base sm:text-[13px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 bg-transparent text-gray-900 dark:text-white resize-none leading-relaxed max-h-[200px]"
                   enterKeyHint="send"
                 />
+              </div>
+              {/* Bottom row: icons left, send right */}
+              <div className="flex items-center justify-between">
+                <div data-tutorial="input-icons" className="flex items-center gap-0.5">
+                  {/* Database select button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowDatabaseModal(true)}
+                    className={`w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                      selectedDatabase
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                        : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                    }`}
+                    title={selectedDatabase ? selectedDatabase.name : "Select database"}
+                  >
+                    <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                    </svg>
+                  </button>
+                  {/* Files select button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowFilesModal(true)}
+                    className={`w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                      selectedFile
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                        : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                    }`}
+                    title={selectedFile ? selectedFile.originalFileName : "Select or upload file"}
+                  >
+                    <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+                  {/* Connector select button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowConnectorModal(true)}
+                    className={`w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                      selectedConnector
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                        : "text-gray-400 dark:text-gray-500 hover:bg-gray-200/70 dark:hover:bg-white/10"
+                    }`}
+                    title={selectedConnector ? selectedConnector.name : "Connect an app"}
+                  >
+                    <svg className="w-[18px] h-[18px] sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </button>
+                </div>
                 <button
                   type="submit"
                   disabled={isSending || !inputValue.trim()}
-                  className="w-10 h-10 sm:w-8 sm:h-8 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center flex-shrink-0 hover:bg-gray-800 dark:hover:bg-gray-200 active:scale-95 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-9 h-9 sm:w-8 sm:h-8 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center flex-shrink-0 hover:bg-gray-800 dark:hover:bg-gray-200 active:scale-95 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg className="w-4 h-4 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -3811,43 +4003,146 @@ export default function AIPage() {
             </form>
           </div>
         </div>
-        {/* Upload progress overlay */}
-        {isUploadingFile && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 w-80">
-            <div className="bg-white dark:bg-[#0c0c0e] border border-gray-200/50 dark:border-white/[0.08] rounded-2xl shadow-xl dark:shadow-2xl dark:shadow-black/40 px-4 py-3">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.07] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
+        {/* Upload progress — full chat overlay with phased animation */}
+        <AnimatePresence>
+          {isUploadingFile && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 top-[49px] z-30 bg-white/95 dark:bg-[#09090b]/95 backdrop-blur-sm flex items-center justify-center"
+            >
+              <div className="flex flex-col items-center gap-6 max-w-xs w-full px-6">
+                {/* File icon with pulse ring */}
+                <div className="relative">
+                  <motion.div
+                    animate={{ scale: [1, 1.15, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 rounded-2xl bg-gray-200/40 dark:bg-white/[0.04]"
+                    style={{ margin: "-8px" }}
+                  />
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/[0.06] border border-gray-200/60 dark:border-white/[0.08] flex items-center justify-center relative z-10">
+                    {uploadPhase === "uploading" ? (
+                      <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-gray-500 dark:text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+
+                {/* File name */}
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[240px]">
                     {uploadingFileName}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {uploadPhase === "uploading" ? "Uploading..." : "Processing file..."}
-                  </p>
                 </div>
-                {uploadPhase === "uploading" && (
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums">
-                    {uploadProgress}%
-                  </span>
-                )}
+
+                {/* Phases */}
+                <div className="w-full space-y-3">
+                  {/* Phase 1: Upload */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      uploadPhase === "uploading"
+                        ? "bg-gray-900 dark:bg-white"
+                        : "bg-emerald-500"
+                    }`}>
+                      {uploadPhase === "uploading" ? (
+                        <span className="text-[10px] font-bold text-white dark:text-gray-900 tabular-nums">1</span>
+                      ) : (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[13px] font-medium ${
+                          uploadPhase === "uploading" ? "text-gray-900 dark:text-white" : "text-emerald-600 dark:text-emerald-400"
+                        }`}>
+                          Uploading file
+                        </span>
+                        {uploadPhase === "uploading" && (
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tabular-nums">{uploadProgress}%</span>
+                        )}
+                      </div>
+                      {uploadPhase === "uploading" && (
+                        <div className="mt-1.5 h-1.5 bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gray-900 dark:bg-white rounded-full"
+                            style={{ width: `${uploadProgress}%` }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Phase 2: Processing */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: uploadPhase === "processing" ? 1 : 0.35, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      uploadPhase === "processing"
+                        ? "bg-gray-900 dark:bg-white"
+                        : "bg-gray-200 dark:bg-white/[0.08]"
+                    }`}>
+                      <span className={`text-[10px] font-bold tabular-nums ${
+                        uploadPhase === "processing"
+                          ? "text-white dark:text-gray-900"
+                          : "text-gray-400 dark:text-gray-500"
+                      }`}>2</span>
+                    </div>
+                    <div className="flex-1">
+                      <span className={`text-[13px] font-medium ${
+                        uploadPhase === "processing" ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"
+                      }`}>
+                        Analyzing structure
+                      </span>
+                      {uploadPhase === "processing" && (
+                        <div className="mt-1.5 h-1.5 bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gray-900 dark:bg-white rounded-full"
+                            animate={{ x: ["-100%", "200%"] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                            style={{ width: "40%" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Phase 3: Ready (always dimmed, just shows what's coming) */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 0.35, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tabular-nums">3</span>
+                    </div>
+                    <span className="text-[13px] font-medium text-gray-400 dark:text-gray-500">
+                      Ready to chat
+                    </span>
+                  </motion.div>
+                </div>
               </div>
-              <div className="h-1.5 bg-gray-100 dark:bg-white/[0.07] rounded-full overflow-hidden">
-                {uploadPhase === "uploading" ? (
-                  <div
-                    className="h-full bg-gray-900 dark:bg-white rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                ) : (
-                  <div className="h-full w-1/3 bg-gray-900 dark:bg-white rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]" />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Database Selection Modal */}
@@ -4143,7 +4438,7 @@ export default function AIPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-base text-gray-900 dark:text-white">Delete {deleteConfirm.type === 'conversation' ? 'Chat' : deleteConfirm.type === 'connector' ? 'Connector' : 'Connection'}</h3>
+                <h3 className="font-semibold text-base text-gray-900 dark:text-white">Delete {deleteConfirm.type === 'conversation' ? 'Chat' : deleteConfirm.type === 'connector' ? 'Connector' : deleteConfirm.type === 'file' ? 'File' : 'Connection'}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone</p>
               </div>
             </div>
@@ -4163,6 +4458,8 @@ export default function AIPage() {
                     handleDeleteConversation(deleteConfirm.id);
                   } else if (deleteConfirm.type === 'connector') {
                     handleDeleteConnector(deleteConfirm.id);
+                  } else if (deleteConfirm.type === 'file') {
+                    handleDeleteFile(deleteConfirm.id);
                   } else {
                     handleDeleteDatabase(deleteConfirm.id);
                   }
@@ -4511,6 +4808,15 @@ export default function AIPage() {
         })()}
       </AnimatePresence>
 
+      {/* Instructions Panel — fixed overlay, outside flex flow */}
+      <InstructionsPanel
+        open={showInstructionsPanel}
+        onClose={() => setShowInstructionsPanel(false)}
+        user={user}
+        conversation={conversations.find(c => c.id === selectedConversationId) || null}
+        onUpdateGlobalInstructions={handleUpdateGlobalInstructions}
+        onUpdateChatInstructions={handleUpdateCustomInstructions}
+      />
     </div>
   );
 }
