@@ -1437,6 +1437,7 @@ export default function AIPage() {
     } catch (err) {
       devError("Failed to delete file:", err);
     }
+    setDeleteConfirm(null);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -4531,14 +4532,16 @@ const handleUpdateContextSummary = useCallback(async (summary: string) => {    i
               </button>
               <button
                 onClick={() => {
-                  if (deleteConfirm.type === 'conversation') {
-                    handleDeleteConversation(deleteConfirm.id);
-                  } else if (deleteConfirm.type === 'connector') {
-                    handleDeleteConnector(deleteConfirm.id);
-                  } else if (deleteConfirm.type === 'file') {
-                    handleDeleteFile(deleteConfirm.id);
+                  const { type, id } = deleteConfirm;
+                  setDeleteConfirm(null);
+                  if (type === 'conversation') {
+                    handleDeleteConversation(id);
+                  } else if (type === 'connector') {
+                    handleDeleteConnector(id);
+                  } else if (type === 'file') {
+                    handleDeleteFile(id);
                   } else {
-                    handleDeleteDatabase(deleteConfirm.id);
+                    handleDeleteDatabase(id);
                   }
                 }}
                 className="flex-1 h-10 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors"
