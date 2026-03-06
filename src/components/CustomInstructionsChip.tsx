@@ -15,14 +15,19 @@ export function CustomInstructionsChip({ conversation, onUpdateCustomInstruction
   const [saved, setSaved] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const chipRef = useRef<HTMLButtonElement>(null);
+  const [prevConvKey, setPrevConvKey] = useState<string>("");
+
+  // Sync instructions from props (setState during render — React-approved pattern)
+  const convCI = conversation?.customInstructions || "";
+  const convKey = `${conversation?.id ?? ""}::${convCI}`;
+  if (prevConvKey !== convKey) {
+    setPrevConvKey(convKey);
+    setInstructions(convCI);
+    setSaved(false);
+  }
 
   const hasInstructions = !!(conversation?.customInstructions && conversation.customInstructions.trim());
   const isDirty = instructions !== (conversation?.customInstructions || "");
-
-  useEffect(() => {
-    setInstructions(conversation?.customInstructions || "");
-    setSaved(false);
-  }, [conversation?.id, conversation?.customInstructions]);
 
   useEffect(() => {
     if (!open) return;

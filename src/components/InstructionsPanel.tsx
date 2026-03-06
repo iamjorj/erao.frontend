@@ -26,20 +26,27 @@ export function InstructionsPanel({
   const [globalSaved, setGlobalSaved] = useState(false);
   const [chatSaved, setChatSaved] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [prevGlobalCI, setPrevGlobalCI] = useState<string>("");
+  const [prevChatKey, setPrevChatKey] = useState<string>("");
+
+  // Sync values from props (setState during render — React-approved pattern)
+  const globalCI = user?.globalCustomInstructions || "";
+  if (prevGlobalCI !== globalCI) {
+    setPrevGlobalCI(globalCI);
+    setGlobalValue(globalCI);
+    setGlobalSaved(false);
+  }
+
+  const chatCI = conversation?.customInstructions || "";
+  const chatKey = `${conversation?.id ?? ""}::${chatCI}`;
+  if (prevChatKey !== chatKey) {
+    setPrevChatKey(chatKey);
+    setChatValue(chatCI);
+    setChatSaved(false);
+  }
 
   const globalDirty = globalValue !== (user?.globalCustomInstructions || "");
   const chatDirty = chatValue !== (conversation?.customInstructions || "");
-
-  // Sync values when user/conversation changes
-  useEffect(() => {
-    setGlobalValue(user?.globalCustomInstructions || "");
-    setGlobalSaved(false);
-  }, [user?.globalCustomInstructions]);
-
-  useEffect(() => {
-    setChatValue(conversation?.customInstructions || "");
-    setChatSaved(false);
-  }, [conversation?.id, conversation?.customInstructions]);
 
   // Close on escape
   useEffect(() => {
